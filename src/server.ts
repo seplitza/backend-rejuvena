@@ -21,7 +21,9 @@ app.use(cors({
   origin: [
     'http://localhost:3000',
     'http://localhost:5173',
-    'https://seplitza.github.io'
+    'https://seplitza.github.io',
+    'http://api-rejuvena.duckdns.org',
+    'https://api-rejuvena.duckdns.org'
   ],
   credentials: true
 }));
