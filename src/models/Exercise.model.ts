@@ -14,6 +14,9 @@ export interface IExercise extends Document {
   content: string; // Rich text content from TipTap
   carouselMedia: IMedia[];
   tags: mongoose.Types.ObjectId[];
+  category?: string;
+  price?: number;
+  isPremium?: boolean;
   isPublished: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -59,6 +62,18 @@ const ExerciseSchema = new Schema<IExercise>({
     type: Schema.Types.ObjectId,
     ref: 'Tag'
   }],
+  category: {
+    type: String,
+    default: 'Общие'
+  },
+  price: {
+    type: Number,
+    default: 0
+  },
+  isPremium: {
+    type: Boolean,
+    default: false
+  },
   isPublished: {
     type: Boolean,
     default: false
