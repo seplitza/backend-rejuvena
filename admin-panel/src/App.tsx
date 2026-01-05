@@ -27,7 +27,7 @@ function App() {
   }
 
   return (
-    <Router>
+    <Router basename="/admin">
       <Routes>
         <Route path="/login" element={
           isAuthenticated ? <Navigate to="/dashboard" /> : <Login onLogin={() => setIsAuthenticated(true)} />

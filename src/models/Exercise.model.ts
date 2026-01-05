@@ -15,6 +15,7 @@ export interface IExercise extends Document {
   carouselMedia: IMedia[];
   tags: mongoose.Types.ObjectId[];
   category?: string;
+  duration?: string; // Duration of the exercise (e.g., "2-3 минуты", "5 в каждую сторону")
   price?: number;
   isPremium?: boolean;
   isPublished: boolean;
@@ -65,6 +66,10 @@ const ExerciseSchema = new Schema<IExercise>({
   category: {
     type: String,
     default: 'Общие'
+  },
+  duration: {
+    type: String,
+    default: ''
   },
   price: {
     type: Number,

@@ -32,6 +32,7 @@ export default function ExerciseEditor() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [content, setContent] = useState('');
+  const [duration, setDuration] = useState('');
   const [isPublished, setIsPublished] = useState(false);
   const [carouselMedia, setCarouselMedia] = useState<Media[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -64,6 +65,7 @@ export default function ExerciseEditor() {
       setTitle(exercise.title);
       setDescription(exercise.description);
       setContent(exercise.content);
+      setDuration(exercise.duration || '');
       setIsPublished(exercise.isPublished);
       setCarouselMedia(exercise.carouselMedia || []);
       setSelectedTags(exercise.tags.map((t: any) => t._id));
@@ -87,6 +89,7 @@ export default function ExerciseEditor() {
         title,
         description,
         content,
+        duration,
         isPublished,
         carouselMedia,
         tags: selectedTags
@@ -278,6 +281,23 @@ export default function ExerciseEditor() {
               resize: 'vertical'
             }}
             placeholder="Краткое описание упражнения для списка"
+          />
+        </div>
+
+        <div style={{ marginBottom: '24px' }}>
+          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Длительность</label>
+          <input
+            type="text"
+            value={duration}
+            onChange={(e) => setDuration(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '12px',
+              border: '1px solid #D1D5DB',
+              borderRadius: '8px',
+              fontSize: '14px'
+            }}
+            placeholder="Например: 2-3 минуты, 5 в каждую сторону"
           />
         </div>
 

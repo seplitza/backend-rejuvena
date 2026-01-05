@@ -9,7 +9,8 @@
     "start": "node dist/server.js",
     "seed": "ts-node src/scripts/seed.ts",
     "import-exercises": "ts-node src/scripts/import-exercises.ts",
-    "update-exercises": "ts-node src/scripts/update-exercises-from-api.ts"
+    "update-exercises": "ts-node src/scripts/update-exercises-from-api.ts",
+    "import-forehead-eyes-pro": "ts-node src/scripts/import-forehead-eyes-pro.ts"
   },
   "keywords": [],
   "author": "",
