@@ -33,53 +33,69 @@ jobs:
         run: |
           cd admin-panel
           npm run build
-          
-      - name: Create deployment package
-        run: |
-          mkdir -p deploy-package
-          cp -r dist deploy-package/
-          cp -r src deploy-package/
-          cp -r admin-panel/dist deploy-package/admin-panel
-          cp package.json package-lock.json tsconfig.json deploy-package/
-          tar -czf deploy.tar.gz -C deploy-package .
 
-      - name: Deploy to Server
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          password: ${{ secrets.SERVER_PASSWORD }}
-          source: "deploy.tar.gz"
-          target: "/tmp/"
-
-      - name: Extract and restart on server
+      - name: Deploy to Server via SSH
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
+            # Backup current version
             cd /var/www/rejuvena-backend
-            
-            # Backup
             mkdir -p backups
-            tar -czf backups/backup-$(date +%Y%m%d-%H%M%S).tar.gz dist admin-panel src || true
+            tar -czf backups/backup-$(date +%Y%m%d-%H%M%S).tar.gz dist admin-panel || true
             
-            # Extract new version
-            tar -xzf /tmp/deploy.tar.gz -C /var/www/rejuvena-backend
-            rm /tmp/deploy.tar.gz
+            # Update source code
+            cd /var/www/rejuvena-backend
+            rm -rf src-new
+            mkdir -p src-new
             
-            # Install production dependencies
+      - name: Copy Backend files to Server
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          source: "src/*,package.json,package-lock.json,tsconfig.json,dist/*"
+          target: "/var/www/rejuvena-backend-temp"
+          strip_components: 0
+
+      - name: Copy Admin Panel build to Server
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          source: "admin-panel/dist/*"
+          target: "/var/www/rejuvena-backend-temp/admin-panel"
+          strip_components: 2
+
+      - name: Update server and restart
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          script: |
+            # Move new files
+            cd /var/www/rejuvena-backend
+            rsync -av --delete /var/www/rejuvena-backend-temp/src/ ./src/
+            rsync -av --delete /var/www/rejuvena-backend-temp/dist/ ./dist/
+            rsync -av --delete /var/www/rejuvena-backend-temp/admin-panel/ ./admin-panel/
+            cp /var/www/rejuvena-backend-temp/package*.json ./
+            cp /var/www/rejuvena-backend-temp/tsconfig.json ./
+            
+            # Clean temp
+            rm -rf /var/www/rejuvena-backend-temp
+            
+            # Install dependencies if needed
             npm install --production
             
-            # Set permissions
-            chown -R www-data:www-data /var/www/rejuvena-backend/admin-panel
+            # Restart backend
+            pm2 restart rejuvena-backend || pm2 start ecosystem.config.json
             
-            # Restart backend with PM2
-            pm2 restart rejuvena-backend || pm2 start dist/server.js --name rejuvena-backend
-            
-            # Restart nginx
-            systemctl restart nginx
-            
-            echo "✅ Deployment completed!"
+            # Show status
             pm2 status
+            
+            echo "✅ Deployment completed successfully!"
