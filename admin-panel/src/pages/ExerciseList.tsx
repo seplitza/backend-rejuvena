@@ -232,6 +232,15 @@ export default function ExerciseList() {
                   }}>
                     {exercise.isPublished ? 'Опубликовано' : 'Черновик'}
                   </span>
+                  <span style={{ fontSize: '12px', color: '#9CA3AF' }}>
+                    Обновлено: {new Date(exercise.updatedAt).toLocaleDateString('ru-RU', { 
+                      day: '2-digit', 
+                      month: '2-digit', 
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
                 </div>
                 <p style={{ color: '#6B7280', marginBottom: '12px' }}>
                   {exercise.description.substring(0, 150)}
@@ -239,18 +248,36 @@ export default function ExerciseList() {
                 </p>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   {exercise.tags.map((tag: any) => (
-                    <span
+                    <button
                       key={tag._id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedTagId(selectedTagId === tag._id ? '' : tag._id);
+                      }}
                       style={{
                         padding: '4px 8px',
                         borderRadius: '6px',
                         fontSize: '12px',
-                        background: tag.color + '20',
-                        color: tag.color
+                        background: selectedTagId === tag._id ? tag.color : tag.color + '20',
+                        color: selectedTagId === tag._id ? '#fff' : tag.color,
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontWeight: selectedTagId === tag._id ? '600' : '400',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (selectedTagId !== tag._id) {
+                          e.currentTarget.style.background = tag.color + '40';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (selectedTagId !== tag._id) {
+                          e.currentTarget.style.background = tag.color + '20';
+                        }
                       }}
                     >
                       {tag.name}
-                    </span>
+                    </button>
                   ))}
                 </div>
               </div>
