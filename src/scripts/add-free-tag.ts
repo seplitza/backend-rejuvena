@@ -1,6 +1,20 @@
 import mongoose from 'mongoose';
-import Exercise from './src/models/Exercise.model';
-import Tag from './src/models/Tag.model';
+import Exercise from '../models/Exercise.model';
+import Tag from '../models/Tag.model';
+
+interface ITag {
+  _id: mongoose.Types.ObjectId;
+  name: string;
+  slug: string;
+  color: string;
+}
+
+interface IExercise {
+  _id: mongoose.Types.ObjectId;
+  title: string;
+  tags: ITag[];
+  createdAt: Date;
+}
 
 async function addFreeTag() {
   try {
@@ -21,24 +35,24 @@ async function addFreeTag() {
     }
 
     // Get first 6 exercises (oldest by creation date)
-    const allExercises = await Exercise.find().populate('tags').sort({ createdAt: 1 });
+    const allExercises = await Exercise.find().populate('tags').sort({ createdAt: 1 }) as unknown as IExercise[];
     console.log(`\nВсего упражнений в базе: ${allExercises.length}`);
 
     // Определяем бесплатные упражнения - первые 6 базовых
-    const baseExercises = allExercises.filter(ex => 
-      ex.tags.some((t: any) => t.name === 'Базовое')
+    const baseExercises = allExercises.filter((ex: IExercise) => 
+      ex.tags.some((t: ITag) => t.name === 'Базовое')
     );
     const freeExercises = baseExercises.slice(0, 6);
 
     console.log(`\nБудут помечены как бесплатные (первые 6 базовых):`);
-    freeExercises.forEach((ex, i) => {
+    freeExercises.forEach((ex: IExercise, i: number) => {
       console.log(`  ${i + 1}. ${ex.title}`);
     });
 
     // Add "На здоровье" tag to first 6 exercises
     let updated = 0;
     for (const exercise of freeExercises) {
-      const hasFreeTag = exercise.tags.some((t: any) => t.name === 'На здоровье');
+      const hasFreeTag = exercise.tags.some((t: ITag) => t.name === 'На здоровье');
       if (!hasFreeTag) {
         await Exercise.findByIdAndUpdate(
           exercise._id,
@@ -51,15 +65,15 @@ async function addFreeTag() {
     console.log(`\n✅ Обновлено ${updated} упражнений`);
 
     // Show final stats
-    const updatedExercises = await Exercise.find().populate('tags');
-    const withFreeTag = updatedExercises.filter(ex => 
-      ex.tags.some((t: any) => t.name === 'На здоровье')
+    const updatedExercises = await Exercise.find().populate('tags') as unknown as IExercise[];
+    const withFreeTag = updatedExercises.filter((ex: IExercise) => 
+      ex.tags.some((t: ITag) => t.name === 'На здоровье')
     );
-    const withBasicTag = updatedExercises.filter(ex => 
-      ex.tags.some((t: any) => t.name === 'Базовое')
+    const withBasicTag = updatedExercises.filter((ex: IExercise) => 
+      ex.tags.some((t: ITag) => t.name === 'Базовое')
     );
-    const withProTag = updatedExercises.filter(ex => 
-      ex.tags.some((t: any) => t.name === 'продвинутое' || t.name === 'PRO')
+    const withProTag = updatedExercises.filter((ex: IExercise) => 
+      ex.tags.some((t: ITag) => t.name === 'продвинутое' || t.name === 'PRO')
     );
 
     console.log('\n📊 Итоговая статистика:');
