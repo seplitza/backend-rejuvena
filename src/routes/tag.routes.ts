@@ -7,7 +7,13 @@ const router = Router();
 // Get all tags
 router.get('/', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const tags = await Tag.find().sort({ name: 1 });
+    // Фильтруем только видимые теги (по умолчанию isVisible = true)
+    const tags = await Tag.find({ 
+      $or: [
+        { isVisible: { $ne: false } },
+        { isVisible: { $exists: false } }
+      ]
+    }).sort({ name: 1 });
     res.json(tags);
   } catch (error) {
     console.error('Get tags error:', error);

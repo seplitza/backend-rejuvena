@@ -2,6 +2,7 @@ import axios from 'axios';
 import mongoose from 'mongoose';
 import Exercise from '../models/Exercise.model';
 import Tag from '../models/Tag.model';
+import { getRuTag } from './utils/ru-tag';
 
 // Подключаемся к MongoDB
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/rejuvena';
@@ -126,6 +127,7 @@ async function importCheeksEyesPro() {
     console.log(`📂 Категория: ${targetCategory.categoryName} (${targetCategory.exercises.length} упражнений)`);
 
     // Создаем/получаем теги
+    const ruTag = await getRuTag();
     const tagNames = ['нащекииглаза', 'продвинутое'];
     const tags = await Promise.all(
       tagNames.map(async (name) => {
@@ -137,6 +139,7 @@ async function importCheeksEyesPro() {
         return tag;
       })
     );
+    tags.push(ruTag);
     const tagIds = tags.map(tag => tag._id);
 
     let imported = 0;

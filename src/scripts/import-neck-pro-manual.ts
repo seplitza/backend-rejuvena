@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import Exercise from '../models/Exercise.model';
 import Tag from '../models/Tag.model';
+import { getRuTag } from './utils/ru-tag';
 
 dotenv.config();
 
@@ -55,6 +56,7 @@ async function importNeckPro() {
     console.log(`📂 Категория: ${targetCategory.categoryName} (${targetCategory.exercises.length} упражнений)\n`);
 
     // Создаем/получаем теги
+    const ruTag = await getRuTag();
     const tagNames = ['Шея', '+на шею', 'PRO'];
     const tags = await Promise.all(
       tagNames.map(async (name) => {
@@ -70,6 +72,7 @@ async function importNeckPro() {
         return tag;
       })
     );
+    tags.push(ruTag);
 
     let imported = 0;
     let updated = 0;
