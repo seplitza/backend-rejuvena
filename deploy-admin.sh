@@ -22,7 +22,7 @@ if [ ! -d "node_modules" ]; then
 fi
 
 # Build for production
-npm run build
+NODE_ENV=production npm run build
 
 # Create deployment package
 echo "📦 Creating deployment package..."

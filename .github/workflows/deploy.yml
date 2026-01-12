@@ -32,7 +32,9 @@ jobs:
       - name: Build Admin Panel
         run: |
           cd admin-panel
-          npm run build
+          NODE_ENV=production npm run build
+        env:
+          VITE_API_URL: https://api-rejuvena.duckdns.org/api
 
       - name: Deploy to Server via SSH
         uses: appleboy/ssh-action@master
