@@ -59,3 +59,63 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response) => {
 });
 
 export default router;
+
+// Endpoint для обмена старого токена на новый
+router.post('/exchange-token', async (req: Request, res: Response) => {
+  try {
+    const oldToken = req.headers.authorization?.split(' ')[1];
+    
+    if (!oldToken) {
+      return res.status(401).json({ error: 'Old token required' });
+    }
+
+    // Проверяем старый токен через старый API
+    const oldApiResponse = await fetch('https://new-facelift-service-b8cta5hpgcgqf8c7.eastus-01.azurewebsites.net/user/getuserprofiledetail', {
+      headers: {
+        'Authorization': `Bearer ${oldToken}`
+      }
+    });
+
+    if (!oldApiResponse.ok) {
+      return res.status(401).json({ error: 'Invalid old token' });
+    }
+
+    const userData = await oldApiResponse.json();
+    
+    // Находим или создаем пользователя в новой БД
+    let user = await User.findOne({ email: userData.email });
+    
+    if (!user) {
+      // Создаем пользователя из данных старого API
+      user = new User({
+        email: userData.email,
+        firstName: userData.firstName || userData.fullName?.split(' ')[0],
+        las        las        las        las        las        las      
+        passwordHash: 'impo        m_old_system', // Не используется
+        isPremium:         isPremium:         isPremium:         isPremium:         isPremium: 
+                  ait user.save();
+    }
+
+    // Создаем новый токен для нового API
+    const newToken = jwt.sign(
+                   r._id, role: user.role || 'user' },
+      process.env.JWT_SECRET     secret',
+      { expiresIn: '7d' }
+    );
+
+    res.json({ 
+      success: true,
+      token: newToken,
+      user: {
+        id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        isPremium: user.isPremium
+      }
+    });
+  } catch (error) {
+    console.error('Token exchange error:', error);
+    res.status(500).json({ error: 'Failed to exchange token' });
+  }
+});
+
