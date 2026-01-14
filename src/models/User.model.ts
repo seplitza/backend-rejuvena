@@ -4,6 +4,8 @@ export interface IUser extends Document {
   email: string;
   password: string;
   role: 'superadmin' | 'admin';
+  isPremium?: boolean;
+  premiumEndDate?: Date;
   createdAt: Date;
 }
 
@@ -23,6 +25,13 @@ const UserSchema = new Schema<IUser>({
     type: String,
     enum: ['superadmin', 'admin'],
     default: 'admin'
+  },
+  isPremium: {
+    type: Boolean,
+    default: false
+  },
+  premiumEndDate: {
+    type: Date
   },
   createdAt: {
     type: Date,
