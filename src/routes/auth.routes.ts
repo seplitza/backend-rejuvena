@@ -9,7 +9,7 @@ const router = Router();
 // Register new user
 router.post('/register', async (req: Request, res: Response) => {
   try {
-    const { email, password, firstName, lastName } = req.body;
+    const { email, password } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -18,15 +18,13 @@ router.post('/register', async (req: Request, res: Response) => {
     }
 
     // Hash password
-    const passwordHash = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create new user
     const user = new User({
       email,
-      passwordHash,
-      firstName,
-      lastName,
-      role: 'user'
+      password: hashedPassword,
+      role: 'admin'
     });
 
     await user.save();
@@ -64,7 +62,7 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     // Check password
-    const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+    const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -133,9 +131,8 @@ router.post('/exchange-token', async (req: Request, res: Response) => {
       // Create user from Azure data
       user = new User({
         email: userData.email,
-        firstName: userData.firstName || userData.fullName?.split(' ')[0],
-        lastName: userData.lastName || userData.fullName?.split(' ')[1],
-        passwordHash: 'imported_from_azure',
+        password: 'imported_from_azure_no_password',
+        role: 'admin',
         isPremium: userData.isPremium || false,
         premiumEndDate: userData.premiumEndDate
       });
@@ -155,7 +152,6 @@ router.post('/exchange-token', async (req: Request, res: Response) => {
       user: {
         id: user._id,
         email: user.email,
-        firstName: user.firstName,
         isPremium: user.isPremium
       }
     });
