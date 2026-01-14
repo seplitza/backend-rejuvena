@@ -82,7 +82,7 @@ class AlfaBankService {
         returnUrl: params.returnUrl || this.config.returnUrl,
         failUrl: params.failUrl || this.config.failUrl,
         description: params.description,
-        currency: params.currency || '643', // RUB
+        // currency not needed for RUB (default)
         ...(params.jsonParams && { jsonParams: JSON.stringify(params.jsonParams) })
       });
 
