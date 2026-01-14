@@ -117,7 +117,7 @@ router.post('/exchange-token', async (req: Request, res: Response) => {
 
     // Verify old token with Azure API
     console.log('📡 Calling Azure API...');
-    const oldApiResponse = await fetch('https://new-facelift-service-b8cta5hpgcgqf8c7.eastus-01.azurewebsites.net/user/getuserprofiledetail', {
+    const oldApiResponse = await fetch('https://new-facelift-service-b8cta5hpgcgqf8c7.eastus-01.azurewebsites.net/api/user/getuserprofiledetail', {
       headers: {
         'Authorization': `Bearer ${oldToken}`
       }
