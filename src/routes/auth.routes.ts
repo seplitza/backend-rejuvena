@@ -105,29 +105,40 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response) => {
 // Exchange old Azure token for new DuckDNS token
 router.post('/exchange-token', async (req: Request, res: Response) => {
   try {
+    console.log('🔄 Token exchange request received');
     const oldToken = req.headers.authorization?.split(' ')[1];
     
     if (!oldToken) {
+      console.log('❌ No token provided');
       return res.status(401).json({ error: 'Old token required' });
     }
 
+    console.log('🔑 Old token length:', oldToken.length);
+
     // Verify old token with Azure API
+    console.log('📡 Calling Azure API...');
     const oldApiResponse = await fetch('https://new-facelift-service-b8cta5hpgcgqf8c7.eastus-01.azurewebsites.net/user/getuserprofiledetail', {
       headers: {
         'Authorization': `Bearer ${oldToken}`
       }
     });
 
+    console.log('📡 Azure API response status:', oldApiResponse.status);
+
     if (!oldApiResponse.ok) {
-      return res.status(401).json({ error: 'Invalid old token' });
+      const errorText = await oldApiResponse.text();
+      console.log('❌ Azure API error:', errorText);
+      return res.status(401).json({ error: 'Invalid old token', details: errorText });
     }
 
     const userData = await oldApiResponse.json() as any;
+    console.log('✅ User data from Azure:', { email: userData.email, isPremium: userData.isPremium });
     
     // Find or create user in new database
     let user = await User.findOne({ email: userData.email });
     
     if (!user) {
+      console.log('📝 Creating new user:', userData.email);
       // Create user from Azure data
       user = new User({
         email: userData.email,
@@ -137,6 +148,9 @@ router.post('/exchange-token', async (req: Request, res: Response) => {
         premiumEndDate: userData.premiumEndDate
       });
       await user.save();
+      console.log('✅ User created');
+    } else {
+      console.log('✅ User found:', user.email);
     }
 
     // Create new token for DuckDNS API
@@ -146,6 +160,7 @@ router.post('/exchange-token', async (req: Request, res: Response) => {
       { expiresIn: '7d' }
     );
 
+    console.log('✅ Token exchange successful');
     res.json({ 
       success: true,
       token: newToken,
@@ -156,7 +171,7 @@ router.post('/exchange-token', async (req: Request, res: Response) => {
       }
     });
   } catch (error) {
-    console.error('Token exchange error:', error);
+    console.error('❌ Token exchange error:', error);
     res.status(500).json({ error: 'Failed to exchange token' });
   }
 });
