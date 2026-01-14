@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { User } from '../models/User.model';
+import User from '../models/User.model';
 import { authMiddleware, AuthRequest } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -124,7 +124,7 @@ router.post('/exchange-token', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Invalid old token' });
     }
 
-    const userData = await oldApiResponse.json();
+    const userData = await oldApiResponse.json() as any;
     
     // Find or create user in new database
     let user = await User.findOne({ email: userData.email });
