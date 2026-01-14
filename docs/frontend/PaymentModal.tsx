@@ -30,18 +30,44 @@ export default function PaymentModal({
   const handlePurchase = async () => {
     setIsProcessing(true);
     
-    // TODO: Integrate with payment system (YooKassa, Stripe, etc.)
-    // For now, just simulate purchase
-    setTimeout(() => {
-      // Save purchase to localStorage
-      const purchases = JSON.parse(localStorage.getItem('exercisePurchases') || '[]');
-      purchases.push(exerciseName);
-      localStorage.setItem('exercisePurchases', JSON.stringify(purchases));
+    try {
+      const token = localStorage.getItem('authToken');
       
+      if (!token) {
+        alert('Необходимо войти в систему для оплаты');
+        setIsProcessing(false);
+        return;
+      }
+
+      // Создаем платеж через API
+      const response = await fetch('https://api-rejuvena.duckdns.org/api/payment/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          amount: price,
+          description: `Премиум упражнение: ${exerciseName}`,
+          planType: isPro ? 'pro' : 'basic',
+          duration: 30 // 30 дней доступа
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success && data.payment?.paymentUrl) {
+        // Перенаправляем на страницу оплаты Альфа-Банка
+        window.location.href = data.payment.paymentUrl;
+      } else {
+        alert('Ошибка при создании платежа: ' + (data.error || 'Неизвестная ошибка'));
+        setIsProcessing(false);
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      alert('Ошибка при создании платежа');
       setIsProcessing(false);
-      onClose();
-      window.location.reload(); // Refresh to update UI
-    }, 1000);
+    }
   };
 
   if (!isOpen) return null;
