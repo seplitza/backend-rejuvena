@@ -7,7 +7,7 @@ export interface IUser extends Document {
   isPremium?: boolean;
   premiumEndDate?: Date;
   isLegacyUser?: boolean; // Флаг для пользователей из старого Azure бэка
-  azureUserId?: string; // ID из старого бэка для синхронизации
+  azureUserId?: string; // ID пользователя в Azure (для связи)
   createdAt: Date;
 }
 
