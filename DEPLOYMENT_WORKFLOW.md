@@ -92,9 +92,10 @@
    - Путь: `/Users/alexeipinaev/Documents/Rejuvena/Backend-rejuvena`
    - Админ-панель находится в `admin-panel/`
    
-2. **Frontend:** https://github.com/seplitza/web
+2. **Frontend:** https://github.com/seplitza/rejuvena
    - Путь: `/Users/alexeipinaev/Documents/Rejuvena/web`
    - Next.js приложение
+   - GitHub Pages: https://seplitza.github.io/rejuvena/
 
 ---
 
