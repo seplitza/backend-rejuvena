@@ -6,6 +6,8 @@ export interface IUser extends Document {
   role: 'superadmin' | 'admin';
   isPremium?: boolean;
   premiumEndDate?: Date;
+  isLegacyUser?: boolean; // Флаг для пользователей из старого Azure бэка
+  azureUserId?: string; // ID из старого бэка для синхронизации
   createdAt: Date;
 }
 
@@ -32,6 +34,13 @@ const UserSchema = new Schema<IUser>({
   },
   premiumEndDate: {
     type: Date
+  },
+  isLegacyUser: {
+    type: Boolean,
+    default: false
+  },
+  azureUserId: {
+    type: String
   },
   createdAt: {
     type: Date,
