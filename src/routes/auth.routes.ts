@@ -69,6 +69,7 @@ router.post('/login', async (req: Request, res: Response) => {
       console.log('🔄 User not found locally, checking Azure API...');
       
       try {
+        console.log('📡 Calling Azure API with email:', email);
         const azureResponse = await fetch(
           'https://new-facelift-service-b8cta5hpgcgqf8c7.eastus-01.azurewebsites.net/api/auth/login',
           {
@@ -78,13 +79,17 @@ router.post('/login', async (req: Request, res: Response) => {
           }
         );
 
+        console.log('📡 Azure API response status:', azureResponse.status);
+        
         if (!azureResponse.ok) {
-          // Azure login failed too
+          const errorText = await azureResponse.text();
+          console.error('❌ Azure login failed:', azureResponse.status, errorText);
           return res.status(401).json({ message: 'Invalid credentials' });
         }
 
         const azureData = await azureResponse.json() as any;
-        console.log('✅ Azure login successful, creating local user...');
+        console.log('✅ Azure login successful:', JSON.stringify(azureData, null, 2));
+        console.log('✅ Creating local user...');
 
         // Step 3: Create local user from Azure data
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -100,8 +105,9 @@ router.post('/login', async (req: Request, res: Response) => {
         await user.save();
         console.log('✅ Legacy user imported:', email);
         
-      } catch (azureError) {
-        console.error('❌ Azure API error:', azureError);
+      } catch (azureError: any) {
+        console.error('❌ Azure API error:', azureError.message);
+        console.error('❌ Full error:', azureError);
         return res.status(401).json({ message: 'Invalid credentials' });
       }
     }
