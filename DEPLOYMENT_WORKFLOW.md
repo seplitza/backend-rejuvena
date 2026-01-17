@@ -79,7 +79,14 @@
 ## ✅ ТЕКУЩАЯ РАБОЧАЯ КОНФИГУРАЦИЯ
 
 **Дата:** 17 января 2026
-**Статус:** ✅ **ПОЛНОСТЬЮ РАБОТАЕТ** - Unified auth + Платежи + Case-insensitive email
+**Статус:** ✅ **ПОЛНОСТЬЮ РАБОТАЕТ** - Simple Auth + Email Registration + Payments
+
+### Что работает:
+- ✅ Логин (локальная БД, case-insensitive email)
+- ✅ Регистрация с автоматической отправкой пароля на email (Resend)
+- ✅ Платежи через Alfabank Test Gateway
+- ✅ Админ-панель
+- ✅ Frontend на GitHub Pages
 
 ### Инфраструктура
 - **Сервер:** 37.252.20.170 (api-rejuvena.duckdns.org)
