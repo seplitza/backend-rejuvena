@@ -36,6 +36,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/user', authRoutes); // Legacy alias for frontend compatibility
 app.use('/api/exercises', exerciseRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/tags', tagRoutes);
