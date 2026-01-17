@@ -3,16 +3,23 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.model';
 import { authMiddleware, AuthRequest } from '../middleware/auth.middleware';
+import emailService from '../services/email.service';
 
 const router = Router();
 
-// Register new user
+// Register new user (with email notification)
 router.post('/register', async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { email } = req.body;
     
     // Normalize email to lowercase
     const normalizedEmail = email.toLowerCase().trim();
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(normalizedEmail)) {
+      return res.status(400).json({ message: 'Invalid email format' });
+    }
 
     // Check if user already exists
     const existingUser = await User.findOne({ email: normalizedEmail });
@@ -20,19 +27,31 @@ router.post('/register', async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
+    // Generate random password
+    const generatedPassword = emailService.generatePassword(8);
+    
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(generatedPassword, 10);
 
     // Create new user
     const user = new User({
       email: normalizedEmail,
       password: hashedPassword,
-      role: 'admin'
+      role: 'admin',
+      isPremium: false
     });
 
     await user.save();
+    console.log(`✅ User registered: ${normalizedEmail}`);
 
-    // Generate token
+    // Send registration email with password
+    const emailSent = await emailService.sendRegistrationEmail(normalizedEmail, generatedPassword);
+    
+    if (!emailSent) {
+      console.warn(`⚠️ Email not sent to ${normalizedEmail}, but user created`);
+    }
+
+    // Generate token for immediate login
     const token = jwt.sign(
       { userId: user._id, role: user.role },
       process.env.JWT_SECRET || 'secret',
@@ -40,6 +59,9 @@ router.post('/register', async (req: Request, res: Response) => {
     );
 
     res.status(201).json({
+      message: emailSent 
+        ? 'Registration successful! Check your email for login credentials.'
+        : 'Registration successful! Please contact support for login credentials.',
       token,
       user: {
         id: user._id,
