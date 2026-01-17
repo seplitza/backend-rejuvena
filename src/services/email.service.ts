@@ -43,7 +43,7 @@ class EmailService {
     }
 
     try {
-      await this.resend.emails.send({
+      const result = await this.resend.emails.send({
         from: this.fromEmail,
         to: email,
         subject: 'Добро пожаловать в Rejuvena! Ваш пароль для входа',
@@ -74,7 +74,12 @@ class EmailService {
         `,
       });
 
-      console.log(`✅ Registration email sent to ${email}`);
+      if (result.error) {
+        console.error(`❌ Resend API error for ${email}:`, result.error);
+        return false;
+      }
+
+      console.log(`✅ Registration email sent to ${email} (ID: ${result.data?.id})`);
       return true;
     } catch (error) {
       console.error('❌ Failed to send registration email:', error);
@@ -94,7 +99,7 @@ class EmailService {
     const resetLink = `${process.env.FRONTEND_URL || 'https://seplitza.github.io/rejuvena'}/reset-password?token=${resetToken}`;
 
     try {
-      await this.resend.emails.send({
+      const result = await this.resend.emails.send({
         from: this.fromEmail,
         to: email,
         subject: 'Восстановление пароля Rejuvena',
@@ -125,7 +130,12 @@ class EmailService {
         `,
       });
 
-      console.log(`✅ Password reset email sent to ${email}`);
+      if (result.error) {
+        console.error(`❌ Resend API error for ${email}:`, result.error);
+        return false;
+      }
+
+      console.log(`✅ Password reset email sent to ${email} (ID: ${result.data?.id})`);
       return true;
     } catch (error) {
       console.error('❌ Failed to send password reset email:', error);
