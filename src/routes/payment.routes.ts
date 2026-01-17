@@ -99,7 +99,11 @@ router.get('/status/:paymentId', authMiddleware, async (req: AuthRequest, res: R
     const userId = req.userId;
     const { paymentId } = req.params;
 
-    const payment = await Payment.findById(paymentId);
+    // Try to find by MongoDB _id first, then by alfaBankOrderId
+    let payment = await Payment.findById(paymentId).catch(() => null);
+    if (!payment) {
+      payment = await Payment.findOne({ alfaBankOrderId: paymentId });
+    }
 
     if (!payment) {
       return res.status(404).json({
