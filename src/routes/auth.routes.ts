@@ -168,4 +168,39 @@ router.post('/change-password', authMiddleware, async (req: AuthRequest, res: Re
   }
 });
 
+// Reset password - generate new password and send via email
+router.post('/reset-password', async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      // Не раскрываем существование пользователя в целях безопасности
+      return res.json({ message: 'If account exists, password reset email has been sent' });
+    }
+
+    // Генерируем новый 4-значный пароль
+    const newPassword = Math.floor(1000 + Math.random() * 9000).toString();
+    
+    // Хешируем и сохраняем
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+
+    // Отправляем email с новым паролем
+    const emailService = require('../services/email.service').default;
+    await emailService.sendPasswordResetEmail(user.email, newPassword);
+
+    console.log(`✅ Password reset for ${user.email}, new password sent via email`);
+    res.json({ message: 'If account exists, password reset email has been sent' });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 export default router;

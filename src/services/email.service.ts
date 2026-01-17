@@ -86,55 +86,50 @@ class EmailService {
   /**
    * Send password reset email
    */
-  async sendPasswordResetEmail(email: string, resetToken: string): Promise<boolean> {
+
+  async sendPasswordResetEmail(email: string, newPassword: string): Promise<boolean> {
     if (!this.resend) {
-      console.error('❌ Resend not initialized - cannot send email');
+      console.error('Cannot send email - Resend not initialized');
       return false;
     }
-
-    const resetLink = `${process.env.FRONTEND_URL || 'https://seplitza.github.io/rejuvena'}/reset-password?token=${resetToken}`;
 
     try {
       const result = await this.resend.emails.send({
         from: this.fromEmail,
         to: email,
-        subject: 'Восстановление пароля Rejuvena',
+        subject: 'Password Reset - Rejuvena',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #333;">Восстановление пароля</h2>
+            <h2 style="color: #333;">Password Reset</h2>
             
-            <p>Вы запросили восстановление пароля для вашего аккаунта Rejuvena.</p>
+            <p>Your new temporary password:</p>
             
-            <p>Перейдите по ссылке ниже для установки нового пароля:</p>
-            
-            <div style="margin: 30px 0;">
-              <a href="${resetLink}" 
-                 style="background-color: #4CAF50; color: white; padding: 12px 30px; 
-                        text-decoration: none; border-radius: 4px; display: inline-block;">
-                Восстановить пароль
-              </a>
+            <div style="margin: 30px 0; padding: 20px; background-color: #f5f5f5; border-radius: 8px; text-align: center;">
+              <h1 style="color: #7c3aed; font-size: 36px; margin: 0; letter-spacing: 4px;">${newPassword}</h1>
             </div>
             
-            <p style="color: #666; font-size: 14px;">
-              Ссылка действительна в течение 1 часа.
+            <p>Use this password to log in to your account.</p>
+            
+            <p style="color: #e53e3e; font-weight: bold;">
+              Please change this password in your profile settings after logging in!
             </p>
             
             <p style="color: #666; font-size: 14px;">
-              Если вы не запрашивали восстановление пароля, проигнорируйте это письмо.
+              If you did not request a password re et, please contact us immediately.
             </p>
           </div>
         `,
       });
 
       if (result.error) {
-        console.error(`❌ Resend API error for ${email}:`, result.error);
+        console.error(`Resend API error for ${email}:`, result.error);
         return false;
       }
 
-      console.log(`✅ Password reset email sent to ${email} (ID: ${result.data?.id})`);
+      console.log(`Password reset email sent to ${email} (ID: ${result.data?.id})`);
       return true;
     } catch (error) {
-      console.error('❌ Failed to send password reset email:', error);
+      console.error('Failed to send password reset email:', error);
       return false;
     }
   }
