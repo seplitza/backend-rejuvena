@@ -86,22 +86,7 @@ class EmailService {
    * Send password reset email
    */
   async sendPasswordResetEmail(email: string, resetToken: string): Promise<boolean> {
-    if (!this.transporter) {
-      console.error('❌ Email transporter not initialized');
-      return false;
-    }
-
-    const resetLink = `${process.env.FRONTEND_URL || 'https://seplitza.github.io/rejuvena'}/reset-password?token=${resetToken}`;
-
-    try {
-      const mailOptions = {
-        from: this.config.from,
-        to: email,
-        subject: 'Восстановление пароля Rejuvena',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #333;">Восстановление пароля</h2>
-            resend) {
+    if (!this.resend) {
       console.error('❌ Resend not initialized - cannot send email');
       return false;
     }
@@ -139,3 +124,14 @@ class EmailService {
           </div>
         `,
       });
+
+      console.log(`✅ Password reset email sent to ${email}`);
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to send password reset email:', error);
+      return false;
+    }
+  }
+}
+
+export default new EmailService();
