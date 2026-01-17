@@ -22,15 +22,11 @@ class EmailService {
   }
 
   /**
-   * Generate random password
+   * Generate random 4-digit password
    */
-  generatePassword(length: number = 8): string {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
-    let password = '';
-    for (let i = 0; i < length; i++) {
-      password += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return password;
+  generatePassword(): string {
+    // Generate 4-digit password (1000-9999)
+    return Math.floor(1000 + Math.random() * 9000).toString();
   }
 
   /**
