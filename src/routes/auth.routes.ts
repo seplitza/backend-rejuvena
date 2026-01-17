@@ -53,7 +53,7 @@ router.post('/register', async (req: Request, res: Response) => {
   }
 });
 
-// Login with Azure fallback (Unified Auth)
+// Login (Simple - Local DB only)
 router.post('/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
@@ -61,83 +61,19 @@ router.post('/login', async (req: Request, res: Response) => {
     // Normalize email to lowercase for case-insensitive comparison
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Step 1: Try to find user in local database
-    let user = await User.findOne({ email: normalizedEmail });
-    
-    if (user) {
-      // Local user exists - verify password
-      const isValidPassword = await bcrypt.compare(password, user.password);
-      if (!isValidPassword) {
-        return res.status(401).json({ message: 'Invalid credentials' });
-      }
-    } else {
-      // Step 2: User not found locally - try Azure API (legacy users)
-      console.log('🔄 User not found locally, checking Azure API...');
-      
-      try {
-        console.log('📡 Calling Azure API with email:', normalizedEmail);
-        const azureResponse = await fetch(
-          'https://new-facelift-service-b8cta5hpgcqf8c7.eastus-01.azurewebsites.net/token/auth',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              username: normalizedEmail, 
-              password, 
-              grant_type: 'password' 
-            })
-          }
-        );
-
-        console.log('📡 Azure API response status:', azureResponse.status);
-        
-        if (!azureResponse.ok) {
-          const errorText = await azureResponse.text();
-          console.error('❌ Azure login failed:', azureResponse.status, errorText);
-          return res.status(401).json({ message: 'Invalid credentials' });
-        }
-
-        const azureData = await azureResponse.json() as any;
-        console.log('✅ Azure login successful');
-        
-        // Get user profile from Azure
-        const profileResponse = await fetch(
-          'https://new-facelift-service-b8cta5hpgcqf8c7.eastus-01.azurewebsites.net/api/user/getuserprofiledetail',
-          {
-            method: 'GET',
-            headers: { 
-              'Authorization': `Bearer ${azureData.access_token}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-        
-        const azureUser = profileResponse.ok ? await profileResponse.json() : {};
-        console.log('✅ Azure user profile:', JSON.stringify(azureUser, null, 2));
-        console.log('✅ Creating local user...');
-
-        // Step 3: Create local user from Azure data
-        const hashedPassword = await bcrypt.hash(password, 10);
-        user = new User({
-          email: normalizedEmail,
-          password: hashedPassword,
-          role: 'admin',
-          isPremium: azureUser.isPremium || false,
-          premiumEndDate: azureUser.premiumEndDate,
-          isLegacyUser: true,
-          azureUserId: azureUser.id
-        });
-        await user.save();
-        console.log('✅ Legacy user imported:', normalizedEmail);
-        
-      } catch (azureError: any) {
-        console.error('❌ Azure API error:', azureError.message);
-        console.error('❌ Full error:', azureError);
-        return res.status(401).json({ message: 'Invalid credentials' });
-      }
+    // Find user in local database
+    const user = await User.findOne({ email: normalizedEmail });
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Step 4: Generate JWT token for local system
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // Generate JWT token
     const token = jwt.sign(
       { userId: user._id, role: user.role },
       process.env.JWT_SECRET || 'secret',
@@ -150,7 +86,7 @@ router.post('/login', async (req: Request, res: Response) => {
         id: user._id,
         email: user.email,
         role: user.role,
-        isPremium: user.isPremium,
+        isPremium: user.isPremium || false,
         isLegacyUser: user.isLegacyUser || false
       }
     });
