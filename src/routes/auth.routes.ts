@@ -77,11 +77,15 @@ router.post('/login', async (req: Request, res: Response) => {
       try {
         console.log('📡 Calling Azure API with email:', normalizedEmail);
         const azureResponse = await fetch(
-          'https://new-facelift-service-b8cta5hpgcqf8c7.eastus-01.azurewebsites.net/api/auth/login',
+          'https://new-facelift-service-b8cta5hpgcqf8c7.eastus-01.azurewebsites.net/token/auth',
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: normalizedEmail, password })
+            body: JSON.stringify({ 
+              username: normalizedEmail, 
+              password, 
+              grant_type: 'password' 
+            })
           }
         );
 
@@ -94,7 +98,22 @@ router.post('/login', async (req: Request, res: Response) => {
         }
 
         const azureData = await azureResponse.json() as any;
-        console.log('✅ Azure login successful:', JSON.stringify(azureData, null, 2));
+        console.log('✅ Azure login successful');
+        
+        // Get user profile from Azure
+        const profileResponse = await fetch(
+          'https://new-facelift-service-b8cta5hpgcqf8c7.eastus-01.azurewebsites.net/api/user/getuserprofiledetail',
+          {
+            method: 'GET',
+            headers: { 
+              'Authorization': `Bearer ${azureData.access_token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        
+        const azureUser = profileResponse.ok ? await profileResponse.json() : {};
+        console.log('✅ Azure user profile:', JSON.stringify(azureUser, null, 2));
         console.log('✅ Creating local user...');
 
         // Step 3: Create local user from Azure data
@@ -103,10 +122,10 @@ router.post('/login', async (req: Request, res: Response) => {
           email: normalizedEmail,
           password: hashedPassword,
           role: 'admin',
-          isPremium: azureData.user?.isPremium || false,
-          premiumEndDate: azureData.user?.premiumEndDate,
+          isPremium: azureUser.isPremium || false,
+          premiumEndDate: azureUser.premiumEndDate,
           isLegacyUser: true,
-          azureUserId: azureData.user?.id
+          azureUserId: azureUser.id
         });
         await user.save();
         console.log('✅ Legacy user imported:', normalizedEmail);
