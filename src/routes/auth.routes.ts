@@ -10,9 +10,12 @@ const router = Router();
 router.post('/register', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
+    
+    // Normalize email to lowercase
+    const normalizedEmail = email.toLowerCase().trim();
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists' });
     }
@@ -22,7 +25,7 @@ router.post('/register', async (req: Request, res: Response) => {
 
     // Create new user
     const user = new User({
-      email,
+      email: normalizedEmail,
       password: hashedPassword,
       role: 'admin'
     });
@@ -54,9 +57,12 @@ router.post('/register', async (req: Request, res: Response) => {
 router.post('/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
+    
+    // Normalize email to lowercase for case-insensitive comparison
+    const normalizedEmail = email.toLowerCase().trim();
 
     // Step 1: Try to find user in local database
-    let user = await User.findOne({ email });
+    let user = await User.findOne({ email: normalizedEmail });
     
     if (user) {
       // Local user exists - verify password
@@ -69,13 +75,13 @@ router.post('/login', async (req: Request, res: Response) => {
       console.log('🔄 User not found locally, checking Azure API...');
       
       try {
-        console.log('📡 Calling Azure API with email:', email);
+        console.log('📡 Calling Azure API with email:', normalizedEmail);
         const azureResponse = await fetch(
-          'https://new-facelift-service-b8cta5hpgcgqf8c7.eastus-01.azurewebsites.net/api/auth/login',
+          'https://new-facelift-service-b8cta5hpgcqf8c7.eastus-01.azurewebsites.net/api/auth/login',
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({ email: normalizedEmail, password })
           }
         );
 
@@ -94,7 +100,7 @@ router.post('/login', async (req: Request, res: Response) => {
         // Step 3: Create local user from Azure data
         const hashedPassword = await bcrypt.hash(password, 10);
         user = new User({
-          email: email,
+          email: normalizedEmail,
           password: hashedPassword,
           role: 'admin',
           isPremium: azureData.user?.isPremium || false,
@@ -103,7 +109,7 @@ router.post('/login', async (req: Request, res: Response) => {
           azureUserId: azureData.user?.id
         });
         await user.save();
-        console.log('✅ Legacy user imported:', email);
+        console.log('✅ Legacy user imported:', normalizedEmail);
         
       } catch (azureError: any) {
         console.error('❌ Azure API error:', azureError.message);
