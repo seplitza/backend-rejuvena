@@ -7,6 +7,7 @@ export interface IPayment extends Document {
   amount: number;
   currency: string;
   status: 'pending' | 'processing' | 'succeeded' | 'failed' | 'refunded' | 'cancelled';
+  paymentMethod: 'card' | 'sbp' | 'unknown'; // Метод оплаты
   description: string;
   paymentUrl?: string;
   errorCode?: string;
@@ -53,6 +54,12 @@ const PaymentSchema = new Schema<IPayment>(
       default: 'pending',
       required: true,
       index: true
+    },
+    paymentMethod: {
+      type: String,
+      enum: ['card', 'sbp', 'unknown'],
+      default: 'unknown',
+      required: true
     },
     description: {
       type: String,
