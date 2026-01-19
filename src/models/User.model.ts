@@ -56,9 +56,6 @@ const UserSchema = new Schema<IUser>({
   azureUserId: {
     type: String
   },
-  azureUserId: {
-    type: String
-  },
   createdAt: {
     type: Date,
     default: Date.now
