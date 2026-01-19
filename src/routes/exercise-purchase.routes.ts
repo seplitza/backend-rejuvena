@@ -2,89 +2,8 @@ import { Router, Response } from 'express';
 import { authMiddleware, AuthRequest } from '../middleware/auth.middleware';
 import ExercisePurchase from '../models/ExercisePurchase.model';
 import User from '../models/User.model';
-import Payment from '../models/Payment.model';
 
 const router = Router();
-
-// Покупка отдельного упражнения
-router.post('/purchase', authMiddleware, async (req: AuthRequest, res: Response) => {
-  try {
-    const { exerciseId, exerciseName, price } = req.body;
-    const userId = req.userId;
-
-    if (!exerciseId || !exerciseName || !price) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-
-    // Проверка, не куплено ли уже упражнение
-    const existingPurchase = await ExercisePurchase.findOne({
-      userId,
-      exerciseId,
-      expiresAt: { $gt: new Date() }
-    });
-
-    if (existingPurchase) {
-      return res.status(400).json({ error: 'Exercise already purchased' });
-    }
-
-    // Создаем запись о покупке
-    const expiresAt = new Date();
-    expiresAt.setMonth(expiresAt.getMonth() + 1);
-
-    const purchase = new ExercisePurchase({
-      userId,
-      exerciseId,
-      exerciseName,
-      price,
-      expiresAt
-    });
-    await purchase.save();
-
-    // Создаем запись в истории платежей
-    const payment = new Payment({
-      userId,
-      amount: price,
-      status: 'succeeded',
-      createdAt: new Date(),
-      metadata: {
-        type: 'exercise',
-        exerciseId,
-        exerciseName
-      }
-    });
-    await payment.save();
-
-    // Продлеваем активность фотодневника на 1 месяц
-    const user = await User.findById(userId);
-    if (user && user.firstPhotoDiaryUpload) {
-      const successfulPayments = await Payment.countDocuments({
-        userId,
-        status: 'succeeded'
-      });
-    }
-
-    res.json({
-      success: true,
-      purchase: {
-        id: purchase._id,
-        exerciseId: purchase.exerciseId,
-        exerciseName: purchase.exerciseName,
-        price: purchase.price,
-        purchaseDate: purchase.purchaseDate,
-        expiresAt: purchase.expiresAt
-      },
-      payment: {
-        id: payment._id,
-        amount: payment.amount,
-        status: payment.status,
-        createdAt: payment.createdAt
-      }
-    });
-  } catch (error) {
-    console.error('Exercise purchase error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
 
 // Получить список купленных упражнений
 router.get('/my-purchases', authMiddleware, async (req: AuthRequest, res: Response) => {

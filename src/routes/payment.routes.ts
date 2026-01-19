@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import Payment from '../models/Payment.model';
 import User from '../models/User.model';
+import ExercisePurchase from '../models/ExercisePurchase.model';
 import alfabankService from '../services/alfabank.service';
 import { authMiddleware, AuthRequest } from '../middleware/auth.middleware';
 import crypto from 'crypto';
@@ -83,6 +84,105 @@ router.post('/create', authMiddleware, async (req: AuthRequest, res: Response) =
     }
   } catch (error: any) {
     console.error('Create payment error:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * Создание платежа для покупки упражнения
+ * POST /api/payment/create-exercise
+ */
+router.post('/create-exercise', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId;
+    const { exerciseId, exerciseName, price } = req.body;
+
+    if (!exerciseId || !exerciseName || !price) {
+      return res.status(400).json({
+        error: 'Exercise ID, name and price are required'
+      });
+    }
+
+    // Проверка, не куплено ли уже упражнение
+    const existingPurchase = await ExercisePurchase.findOne({
+      userId,
+      exerciseId,
+      expiresAt: { $gt: new Date() }
+    });
+
+    if (existingPurchase) {
+      return res.status(400).json({ error: 'Exercise already purchased' });
+    }
+
+    // Генерируем уникальный номер заказа
+    const orderNumber = `EXERCISE-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+
+    // Сумма в копейках для Альфа-Банка
+    const amountInKopecks = Math.round(price * 100);
+
+    // ВАЖНО: добавляем "Фото и видео материалы к" перед названием упражнения
+    const productDescription = `Фото и видео материалы к ${exerciseName}`;
+
+    // Создаем запись о платеже в БД
+    const payment = await Payment.create({
+      userId,
+      orderNumber,
+      amount: amountInKopecks,
+      currency: '643',
+      status: 'pending',
+      description: productDescription,
+      metadata: {
+        type: 'exercise',
+        exerciseId,
+        exerciseName
+      }
+    });
+
+    // Регистрируем заказ в Альфа-Банке
+    try {
+      const alfaResponse = await alfabankService.registerOrder({
+        orderNumber,
+        amount: amountInKopecks,
+        description: productDescription,
+        jsonParams: {
+          userId,
+          type: 'exercise',
+          exerciseId,
+          exerciseName
+        }
+      });
+
+      // Обновляем платеж с данными от Альфа-Банка
+      payment.alfaBankOrderId = alfaResponse.orderId;
+      payment.paymentUrl = alfaResponse.formUrl;
+      payment.status = 'processing';
+      await payment.save();
+
+      return res.status(200).json({
+        success: true,
+        payment: {
+          id: payment._id,
+          orderNumber: payment.orderNumber,
+          amount: price,
+          paymentUrl: payment.paymentUrl
+        }
+      });
+    } catch (alfaError: any) {
+      // Ошибка при регистрации в Альфа-Банке
+      payment.status = 'failed';
+      payment.errorMessage = alfaError.message;
+      await payment.save();
+
+      return res.status(500).json({
+        error: 'Failed to create payment',
+        message: alfaError.message
+      });
+    }
+  } catch (error: any) {
+    console.error('Create exercise payment error:', error);
     return res.status(500).json({
       error: 'Internal server error',
       message: error.message
@@ -238,11 +338,23 @@ router.post('/webhook', async (req: Request, res: Response) => {
 
     // Если платеж успешен, активируем премиум
     if (newStatus === 'succeeded') {
-      await activatePremium(
-        payment.userId.toString(),
-        payment.metadata?.planType,
-        payment.metadata?.duration
-      );
+      // Проверяем тип покупки
+      if (payment.metadata?.type === 'exercise') {
+        // Покупка упражнения
+        await activateExercise(
+          payment.userId.toString(),
+          payment.metadata.exerciseId,
+          payment.metadata.exerciseName,
+          payment.amount / 100
+        );
+      } else {
+        // Покупка премиума
+        await activatePremium(
+          payment.userId.toString(),
+          payment.metadata?.planType,
+          payment.metadata?.duration
+        );
+      }
     }
 
     return res.status(200).json({ success: true });
@@ -281,11 +393,23 @@ router.get('/callback', async (req: Request, res: Response) => {
 
     // Если платеж успешен
     if (newStatus === 'succeeded') {
-      await activatePremium(
-        payment.userId.toString(),
-        payment.metadata?.planType,
-        payment.metadata?.duration
-      );
+      // Проверяем тип покупки
+      if (payment.metadata?.type === 'exercise') {
+        // Покупка упражнения
+        await activateExercise(
+          payment.userId.toString(),
+          payment.metadata.exerciseId,
+          payment.metadata.exerciseName,
+          payment.amount / 100
+        );
+      } else {
+        // Покупка премиума
+        await activatePremium(
+          payment.userId.toString(),
+          payment.metadata?.planType,
+          payment.metadata?.duration
+        );
+      }
       return res.redirect(`${process.env.FRONTEND_URL}/payment/success?orderId=${orderId}`);
     }
 
@@ -322,6 +446,30 @@ async function activatePremium(userId: string, planType?: string, duration?: num
     console.log('Premium activated for user:', userId, { planType, duration });
   } catch (error) {
     console.error('Error activating premium:', error);
+  }
+}
+
+/**
+ * Вспомогательная функция для активации доступа к упражнению
+ */
+async function activateExercise(userId: string, exerciseId: string, exerciseName: string, price: number) {
+  try {
+    // Создаем запись о покупке упражнения
+    const expiresAt = new Date();
+    expiresAt.setMonth(expiresAt.getMonth() + 1); // +1 месяц доступа
+
+    const purchase = new ExercisePurchase({
+      userId,
+      exerciseId,
+      exerciseName,
+      price,
+      expiresAt
+    });
+    await purchase.save();
+
+    console.log('Exercise activated for user:', userId, { exerciseId, exerciseName, price });
+  } catch (error) {
+    console.error('Error activating exercise:', error);
   }
 }
 
