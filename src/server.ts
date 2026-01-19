@@ -14,6 +14,7 @@ import mediaRoutes from './routes/media.routes';
 import tagRoutes from './routes/tag.routes';
 import paymentRoutes from './routes/payment.routes';
 import photoDiaryRoutes from './routes/photo-diary.routes';
+import exercisePurchaseRoutes from './routes/exercise-purchase.routes';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -43,6 +44,7 @@ app.use('/api/media', mediaRoutes);
 app.use('/api/tags', tagRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/photo-diary', photoDiaryRoutes);
+app.use('/api/exercise-purchase', exercisePurchaseRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
