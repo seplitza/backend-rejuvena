@@ -339,7 +339,7 @@ router.post('/webhook', async (req: Request, res: Response) => {
     // Если платеж успешен, активируем премиум
     if (newStatus === 'succeeded') {
       // Проверяем тип покупки
-      if (payment.metadata?.type === 'exercise') {
+      if (payment.metadata?.type === 'exercise' && payment.metadata.exerciseId && payment.metadata.exerciseName) {
         // Покупка упражнения
         await activateExercise(
           payment.userId.toString(),
@@ -394,7 +394,7 @@ router.get('/callback', async (req: Request, res: Response) => {
     // Если платеж успешен
     if (newStatus === 'succeeded') {
       // Проверяем тип покупки
-      if (payment.metadata?.type === 'exercise') {
+      if (payment.metadata?.type === 'exercise' && payment.metadata.exerciseId && payment.metadata.exerciseName) {
         // Покупка упражнения
         await activateExercise(
           payment.userId.toString(),
