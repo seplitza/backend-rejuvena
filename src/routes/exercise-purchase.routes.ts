@@ -20,24 +20,31 @@ router.post('/purchase', authMiddleware, async (req: Request, res: Response) => 
     const existingPurchase = await ExercisePurchase.findOne({
       userId,
       exerciseId,
-      expiresAt: { $gt: new Date() } // Еще не истек срок
+      expiresAt: { $gt: new Date() }
     });
 
     if (existingPurchase) {
       return res.status(400).json({ error: 'Exercise already purchased' });
-                                                       ке
-    const expiresAt = new Date();
-    expiresAt.setMonth(expiresAt.getMonth() + 1); // +1 месяц доступа
+    }
 
-    c    c    c    c    c    c    c    c          userId,
+    // Создаем запись о покупке
+    const expiresAt = new Date();
+    expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+    const purchase = new ExercisePurchase({
+      userId,
       exerciseId,
-      exerciseName      exerciseName    xpiresAt
+      exerciseName,
+      price,
+      expiresAt
     });
     await purchase.save();
 
-    // Создаем запись в истории платежей (для Последней активн    // Создаем запись в истории п�
-,      amount: price,
-      statu      statued',
+    // Создаем запись в истории платежей
+    const payment = new Payment({
+      userId,
+      amount: price,
+      status: 'succeeded',
       createdAt: new Date(),
       metadata: {
         type: 'exercise',
@@ -50,22 +57,10 @@ router.post('/purchase', authMiddleware, async (req: Request, res: Response) => 
     // Продлеваем активность фотодневника на 1 месяц
     const user = await User.findById(userId);
     if (user && user.firstPhotoDiaryUpload) {
-      // Подсчитываем все успешные платежи (премиум + упражнения)
       const successfulPayments = await Payment.countDocuments({
         userId,
         status: 'succeeded'
       });
-
-      // Новая дата окончания фотодневника:
-      // firstPhotoDiaryUpload + 30 дней (бесплатно) + (30 дней × кол-во платежей)
-      const diaryExpiryDate = new Date(user.firstPhotoDiaryUpload);
-      diaryExpiryDate.setDate(diaryExpiryDate.getDate() + 30); // Бесплатные 30 дней
-      diaryExpiryDate.setDate(diaryExpiryDate.getDate() + (successfulPayments * 30)); // +30 за каждый платеж
-
-
-     diaryбновляем пользователя (если нужно сохранить это поле)
-      // user.photoDiaryExpiresAt = diaryExpiryDate;
-      // await user.save();
     }
 
     res.json({
@@ -80,7 +75,14 @@ router.post('/purchase', authMiddleware, async (req: Request, res: Response) => 
       },
       payment: {
         id: payment._id,
-        amount:        amount:        amount:        amount:        amount:        amymen        amount:        amount:        amount:        amount:        amount:        amymen        amount:       tatus(500).json({ error: 'Internal server error' });
+        amount: payment.amount,
+        status: payment.status,
+        createdAt: payment.createdAt
+      }
+    });
+  } catch (error) {
+    console.error('Exercise purchase error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -91,9 +93,22 @@ router.get('/my-purchases', authMiddleware, async (req: Request, res: Response) 
 
     const purchases = await ExercisePurchase.find({
       userId,
-      expiresAt: { $gt: new Date() } // Только активные поку�      expiresAt: { $gt: new Date() } // Тольк�so      expiresAt: { $gt: nhases.map(      expire         expiresAt:    exerciseId: p.exerc      expiresAt: { $gt: am      expiresAt: { $gt     price: p.price      expiresAt: { $gt: new Date() } //
-                                                                               e.                               rror);
-    res.s    r(500).json({    res.s    r(500).jsor error' });
+      expiresAt: { $gt: new Date() }
+    }).sort({ purchaseDate: -1 });
+
+    res.json({
+      purchases: purchases.map(p => ({
+        id: p._id,
+        exerciseId: p.exerciseId,
+        exerciseName: p.exerciseName,
+        price: p.price,
+        purchaseDate: p.purchaseDate,
+        expiresAt: p.expiresAt
+      }))
+    });
+  } catch (error) {
+    console.error('Get purchases error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
