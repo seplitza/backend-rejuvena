@@ -10,6 +10,7 @@ export interface IUser extends Document {
   premiumEndDate?: Date;
   isLegacyUser?: boolean; // Флаг для пользователей из старого Azure бэка
   azureUserId?: string; // ID пользователя в Azure (для связи)
+  firstPhotoDiaryUpload?: Date; // Дата первой загрузки фото в дневник
   createdAt: Date;
 }
 
@@ -48,6 +49,12 @@ const UserSchema = new Schema<IUser>({
   isLegacyUser: {
     type: Boolean,
     default: false
+  },
+  firstPhotoDiaryUpload: {
+    type: Date
+  },
+  azureUserId: {
+    type: String
   },
   azureUserId: {
     type: String

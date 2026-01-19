@@ -68,7 +68,10 @@ router.post('/register', async (req: Request, res: Response) => {
       user: {
         id: user._id,
         email: user.email,
-        role: user.role
+        role: user.role,
+        isPremium: false,
+        createdAt: user.createdAt,
+        firstPhotoDiaryUpload: user.firstPhotoDiaryUpload
       }
     });
   } catch (error) {
@@ -113,6 +116,7 @@ router.post('/login', async (req: Request, res: Response) => {
         isPremium: user.isPremium || false,
         premiumEndDate: user.premiumEndDate,
         createdAt: user.createdAt,
+        firstPhotoDiaryUpload: user.firstPhotoDiaryUpload,
         isLegacyUser: user.isLegacyUser || false
       }
     });
