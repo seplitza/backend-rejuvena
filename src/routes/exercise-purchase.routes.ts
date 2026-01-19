@@ -1,5 +1,5 @@
-import { Router, Request, Response } from 'express';
-import authMiddleware from '../middleware/auth.middleware';
+import { Router, Response } from 'express';
+import { authMiddleware, AuthRequest } from '../middleware/auth.middleware';
 import ExercisePurchase from '../models/ExercisePurchase.model';
 import User from '../models/User.model';
 import Payment from '../models/Payment.model';
@@ -7,7 +7,7 @@ import Payment from '../models/Payment.model';
 const router = Router();
 
 // Покупка отдельного упражнения
-router.post('/purchase', authMiddleware, async (req: Request, res: Response) => {
+router.post('/purchase', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const { exerciseId, exerciseName, price } = req.body;
     const userId = req.userId;
@@ -87,7 +87,7 @@ router.post('/purchase', authMiddleware, async (req: Request, res: Response) => 
 });
 
 // Получить список купленных упражнений
-router.get('/my-purchases', authMiddleware, async (req: Request, res: Response) => {
+router.get('/my-purchases', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId;
 
@@ -113,7 +113,7 @@ router.get('/my-purchases', authMiddleware, async (req: Request, res: Response) 
 });
 
 // Проверка доступа к упражнению
-router.get('/has-access/:exerciseId', authMiddleware, async (req: Request, res: Response) => {
+router.get('/has-access/:exerciseId', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const { exerciseId } = req.params;
     const userId = req.userId;
