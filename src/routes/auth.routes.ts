@@ -68,6 +68,8 @@ router.post('/register', async (req: Request, res: Response) => {
       user: {
         id: user._id,
         email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
         role: user.role,
         isPremium: false,
         createdAt: user.createdAt,
@@ -112,6 +114,8 @@ router.post('/login', async (req: Request, res: Response) => {
       user: {
         id: user._id,
         email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
         role: user.role,
         isPremium: user.isPremium || false,
         premiumEndDate: user.premiumEndDate,
