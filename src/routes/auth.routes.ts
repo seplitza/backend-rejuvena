@@ -111,6 +111,7 @@ router.post('/login', async (req: Request, res: Response) => {
         email: user.email,
         role: user.role,
         isPremium: user.isPremium || false,
+        premiumEndDate: user.premiumEndDate,
         isLegacyUser: user.isLegacyUser || false
       }
     });
