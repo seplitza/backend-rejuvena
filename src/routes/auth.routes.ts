@@ -112,6 +112,7 @@ router.post('/login', async (req: Request, res: Response) => {
         role: user.role,
         isPremium: user.isPremium || false,
         premiumEndDate: user.premiumEndDate,
+        createdAt: user.createdAt,
         isLegacyUser: user.isLegacyUser || false
       }
     });
