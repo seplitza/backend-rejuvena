@@ -3,7 +3,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IMarathon extends Document {
   title: string;
   subTitle?: string;
-  description: string;
+  description?: string;
   image?: string;
   numberOfDays: number;
   cost: number;
@@ -41,7 +41,7 @@ const MarathonSchema = new Schema<IMarathon>(
     },
     description: {
       type: String,
-      required: true
+      default: ''
     },
     image: {
       type: String
