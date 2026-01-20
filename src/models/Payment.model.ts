@@ -80,7 +80,10 @@ const PaymentSchema = new Schema<IPayment>(
     metadata: {
       planType: String,
       duration: Number,
-      bindingId: String
+      bindingId: String,
+      type: String, // 'premium' or 'exercise'
+      exerciseId: String,
+      exerciseName: String
     }
   },
   {

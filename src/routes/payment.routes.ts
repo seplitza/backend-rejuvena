@@ -423,9 +423,16 @@ router.get('/callback', async (req: Request, res: Response) => {
 
 /**
  * Вспомогательная функция для активации премиума
+ * ВАЖНО: Только для premium подписки, НЕ для покупки упражнений!
  */
 async function activatePremium(userId: string, planType?: string, duration?: number) {
   try {
+    // Проверяем что это именно премиум подписка
+    if (planType !== 'premium') {
+      console.log('⚠️ activatePremium called for non-premium planType:', planType, '- skipping');
+      return;
+    }
+
     const user = await User.findById(userId);
     if (!user) {
       console.error('User not found:', userId);
@@ -443,7 +450,7 @@ async function activatePremium(userId: string, planType?: string, duration?: num
     }
 
     await user.save();
-    console.log('Premium activated for user:', userId, { planType, duration });
+    console.log('✅ Premium activated for user:', userId, { planType, duration });
   } catch (error) {
     console.error('Error activating premium:', error);
   }
