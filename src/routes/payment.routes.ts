@@ -3,7 +3,9 @@ import Payment from '../models/Payment.model';
 import User from '../models/User.model';
 import ExercisePurchase from '../models/ExercisePurchase.model';
 import MarathonEnrollment from '../models/MarathonEnrollment.model';
+import Marathon from '../models/Marathon.model';
 import alfabankService from '../services/alfabank.service';
+import emailService from '../services/email.service';
 import { authMiddleware, AuthRequest } from '../middleware/auth.middleware';
 import crypto from 'crypto';
 
@@ -612,6 +614,24 @@ async function activateMarathon(userId: string, marathonId: string, paymentId: s
 
     await enrollment.save();
     console.log('✅ Marathon activated for user:', userId, { marathonId, paymentId });
+
+    // Send enrollment confirmation email
+    try {
+      const user = await User.findById(userId);
+      const marathon = await Marathon.findById(marathonId);
+      
+      if (user?.email && marathon) {
+        await emailService.sendMarathonEnrollmentEmail(
+          user.email,
+          marathon.title,
+          marathon.startDate,
+          true // paid marathon
+        );
+      }
+    } catch (emailError) {
+      console.error('Failed to send marathon enrollment email:', emailError);
+      // Don't fail the enrollment if email fails
+    }
   } catch (error) {
     console.error('Error activating marathon:', error);
   }

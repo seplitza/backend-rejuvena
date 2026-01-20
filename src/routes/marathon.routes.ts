@@ -4,6 +4,8 @@ import MarathonDay from '../models/MarathonDay.model';
 import MarathonEnrollment from '../models/MarathonEnrollment.model';
 import Payment from '../models/Payment.model';
 import { authMiddleware, AuthRequest } from '../middleware/auth.middleware';
+import emailService from '../services/email.service';
+import User from '../models/User.model';
 
 const router = Router();
 
@@ -190,6 +192,22 @@ router.post('/:id/enroll', authMiddleware, async (req: AuthRequest, res: Respons
       isPaid: !marathon.isPaid,
       expiresAt
     });
+
+    // Send enrollment confirmation email
+    try {
+      const user = await User.findById(userId);
+      if (user?.email) {
+        await emailService.sendMarathonEnrollmentEmail(
+          user.email,
+          marathon.title,
+          marathon.startDate,
+          false // free marathon
+        );
+      }
+    } catch (emailError) {
+      console.error('Failed to send enrollment email:', emailError);
+      // Don't fail the enrollment if email fails
+    }
 
     return res.status(201).json({
       success: true,

@@ -12,5 +12,18 @@
     "out_file": "./logs/out.log",
     "log_date_format": "YYYY-MM-DD HH:mm:ss Z",
     "merge_logs": true
+  },
+  {
+    "name": "marathon-notifier",
+    "script": "npm",
+    "args": "run send-notifications",
+    "cron_restart": "0 9 * * *",
+    "autorestart": false,
+    "env": {
+      "NODE_ENV": "production"
+    },
+    "error_file": "./logs/notifier-err.log",
+    "out_file": "./logs/notifier-out.log",
+    "log_date_format": "YYYY-MM-DD HH:mm:ss Z"
   }]
 }
