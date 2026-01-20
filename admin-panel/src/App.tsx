@@ -9,6 +9,8 @@ import Users from './pages/Users';
 import Notifications from './pages/Notifications';
 import Orders from './pages/Orders';
 import Revenue from './pages/Revenue';
+import MarathonList from './pages/MarathonList';
+import MarathonEditor from './pages/MarathonEditor';
 import Layout from './components/Layout';
 import { getAuthToken } from './utils/auth';
 
@@ -44,6 +46,9 @@ function App() {
           <Route path="notifications" element={<Notifications />} />
           <Route path="orders" element={<Orders />} />
           <Route path="revenue" element={<Revenue />} />
+          <Route path="marathons" element={<MarathonList />} />
+          <Route path="marathons/new" element={<MarathonEditor />} />
+          <Route path="marathons/:id" element={<MarathonEditor />} />
         </Route>
       </Routes>
     </Router>
