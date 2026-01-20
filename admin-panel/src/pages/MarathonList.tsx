@@ -31,7 +31,7 @@ export default function MarathonList() {
   const loadMarathons = async () => {
     try {
       const response = await api.get('/marathons/admin/all');
-      setMarathons(response.data);
+      setMarathons(response.data.marathons || []);
     } catch (error) {
       console.error('Failed to load marathons:', error);
     } finally {
