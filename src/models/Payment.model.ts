@@ -16,9 +16,11 @@ export interface IPayment extends Document {
     planType?: string;
     duration?: number;
     bindingId?: string;
-    type?: string; // 'premium' or 'exercise'
+    type?: string; // 'premium', 'exercise', or 'marathon'
     exerciseId?: string;
     exerciseName?: string;
+    marathonId?: string;
+    marathonName?: string;
   };
   createdAt: Date;
   updatedAt: Date;
