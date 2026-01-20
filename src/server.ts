@@ -37,6 +37,13 @@ app.use(express.urlencoded({ extended: true }));
 // Static files for uploads
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
+// Serve admin panel
+app.use('/admin', express.static(path.join(__dirname, '../admin-panel/dist')));
+// Handle client-side routing for admin panel
+app.get('/admin/*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../admin-panel/dist/index.html'));
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/user', authRoutes); // Legacy alias for frontend compatibility
