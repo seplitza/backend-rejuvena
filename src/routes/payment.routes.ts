@@ -480,4 +480,165 @@ async function activateExercise(userId: string, exerciseId: string, exerciseName
   }
 }
 
+/**
+ * Admin: Получить все платежи с информацией о пользователях
+ * GET /api/payment/admin/all
+ */
+router.get('/admin/all', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    // Проверка прав администратора
+    if (req.userRole !== 'superadmin' && req.userRole !== 'admin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const { page = 1, limit = 50, status, search } = req.query;
+    
+    // Построение фильтра
+    const filter: any = {};
+    if (status && status !== 'all') {
+      filter.status = status;
+    }
+
+    // Поиск по orderNumber или email (сначала найдем пользователей)
+    let userIds: string[] | undefined;
+    if (search && typeof search === 'string') {
+      const searchLower = search.toLowerCase().trim();
+      
+      // Если это номер заказа
+      if (searchLower.startsWith('order-') || searchLower.startsWith('exercise-')) {
+        filter.orderNumber = { $regex: searchLower, $options: 'i' };
+      } else {
+        // Ищем пользователей по email
+        const users = await User.find({
+          email: { $regex: searchLower, $options: 'i' }
+        }).select('_id');
+        userIds = users.map(u => u._id.toString());
+        
+        if (userIds.length > 0) {
+          filter.userId = { $in: userIds };
+        } else {
+          // Если не найдено пользователей, попробуем по номеру заказа
+          filter.orderNumber = { $regex: searchLower, $options: 'i' };
+        }
+      }
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    // Получаем платежи с популяцией пользователей
+    const payments = await Payment.find(filter)
+      .populate('userId', 'email firstName lastName isPremium premiumEndDate createdAt')
+      .sort({ createdAt: -1 })
+      .limit(Number(limit))
+      .skip(skip)
+      .lean();
+
+    const total = await Payment.countDocuments(filter);
+
+    // Форматируем ответ
+    const formattedPayments = payments.map((p: any) => ({
+      id: p._id,
+      orderNumber: p.orderNumber,
+      amount: p.amount / 100, // Конвертируем копейки в рубли
+      status: p.status,
+      paymentMethod: p.paymentMethod,
+      description: p.description,
+      metadata: p.metadata,
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt,
+      user: p.userId ? {
+        id: p.userId._id,
+        email: p.userId.email,
+        firstName: p.userId.firstName,
+        lastName: p.userId.lastName,
+        isPremium: p.userId.isPremium,
+        premiumEndDate: p.userId.premiumEndDate,
+        registeredAt: p.userId.createdAt
+      } : null,
+      errorMessage: p.errorMessage,
+      errorCode: p.errorCode
+    }));
+
+    return res.status(200).json({
+      success: true,
+      payments: formattedPayments,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        pages: Math.ceil(total / Number(limit))
+      }
+    });
+  } catch (error: any) {
+    console.error('Admin get all payments error:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * Admin: Обновить статус платежа
+ * PATCH /api/payment/admin/:paymentId/status
+ */
+router.patch('/admin/:paymentId/status', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    // Проверка прав администратора
+    if (req.userRole !== 'superadmin' && req.userRole !== 'admin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const { paymentId } = req.params;
+    const { status } = req.body;
+
+    const validStatuses = ['pending', 'processing', 'succeeded', 'failed', 'refunded', 'cancelled'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+
+    const payment = await Payment.findByIdAndUpdate(
+      paymentId,
+      { status },
+      { new: true }
+    ).populate('userId', 'email firstName lastName');
+
+    if (!payment) {
+      return res.status(404).json({ error: 'Payment not found' });
+    }
+
+    // Если статус изменен на succeeded, активируем покупку
+    if (status === 'succeeded' && payment.metadata?.type === 'exercise' && payment.metadata.exerciseId) {
+      await activateExercise(
+        payment.userId.toString(),
+        payment.metadata.exerciseId,
+        payment.metadata.exerciseName || 'Упражнение',
+        payment.amount / 100
+      );
+    } else if (status === 'succeeded' && payment.metadata?.planType === 'premium') {
+      await activatePremium(
+        payment.userId.toString(),
+        payment.metadata.planType,
+        payment.metadata.duration
+      );
+    }
+
+    return res.status(200).json({
+      success: true,
+      payment: {
+        id: payment._id,
+        orderNumber: payment.orderNumber,
+        status: payment.status,
+        user: (payment as any).userId
+      }
+    });
+  } catch (error: any) {
+    console.error('Admin update payment status error:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
 export default router;
