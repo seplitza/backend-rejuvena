@@ -38,12 +38,23 @@ cd Backend-rejuvena && npm run dev  # http://localhost:9527
 cd web && npm run dev  # http://localhost:3000
 ```
 
-### 3. Which Repository?
+### 3. Automated Deployment
+- **Backend:** GitHub Actions auto-deploys on push to `main` → pulls on VPS → rebuilds → restarts PM2
+- **Frontend:** GitHub Actions deploys to GitHub Pages via `peaceiris/actions-gh-pages@v3`
+- Manual frontend deploy: `npm run build && npx gh-pages -d out -m "Deploy: description"`
+
+### 4. Which Repository?
 - Backend API changes (`src/models/`, `src/routes/`) → `backend-rejuvena`
 - Admin Panel changes (`admin-panel/`) → `backend-rejuvena`
 - User-facing app changes (`web/src/`) → `rejuvena` (web folder)
 
 ## Key Models & API Patterns
+
+### API Response Format Convention
+**CRITICAL:** All admin endpoints return `{ success: true, data: {...} }` or `{ success: true, items: [...] }`
+- Marathon list: `{ success: true, marathons: [...], pagination: {...} }`
+- Exercise list: `{ success: true, exercises: [...] }`
+- Always extract data from response object: `response.data.marathons` not `response.data`
 
 ### User Model (`src/models/User.model.ts`)
 ```typescript
@@ -73,12 +84,39 @@ cd web && npm run dev  # http://localhost:3000
 }
 ```
 
+### Marathon Model (`src/models/Marathon.model.ts`)
+```typescript
+{
+  title: string
+  description?: string  // Optional - admin panel doesn't always provide
+  numberOfDays: number
+  cost: number
+  isPaid: boolean
+  isPublic: boolean
+  isDisplay: boolean
+  hasContest: boolean
+  language: 'ru' | 'en'
+  startDate: Date
+  welcomeMessage: string
+  courseDescription: string
+  rules: string
+  tenure: number  // Total duration (learning + practice)
+}
+```
+
 ### Payment Flow (Alfabank)
 1. POST `/api/payment/create` → Returns `paymentUrl` (Alfabank redirect)
 2. User completes payment on Alfabank
 3. Alfabank webhook → `/api/payment/callback`
 4. Frontend polls `/api/payment/status/:orderId`
 5. Success → Update `user.isPremium = true`, `premiumEndDate = +30 days`
+
+### Marathon Enrollment & Email Notifications
+- Email service: **Resend** (resend.com) - 100 emails/day free tier
+- API Key stored in `.env`: `RESEND_API_KEY`
+- From address: `noreply@mail.seplitza.ru`
+- Automated daily notifications: PM2 cron job at 9:00 AM (`marathon-notifier` process)
+- Email templates: enrollment, daily reminder, start, completion (see `src/services/email.service.ts`)
 
 ## Authentication Pattern
 
@@ -95,21 +133,32 @@ process.env.NEXT_PUBLIC_API_URL || 'http://37.252.20.170:9527'
 
 ## Production Deployment
 
-### Backend Changes
+### Backend Changes (Automated via GitHub Actions)
 ```bash
 cd /Users/alexeipinaev/Documents/Rejuvena/Backend-rejuvena
 git add . && git commit -m "..." && git push
-ssh root@37.252.20.170 "cd /var/www/rejuvena-backend && git pull && npm install && npm run build && pm2 restart rejuvena-backend"
+# GitHub Actions automatically: pulls → installs → builds backend & admin → restarts PM2
 ```
 
-### Frontend Changes
+**Manual deployment (if GitHub Actions fails):**
+```bash
+ssh root@37.252.20.170 "cd /var/www/rejuvena-backend && git stash && git pull && npm install && npm run build && cd admin-panel && npm install && npm run build && cd .. && pm2 restart rejuvena-backend"
+```
+
+### Frontend Changes (Automated via GitHub Actions)
 ```bash
 cd /Users/alexeipinaev/Documents/Rejuvena/web
 git add . && git commit -m "..." && git push
+# GitHub Actions automatically builds and deploys to GitHub Pages
+```
+
+**Manual deployment:**
+```bash
+cd /Users/alexeipinaev/Documents/Rejuvena/web
 npm run build
 npx gh-pages -d out -m "Deploy: description"
 ```
-**Note:** GitHub Pages has CDN cache (~5-15 min). Users may need hard refresh.
+**Note:** GitHub Pages has CDN cache (~5-15 min). Users may need hard refresh (Ctrl+Shift+R).
 
 ## Common Commands
 
@@ -120,14 +169,26 @@ npm run seed
 # Import exercises from old Azure API
 npm run import-exercises
 
+# Send marathon notifications manually
+npm run send-notifications
+
 # Check PM2 status on production
 ssh root@37.252.20.170 "pm2 list"
 
 # View production logs
 ssh root@37.252.20.170 "pm2 logs rejuvena-backend --lines 50"
 
-# MongoDB connection
+# View marathon notification logs
+ssh root@37.252.20.170 "pm2 logs marathon-notifier --lines 50"
+
+# MongoDB connection (local)
 mongosh mongodb://localhost:27017/rejuvena
+
+# MongoDB connection (production)
+ssh root@37.252.20.170 "mongosh mongodb://localhost:27017/rejuvena"
+
+# Clean up failed marathon data
+ssh root@37.252.20.170 "mongosh mongodb://localhost:27017/rejuvena --quiet --eval \"db.marathondays.deleteMany({ marathonId: ObjectId('ID') }); db.marathons.deleteOne({ _id: ObjectId('ID') })\""
 ```
 
 ## Project-Specific Conventions
@@ -145,20 +206,24 @@ mongosh mongodb://localhost:27017/rejuvena
 ```
 Backend-rejuvena/
 ├── src/
-│   ├── models/          # Mongoose schemas (User, Exercise, Payment, Tag)
-│   ├── routes/          # Express endpoints (auth, exercise, media, payment, tag)
+│   ├── models/          # Mongoose schemas (User, Exercise, Payment, Tag, Marathon)
+│   ├── routes/          # Express endpoints (auth, exercise, media, payment, tag, marathon)
 │   ├── middleware/      # JWT auth middleware
-│   ├── services/        # Alfabank payment service
-│   └── scripts/         # Data migration & seeding scripts
+│   ├── services/        # Alfabank payment service, email service (Resend)
+│   └── scripts/         # Data migration, seeding, marathon notifications
 ├── admin-panel/src/     # React admin panel (TipTap editor, drag-drop media)
+│   ├── pages/           # MarathonList, MarathonEditor, ExerciseList, etc.
+│   └── components/      # Layout, TipTapEditor, etc.
 ├── uploads/             # Uploaded media files (images, videos)
-└── ecosystem.config.json # PM2 production config
+├── ecosystem.config.json # PM2 config (backend + marathon-notifier cron)
+└── .github/workflows/   # GitHub Actions deployment automation
 
 web/src/
-├── pages/               # Next.js pages (dashboard, exercises, profile, payment)
+├── pages/               # Next.js pages (dashboard, exercises, profile, payment, marathons)
+│   └── marathons/       # Marathon list, detail, day pages
 ├── store/               # Redux slices (auth, payment)
 ├── config/api.ts        # API URL configuration
-└── components/          # React components
+└── components/          # React components (PaymentModal, day/ExerciseItem, etc.)
 ```
 
 ## Documentation Files
@@ -168,12 +233,18 @@ web/src/
 - `PAYMENT-TESTING.md` - Alfabank test cards
 - `FRONTEND_INTEGRATION.md` - API integration patterns
 - `PROJECT_SUMMARY.md` - Feature overview
+- `MARATHON_COMPLETE.md` - Marathon system documentation
+- `MARATHON_EMAIL_NOTIFICATIONS.md` - Email automation guide
+- `PRODUCTION_EMAIL_SETUP.md` - Resend setup instructions
+- `ORDERS_PAGE_GUIDE.md` - Admin orders/payments page
 
 ## Common Pitfalls
 
-❌ Don't use `response.data` with payment history - it's `response.payments`  
+❌ Don't use `response.data` directly - check API format (`response.data.marathons`, `response.data.exercises`)  
 ❌ Don't forget to refresh Redux after API calls that change user state  
 ❌ Don't show activity/profile sections to guests (wrap in `{isAuthenticated && ...}`)  
 ❌ Don't hardcode `http://localhost:9527` - use `process.env.NEXT_PUBLIC_API_URL`  
 ❌ Don't deploy without testing locally first (user request)  
-❌ Don't create new documentation files after changes unless explicitly requested
+❌ Don't create new documentation files after changes unless explicitly requested  
+❌ Don't forget to rebuild admin panel after changes: `cd admin-panel && npm run build`  
+❌ Don't use `git pull` on production without `git stash` first (local changes may exist)
