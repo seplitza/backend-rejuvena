@@ -78,12 +78,8 @@ const PaymentSchema = new Schema<IPayment>(
       type: String
     },
     metadata: {
-      planType: String,
-      duration: Number,
-      bindingId: String,
-      type: String, // 'premium' or 'exercise'
-      exerciseId: String,
-      exerciseName: String
+      type: Schema.Types.Mixed,
+      default: {}
     }
   },
   {
