@@ -4,17 +4,23 @@
 
 **Stack:** Node.js + Express + TypeScript + MongoDB + Next.js 14 (static export)
 
-**Dual Repository Structure:**
+**Multi-Repository Structure:**
 - **Backend Repo:** `backend-rejuvena` (`/Users/alexeipinaev/Documents/Rejuvena/Backend-rejuvena`)
   - Backend API (port 9527)
   - Admin Panel (`admin-panel/` - React + Vite)
-- **Frontend Repo:** `rejuvena` (`/Users/alexeipinaev/Documents/Rejuvena/web`)
+- **Frontend Repo (New):** `rejuvena` (`/Users/alexeipinaev/Documents/Rejuvena/web`)
   - Next.js 14.2.33 with static export
   - Deployed to GitHub Pages: https://seplitza.github.io/rejuvena/
+  - New API + Exercises + Marathons + Premium
+- **Frontend Repo (Old):** `Rejuvena_old_app` (создать через `create-old-app.sh`)
+  - Next.js 14.2.33 with static export (version 1.1.0)
+  - Deployed to GitHub Pages: https://seplitza.github.io/Rejuvena_old_app/
+  - Azure API + Old Courses (for legacy users)
 
 **Deployment:**
 - Production Backend: http://37.252.20.170:9527 (PM2: `rejuvena-backend`)
-- Frontend: https://seplitza.github.io/rejuvena/
+- Frontend (New): https://seplitza.github.io/rejuvena/
+- Frontend (Old): https://seplitza.github.io/Rejuvena_old_app/ (Azure courses)
 - Admin Panel: https://api-rejuvena.duckdns.org/admin/
 
 ## Critical Workflow Rules
@@ -47,6 +53,7 @@ cd web && npm run dev  # http://localhost:3000
 - Backend API changes (`src/models/`, `src/routes/`) → `backend-rejuvena`
 - Admin Panel changes (`admin-panel/`) → `backend-rejuvena`
 - User-facing app changes (`web/src/`) → `rejuvena` (web folder)
+- Old app for Azure courses → `Rejuvena_old_app` (create via `./create-old-app.sh`)
 
 ## Key Models & API Patterns
 
@@ -189,6 +196,10 @@ ssh root@37.252.20.170 "mongosh mongodb://localhost:27017/rejuvena"
 
 # Clean up failed marathon data
 ssh root@37.252.20.170 "mongosh mongodb://localhost:27017/rejuvena --quiet --eval \"db.marathondays.deleteMany({ marathonId: ObjectId('ID') }); db.marathons.deleteOne({ _id: ObjectId('ID') })\""
+
+# Create Rejuvena Old App (Azure courses)
+cd /Users/alexeipinaev/Documents/Rejuvena/Backend-rejuvena
+./create-old-app.sh
 ```
 
 ## Project-Specific Conventions
