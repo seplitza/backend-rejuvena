@@ -430,26 +430,20 @@ const AZURE_MARATHONS = [
 /**
  * Mapping: Azure Marathon ID -> New API Marathon ID
  * 
- * ⚠️ IMPORTANT: You must create 11 marathons in the new admin panel first!
- * 
- * Current status: Only 1 marathon exists in new system
- * - "Тестовый марафон оплаты" (ID: 696fab9cd2a8c56f62ebdb09, 7 days)
- * 
- * TODO: Create 10 more marathons in admin panel, then add mappings here
+ * ✅ All 11 marathons created and mapped!
  */
 const MARATHON_ID_MAPPING: Record<string, string> = {
-  '3842e63f-b125-447d-94a1-b1c93be38b4e': '696fab9cd2a8c56f62ebdb09', // Омолодись (14 days) -> Тестовый марафон оплаты
-  // TODO: Add mappings after creating marathons in new admin:
-  // '8ae4db8b-b256-462a-8918-7e7811243d64': 'NEW_MONGO_ID', // Look younger (14 days)
-  // '49083563-a9fc-4c13-b6a4-fdc2e4158479': 'NEW_MONGO_ID', // Зарядка (1 day)
-  // 'e7ce939d-b84a-4816-b5bf-ed347646f943': 'NEW_MONGO_ID', // средняя англ (7 days)
-  // '11e5f1f2-de4e-4833-a7e5-3089c40be78f': 'NEW_MONGO_ID', // лоб (7 days)
-  // 'fc62d140-17af-4c61-be90-63a6cc656a7b': 'NEW_MONGO_ID', // шея англ (7 days)
-  // 'b9a10637-8b1e-478d-940c-4d239e53831e': 'NEW_MONGO_ID', // губы (7 days)
-  // '3c33c808-523c-4e60-b284-139e2a136544': 'NEW_MONGO_ID', // лоб англ (7 days)
-  // 'b87370d5-4ce1-49b2-86f4-23deb9a99123': 'NEW_MONGO_ID', // средняя (7 days)
-  // 'b8775841-7b7d-43ca-b556-a9ce74d339cf': 'NEW_MONGO_ID', // шея (7 days)
-  // '4af5f89c-ba91-43c6-bdf5-9bc7d9d8e3a7': 'NEW_MONGO_ID', // губы англ (7 days)
+  '3842e63f-b125-447d-94a1-b1c93be38b4e': '696fab9cd2a8c56f62ebdb09', // Омолодись (14 days, ru)
+  '8ae4db8b-b256-462a-8918-7e7811243d64': '69733e6cf22ce2297694b8a3', // Look younger (14 days, en)
+  '49083563-a9fc-4c13-b6a4-fdc2e4158479': '69733e6df22ce2297694b8a5', // Зарядка (1 day, ru)
+  'e7ce939d-b84a-4816-b5bf-ed347646f943': '69733e6ef22ce2297694b8a7', // средняя англ (7 days, en)
+  '11e5f1f2-de4e-4833-a7e5-3089c40be78f': '69733e6ff22ce2297694b8a9', // лоб (7 days, ru)
+  'fc62d140-17af-4c61-be90-63a6cc656a7b': '69733e77f22ce2297694b8ab', // шея англ (7 days, en)
+  'b9a10637-8b1e-478d-940c-4d239e53831e': '69733e78f22ce2297694b8ad', // губы (7 days, ru)
+  '3c33c808-523c-4e60-b284-139e2a136544': '69733e79f22ce2297694b8af', // лоб англ (7 days, en)
+  'b87370d5-4ce1-49b2-86f4-23deb9a99123': '69733e7ef22ce2297694b8b1', // средняя (7 days, ru)
+  'b8775841-7b7d-43ca-b556-a9ce74d339cf': '69733e7ff22ce2297694b8b3', // шея (7 days, ru)
+  '4af5f89c-ba91-43c6-bdf5-9bc7d9d8e3a7': '69733e7ff22ce2297694b8b5', // губы англ (7 days, en)
 };
 
 // ============= MAIN EXECUTION =============
