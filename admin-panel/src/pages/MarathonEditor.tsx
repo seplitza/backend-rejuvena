@@ -91,7 +91,7 @@ export default function MarathonEditor() {
   const loadMarathon = async () => {
     try {
       const response = await api.get(`/marathons/${id}`);
-      const m = response.data;
+      const m = response.data.marathon; // FIX: API returns { success: true, marathon: {...} }
       
       setTitle(m.title);
       setStartDate(m.startDate.split('T')[0]);

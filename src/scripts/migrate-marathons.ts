@@ -12,9 +12,9 @@ const AZURE_API = 'https://new-facelift-service-b8cta5hpgcgqf8c7.eastus-01.azure
 const NEW_API = process.env.NEW_API_URL || 'http://localhost:9527';
 const DATA_DIR = path.join(__dirname, '../../marathon-migration-data');
 
-// Azure credentials
-const AZURE_USERNAME = 'seplitza@gmail.com';
-const AZURE_PASSWORD = '1234';
+// Azure credentials (ADMIN)
+const AZURE_USERNAME = 'admin@miyabi.com';
+const AZURE_PASSWORD = 'QR+L&9aS';
 
 // New admin credentials
 const NEW_ADMIN_EMAIL = 'seplitza@gmail.com';
@@ -63,9 +63,9 @@ interface AzureExerciseContent {
 interface AzureMarathonStructure {
   marathonId: string;
   title: string;
-  subTitle: string;
+  marathonSubTitle: string;
   startDate: string;
-  marathonDay?: AzureMarathonDay;
+  marathonDay?: any;
   marathonDays?: AzureMarathonDay[];
   practiceDays?: any[];
 }
@@ -274,15 +274,20 @@ class FileStorage {
 class MarathonMigrator {
   private azureClient: AzureAPIClient;
   private newClient: NewAPIClient;
+  private downloadOnly: boolean;
 
-  constructor() {
+  constructor(downloadOnly: boolean = false) {
     this.azureClient = new AzureAPIClient();
     this.newClient = new NewAPIClient();
+    this.downloadOnly = downloadOnly;
   }
 
   async initialize(): Promise<void> {
     await this.azureClient.authenticate();
-    await this.newClient.authenticate();
+    // Only authenticate with new API if we're doing full migration
+    if (!this.downloadOnly) {
+      await this.newClient.authenticate();
+    }
   }
 
   /**
@@ -295,40 +300,44 @@ class MarathonMigrator {
     const structure = await this.azureClient.getMarathonStructure(marathonId);
     
     if (!structure.marathonDays || structure.marathonDays.length === 0) {
-      console.log(`⚠️  No learning days found for marathon: ${marathonTitle}`);
+      console.log(`⚠️  No marathon days found for: ${marathonTitle}`);
       return null;
     }
 
     const marathonData = {
       marathonId,
       title: structure.title,
-      subTitle: structure.subTitle,
-      learningDays: [] as any[],
+      subTitle: structure.marathonSubTitle,
+      days: [] as any[],
     };
 
-    // Get detailed data for each learning day
+    // Process each day (data is already in marathonDays array)
     for (const day of structure.marathonDays) {
-      console.log(`  📖 Downloading Day ${day.day}...`);
+      console.log(`  📖 Processing Day ${day.day}...`);
       
-      const dayDetails = await this.azureClient.getDayExercises(day.id);
-      
-      if (dayDetails.marathonDay) {
-        marathonData.learningDays.push({
+      if (day.dayCategories && day.dayCategories.length > 0) {
+        marathonData.days.push({
           dayNumber: day.day,
           dayId: day.id,
-          rawData: dayDetails.marathonDay,
-          transformedData: DataTransformer.transformDay(dayDetails.marathonDay),
+          description: day.description,
+          rawData: {
+            description: day.description,
+            dayCategories: day.dayCategories,
+          },
+          transformedData: DataTransformer.transformDay({
+            description: day.description,
+            dayCategories: day.dayCategories,
+          }),
         });
+      } else {
+        console.log(`  ⚠️  Day ${day.day} has no categories, skipping...`);
       }
-
-      // Be nice to the API
-      await this.sleep(500);
     }
 
     // Save to file
     FileStorage.saveMarathonData(marathonId, marathonTitle, marathonData);
 
-    console.log(`✅ Downloaded ${marathonData.learningDays.length} days for ${marathonTitle}`);
+    console.log(`✅ Downloaded ${marathonData.days.length} days for ${marathonTitle}`);
     return marathonData;
   }
 
@@ -495,7 +504,7 @@ if (require.main === module) {
     console.log('📥 Download-only mode\n');
     
     (async () => {
-      const migrator = new MarathonMigrator();
+      const migrator = new MarathonMigrator(true); // Pass downloadOnly flag
       await migrator.initialize();
       
       for (const [azureId, title, _] of AZURE_MARATHONS) {
