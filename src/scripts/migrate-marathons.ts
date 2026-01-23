@@ -187,7 +187,7 @@ class DataTransformer {
   /**
    * Transform Azure marathon day to new API format
    */
-  static transformDay(azureDay: AzureMarathonDay): any {
+  static transformDay(azureDay: Pick<AzureMarathonDay, 'description' | 'dayCategories'>): any {
     return {
       welcomeMessage: azureDay.description || '',
       exercises: this.transformCategories(azureDay.dayCategories),
