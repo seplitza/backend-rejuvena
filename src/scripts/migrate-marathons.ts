@@ -405,22 +405,26 @@ class MarathonMigrator {
 
 // ============= MARATHON MAPPINGS =============
 /**
- * List of all Azure marathons to migrate
+ * List of all Azure courses (from old backend) to migrate
  * Each entry: [azureMarathonId, marathonTitle, numberOfDays]
- * Total: 11 marathons, ~154 days
+ * 
+ * Total: 11 courses, 85 days
+ * - 2 courses × 14 days = 28 days (Омолодись, Look younger)
+ * - 1 course × 1 day = 1 day (Зарядка)
+ * - 8 courses × 7 days = 56 days (все остальные)
  */
 const AZURE_MARATHONS = [
-  ['3842e63f-b125-447d-94a1-b1c93be38b4e', 'Омолодись', 14],
-  ['49083563-a9fc-4c13-b6a4-fdc2e4158479', 'Зарядка', 14],
-  ['e7ce939d-b84a-4816-b5bf-ed347646f943', 'средняя англ', 14],
-  ['11e5f1f2-de4e-4833-a7e5-3089c40be78f', 'лоб', 14],
-  ['fc62d140-17af-4c61-be90-63a6cc656a7b', 'шея англ', 14],
-  ['b9a10637-8b1e-478d-940c-4d239e53831e', 'губы', 14],
-  ['3c33c808-523c-4e60-b284-139e2a136544', 'лоб англ', 14],
-  ['b87370d5-4ce1-49b2-86f4-23deb9a99123', 'средняя', 14],
-  ['b8775841-7b7d-43ca-b556-a9ce74d339cf', 'шея', 14],
-  ['4af5f89c-ba91-43c6-bdf5-9bc7d9d8e3a7', 'губы англ', 14],
-  ['8ae4db8b-b256-462a-8918-7e7811243d64', 'омолодись англ', 14],
+  ['3842e63f-b125-447d-94a1-b1c93be38b4e', 'Омолодись', 14],              // 14 дней обучения
+  ['8ae4db8b-b256-462a-8918-7e7811243d64', 'Look younger', 14],           // 14 дней обучения
+  ['49083563-a9fc-4c13-b6a4-fdc2e4158479', 'Зарядка', 1],                 // 1 день обучения
+  ['e7ce939d-b84a-4816-b5bf-ed347646f943', 'средняя англ', 7],            // 7 дней
+  ['11e5f1f2-de4e-4833-a7e5-3089c40be78f', 'лоб', 7],                     // 7 дней
+  ['fc62d140-17af-4c61-be90-63a6cc656a7b', 'шея англ', 7],                // 7 дней
+  ['b9a10637-8b1e-478d-940c-4d239e53831e', 'губы', 7],                    // 7 дней
+  ['3c33c808-523c-4e60-b284-139e2a136544', 'лоб англ', 7],                // 7 дней
+  ['b87370d5-4ce1-49b2-86f4-23deb9a99123', 'средняя', 7],                 // 7 дней
+  ['b8775841-7b7d-43ca-b556-a9ce74d339cf', 'шея', 7],                     // 7 дней
+  ['4af5f89c-ba91-43c6-bdf5-9bc7d9d8e3a7', 'губы англ', 7],               // 7 дней
 ] as const;
 
 /**
@@ -434,18 +438,18 @@ const AZURE_MARATHONS = [
  * TODO: Create 10 more marathons in admin panel, then add mappings here
  */
 const MARATHON_ID_MAPPING: Record<string, string> = {
-  '3842e63f-b125-447d-94a1-b1c93be38b4e': '696fab9cd2a8c56f62ebdb09', // Омолодись -> Тестовый марафон оплаты
+  '3842e63f-b125-447d-94a1-b1c93be38b4e': '696fab9cd2a8c56f62ebdb09', // Омолодись (14 days) -> Тестовый марафон оплаты
   // TODO: Add mappings after creating marathons in new admin:
-  // '49083563-a9fc-4c13-b6a4-fdc2e4158479': 'NEW_MONGO_ID', // Зарядка
-  // 'e7ce939d-b84a-4816-b5bf-ed347646f943': 'NEW_MONGO_ID', // средняя англ
-  // '11e5f1f2-de4e-4833-a7e5-3089c40be78f': 'NEW_MONGO_ID', // лоб
-  // 'fc62d140-17af-4c61-be90-63a6cc656a7b': 'NEW_MONGO_ID', // шея англ
-  // 'b9a10637-8b1e-478d-940c-4d239e53831e': 'NEW_MONGO_ID', // губы
-  // '3c33c808-523c-4e60-b284-139e2a136544': 'NEW_MONGO_ID', // лоб англ
-  // 'b87370d5-4ce1-49b2-86f4-23deb9a99123': 'NEW_MONGO_ID', // средняя
-  // 'b8775841-7b7d-43ca-b556-a9ce74d339cf': 'NEW_MONGO_ID', // шея
-  // '4af5f89c-ba91-43c6-bdf5-9bc7d9d8e3a7': 'NEW_MONGO_ID', // губы англ
-  // '8ae4db8b-b256-462a-8918-7e7811243d64': 'NEW_MONGO_ID', // омолодись англ
+  // '8ae4db8b-b256-462a-8918-7e7811243d64': 'NEW_MONGO_ID', // Look younger (14 days)
+  // '49083563-a9fc-4c13-b6a4-fdc2e4158479': 'NEW_MONGO_ID', // Зарядка (1 day)
+  // 'e7ce939d-b84a-4816-b5bf-ed347646f943': 'NEW_MONGO_ID', // средняя англ (7 days)
+  // '11e5f1f2-de4e-4833-a7e5-3089c40be78f': 'NEW_MONGO_ID', // лоб (7 days)
+  // 'fc62d140-17af-4c61-be90-63a6cc656a7b': 'NEW_MONGO_ID', // шея англ (7 days)
+  // 'b9a10637-8b1e-478d-940c-4d239e53831e': 'NEW_MONGO_ID', // губы (7 days)
+  // '3c33c808-523c-4e60-b284-139e2a136544': 'NEW_MONGO_ID', // лоб англ (7 days)
+  // 'b87370d5-4ce1-49b2-86f4-23deb9a99123': 'NEW_MONGO_ID', // средняя (7 days)
+  // 'b8775841-7b7d-43ca-b556-a9ce74d339cf': 'NEW_MONGO_ID', // шея (7 days)
+  // '4af5f89c-ba91-43c6-bdf5-9bc7d9d8e3a7': 'NEW_MONGO_ID', // губы англ (7 days)
 };
 
 // ============= MAIN EXECUTION =============
