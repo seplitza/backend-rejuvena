@@ -1,0 +1,37 @@
+{
+  "comment": "Configuration for marathon migration from Azure to New API",
+  "azureMarathons": [
+    {
+      "azureId": "3842e63f-b125-447d-94a1-b1c93be38b4e",
+      "title": "Омолодись",
+      "numberOfDays": 14,
+      "description": "Базовый курс омоложения лица",
+      "newMarathonId": "696fab9cd2a8c56f62ebdb09"
+    }
+  ],
+  "unmappedMarathons": [
+    {
+      "comment": "TODO: Get Azure IDs for these marathons",
+      "marathons": [
+        "Успокойся (20 days)",
+        "Эксперт молодости",
+        "Шея и плечи",
+        "Подтяжка лица",
+        "Глаза и лоб",
+        "Marathon 6",
+        "Marathon 7",
+        "Marathon 8",
+        "Marathon 9",
+        "Marathon 10"
+      ]
+    }
+  ],
+  "howToFindMarathonIds": {
+    "step1": "Login to old app: https://seplitza.github.io/Rejuvena_old_app/",
+    "step2": "Open marathons list page",
+    "step3": "Open DevTools Network tab",
+    "step4": "Click on each marathon",
+    "step5": "Find request: /api/usermarathon/startmarathon?marathonId=XXX",
+    "step6": "Copy marathonId from URL or response"
+  }
+}
