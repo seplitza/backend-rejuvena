@@ -12,12 +12,50 @@ const router = Router();
 /**
  * PUBLIC: Get all public marathons
  * GET /api/marathons
+ * Optional: Authorization header to get enrollment status
  */
 router.get('/', async (req: Request, res: Response) => {
   try {
+    // Извлекаем userId из токена если он есть (опционально)
+    let userId: string | null = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.substring(7);
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'rejuvena-super-secret-key-2026');
+        userId = decoded.userId;
+      } catch (err) {
+        // Игнорируем ошибки токена для публичного эндпоинта
+      }
+    }
+
     const marathons = await Marathon.find({ isPublic: true, isDisplay: true })
       .sort({ startDate: -1 })
       .select('-welcomeMessage -courseDescription -rules');
+
+    // Если пользователь авторизован, добавляем информацию о записи
+    if (userId) {
+      const enrichedMarathons = await Promise.all(
+        marathons.map(async (marathon) => {
+          const enrollment = await MarathonEnrollment.findOne({
+            userId,
+            marathonId: marathon._id
+          });
+
+          return {
+            ...marathon.toObject(),
+            userEnrolled: !!enrollment,
+            userEnrollmentStatus: enrollment?.status || null
+          };
+        })
+      );
+
+      return res.status(200).json({
+        success: true,
+        marathons: enrichedMarathons
+      });
+    }
 
     return res.status(200).json({
       success: true,
@@ -35,14 +73,46 @@ router.get('/', async (req: Request, res: Response) => {
 /**
  * PUBLIC: Get marathon details
  * GET /api/marathons/:id
+ * Optional: Authorization header to get enrollment status
  */
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
+    // Извлекаем userId из токена если он есть (опционально)
+    let userId: string | null = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.substring(7);
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'rejuvena-super-secret-key-2026');
+        userId = decoded.userId;
+      } catch (err) {
+        // Игнорируем ошибки токена
+      }
+    }
+
     const marathon = await Marathon.findById(id);
     if (!marathon) {
       return res.status(404).json({ error: 'Marathon not found' });
+    }
+
+    // Если пользователь авторизован, добавляем информацию о записи
+    if (userId) {
+      const enrollment = await MarathonEnrollment.findOne({
+        userId,
+        marathonId: id
+      });
+
+      return res.status(200).json({
+        success: true,
+        marathon: {
+          ...marathon.toObject(),
+          userEnrolled: !!enrollment,
+          userEnrollmentStatus: enrollment?.status || null
+        }
+      });
     }
 
     return res.status(200).json({
