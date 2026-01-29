@@ -6,7 +6,8 @@
     "exec_mode": "cluster",
     "env": {
       "NODE_ENV": "production",
-      "PORT": 9527
+      "PORT": 9527,
+      "JWT_SECRET": "rejuvena_prod_secret_2026"
     },
     "error_file": "./logs/err.log",
     "out_file": "./logs/out.log",
