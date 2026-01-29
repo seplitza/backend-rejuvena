@@ -34,7 +34,7 @@ jobs:
           cd admin-panel
           NODE_ENV=production npm run build
         env:
-          VITE_API_URL: http://37.252.20.170:9527/api
+          VITE_API_URL: /api
 
       - name: Deploy to Server via SSH
         uses: appleboy/ssh-action@master
