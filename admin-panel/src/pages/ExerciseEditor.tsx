@@ -34,6 +34,7 @@ export default function ExerciseEditor() {
   const [content, setContent] = useState('');
   const [duration, setDuration] = useState('');
   const [isPublished, setIsPublished] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
   const [carouselMedia, setCarouselMedia] = useState<Media[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   
@@ -67,6 +68,7 @@ export default function ExerciseEditor() {
       setContent(exercise.content);
       setDuration(exercise.duration || '');
       setIsPublished(exercise.isPublished);
+      setIsPremium(exercise.isPremium || false);
       setCarouselMedia(exercise.carouselMedia || []);
       setSelectedTags(exercise.tags.map((t: any) => t._id));
     } catch (error) {
@@ -91,6 +93,7 @@ export default function ExerciseEditor() {
         content,
         duration,
         isPublished,
+        isPremium,
         carouselMedia,
         tags: selectedTags
       };
@@ -476,18 +479,32 @@ export default function ExerciseEditor() {
           </div>
         </div>
 
-        {/* Publish */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <input
-            type="checkbox"
-            id="published"
-            checked={isPublished}
-            onChange={(e) => setIsPublished(e.target.checked)}
-            style={{ width: '20px', height: '20px', cursor: 'pointer' }}
-          />
-          <label htmlFor="published" style={{ cursor: 'pointer', fontWeight: '500' }}>
-            Опубликовать упражнение
-          </label>
+        {/* Publish and Premium */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <input
+              type="checkbox"
+              id="published"
+              checked={isPublished}
+              onChange={(e) => setIsPublished(e.target.checked)}
+              style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+            />
+            <label htmlFor="published" style={{ cursor: 'pointer', fontWeight: '500' }}>
+              Опубликовать упражнение
+            </label>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <input
+              type="checkbox"
+              id="premium"
+              checked={isPremium}
+              onChange={(e) => setIsPremium(e.target.checked)}
+              style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+            />
+            <label htmlFor="premium" style={{ cursor: 'pointer', fontWeight: '500', color: '#F59E0B' }}>
+              🔒 Премиум упражнение (только для подписчиков)
+            </label>
+          </div>
         </div>
       </div>
     </div>
