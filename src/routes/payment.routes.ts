@@ -18,7 +18,7 @@ const router = Router();
 router.post('/create', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId;
-    const { amount, description, planType, duration } = req.body;
+    const { amount, description, planType, duration, marathonId, marathonName } = req.body;
 
     if (!amount || !description) {
       return res.status(400).json({
@@ -42,7 +42,9 @@ router.post('/create', authMiddleware, async (req: AuthRequest, res: Response) =
       description,
       metadata: {
         planType,
-        duration
+        duration,
+        ...(marathonId && { marathonId }),
+        ...(marathonName && { marathonName })
       }
     });
 
