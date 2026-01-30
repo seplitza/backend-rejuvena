@@ -765,19 +765,32 @@ router.patch('/admin/:paymentId/status', authMiddleware, async (req: AuthRequest
     }
 
     // Если статус изменен на succeeded, активируем покупку
-    if (status === 'succeeded' && payment.metadata?.type === 'exercise' && payment.metadata.exerciseId) {
-      await activateExercise(
-        payment.userId.toString(),
-        payment.metadata.exerciseId,
-        payment.metadata.exerciseName || 'Упражнение',
-        payment.amount / 100
-      );
-    } else if (status === 'succeeded' && payment.metadata?.planType === 'premium') {
-      await activatePremium(
-        payment.userId.toString(),
-        payment.metadata.planType,
-        payment.metadata.duration
-      );
+    if (status === 'succeeded') {
+      // Активация упражнения
+      if (payment.metadata?.type === 'exercise' && payment.metadata.exerciseId) {
+        await activateExercise(
+          payment.userId.toString(),
+          payment.metadata.exerciseId,
+          payment.metadata.exerciseName || 'Упражнение',
+          payment.amount / 100
+        );
+      }
+      // Активация премиума
+      else if (payment.metadata?.type === 'premium' || payment.metadata?.planType === 'premium') {
+        await activatePremium(
+          payment.userId.toString(),
+          'premium',
+          payment.metadata.duration || 30
+        );
+      }
+      // Активация марафона
+      else if (payment.metadata?.type === 'marathon' && payment.metadata.marathonId) {
+        await activateMarathon(
+          payment.userId.toString(),
+          payment.metadata.marathonId,
+          payment._id.toString()
+        );
+      }
     }
 
     return res.status(200).json({
