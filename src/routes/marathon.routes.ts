@@ -299,13 +299,10 @@ router.post('/:id/enroll', authMiddleware, async (req: AuthRequest, res: Respons
 router.get('/user/my-enrollments', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId;
-    console.log('📋 GET my-enrollments, userId:', userId);
 
     const enrollments = await MarathonEnrollment.find({ userId })
       .populate('marathonId')
       .sort({ createdAt: -1 });
-
-    console.log('📦 Found enrollments:', enrollments.length, enrollments.map((e: any) => ({ marathonId: e.marathonId?._id, status: e.status })));
 
     return res.status(200).json({
       success: true,
