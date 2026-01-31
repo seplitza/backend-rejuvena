@@ -458,12 +458,19 @@ router.post('/webhook', async (req: Request, res: Response) => {
           payment.metadata.exerciseName,
           payment.amount / 100
         );
-      } else if (payment.metadata?.type === 'marathon' && payment.metadata.marathonId) {
+      } else if ((payment.metadata?.type === 'marathon' || payment.metadata?.planType === 'marathon') && payment.metadata.marathonId) {
         // Покупка марафона
         await activateMarathon(
           payment.userId.toString(),
           payment.metadata.marathonId,
           payment._id.toString()
+        );
+      } else if ((payment.metadata?.type === 'marathon' || payment.metadata?.planType === 'marathon') && !payment.metadata.marathonId) {
+        console.warn('⚠️ Marathon payment without marathonId - manual activation required:', payment._id);
+        await activatePremium(
+          payment.userId.toString(),
+          payment.metadata?.planType,
+          payment.metadata?.duration
         );
       } else {
         // Покупка премиума
@@ -520,12 +527,19 @@ router.get('/callback', async (req: Request, res: Response) => {
           payment.metadata.exerciseName,
           payment.amount / 100
         );
-      } else if (payment.metadata?.type === 'marathon' && payment.metadata.marathonId) {
+      } else if ((payment.metadata?.type === 'marathon' || payment.metadata?.planType === 'marathon') && payment.metadata.marathonId) {
         // Покупка марафона
         await activateMarathon(
           payment.userId.toString(),
           payment.metadata.marathonId,
           payment._id.toString()
+        );
+      } else if ((payment.metadata?.type === 'marathon' || payment.metadata?.planType === 'marathon') && !payment.metadata.marathonId) {
+        console.warn('⚠️ Marathon payment without marathonId - manual activation required:', payment._id);
+        await activatePremium(
+          payment.userId.toString(),
+          payment.metadata?.planType,
+          payment.metadata?.duration
         );
       } else {
         // Покупка премиума
@@ -805,12 +819,16 @@ router.patch('/admin/:paymentId/status', authMiddleware, async (req: AuthRequest
         );
       }
       // Активация марафона
-      else if (payment.metadata?.type === 'marathon' && payment.metadata.marathonId) {
+      else if ((payment.metadata?.type === 'marathon' || payment.metadata?.planType === 'marathon') && payment.metadata.marathonId) {
         await activateMarathon(
           payment.userId.toString(),
           payment.metadata.marathonId,
           payment._id.toString()
         );
+      }
+      // Marathon без marathonId
+      else if ((payment.metadata?.type === 'marathon' || payment.metadata?.planType === 'marathon') && !payment.metadata.marathonId) {
+        console.warn('⚠️ Marathon payment without marathonId - manual activation required:', payment._id);
       }
     }
 
