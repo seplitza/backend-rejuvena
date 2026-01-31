@@ -10,7 +10,7 @@ const router = Router();
 // Register new user (with email notification)
 router.post('/register', async (req: Request, res: Response) => {
   try {
-    const { email, firstName, lastName } = req.body;
+    const { email, firstName, lastName, telegramUsername } = req.body;
     
     // Normalize email to lowercase
     const normalizedEmail = email.toLowerCase().trim();
@@ -39,6 +39,7 @@ router.post('/register', async (req: Request, res: Response) => {
       password: hashedPassword,
       firstName: firstName?.trim() || '',
       lastName: lastName?.trim() || '',
+      telegramUsername: telegramUsername?.trim() || undefined,
       role: 'admin',
       isPremium: false
     });
@@ -147,7 +148,7 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response) => {
 // Update profile
 router.put('/update-profile', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const { firstName, lastName } = req.body;
+    const { firstName, lastName, telegramUsername } = req.body;
     
     const user = await User.findById(req.userId);
     if (!user) {
@@ -157,6 +158,7 @@ router.put('/update-profile', authMiddleware, async (req: AuthRequest, res: Resp
     // Update fields if provided
     if (firstName !== undefined) user.firstName = firstName.trim();
     if (lastName !== undefined) user.lastName = lastName.trim();
+    if (telegramUsername !== undefined) user.telegramUsername = telegramUsername.trim() || undefined;
 
     await user.save();
 
