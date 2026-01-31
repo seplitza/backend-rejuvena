@@ -39,7 +39,7 @@ router.post('/register', async (req: Request, res: Response) => {
       password: hashedPassword,
       firstName: firstName?.trim() || '',
       lastName: lastName?.trim() || '',
-      telegramUsername: telegramUsername?.trim() || undefined,
+      telegramUsername: telegramUsername?.trim().replace(/^@/, '') || undefined,
       role: 'admin',
       isPremium: false
     });
@@ -158,7 +158,11 @@ router.put('/update-profile', authMiddleware, async (req: AuthRequest, res: Resp
     // Update fields if provided
     if (firstName !== undefined) user.firstName = firstName.trim();
     if (lastName !== undefined) user.lastName = lastName.trim();
-    if (telegramUsername !== undefined) user.telegramUsername = telegramUsername.trim() || undefined;
+    if (telegramUsername !== undefined) {
+      // Remove @ symbol if present and trim
+      const cleanUsername = telegramUsername.trim().replace(/^@/, '');
+      user.telegramUsername = cleanUsername || undefined;
+    }
 
     await user.save();
 
