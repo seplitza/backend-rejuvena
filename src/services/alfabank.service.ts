@@ -12,6 +12,7 @@ interface RegisterOrderParams {
   orderNumber: string;
   amount: number;
   description: string;
+  email?: string; // Email для отправки чека
   returnUrl?: string;
   failUrl?: string;
   currency?: string;
@@ -83,6 +84,7 @@ class AlfaBankService {
         failUrl: params.failUrl || this.config.failUrl,
         description: params.description,
         // currency not needed for RUB (default)
+        ...(params.email && { email: params.email }), // Email для чека
         ...(params.jsonParams && { jsonParams: JSON.stringify(params.jsonParams) })
       });
 

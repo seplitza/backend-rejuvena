@@ -18,12 +18,18 @@ const router = Router();
 router.post('/create', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId;
-    const { amount, description, planType, duration, marathonId, marathonName } = req.body;
+    const { amount, description, planType, duration } = req.body;
 
     if (!amount || !description) {
       return res.status(400).json({
         error: 'Amount and description are required'
       });
+    }
+
+    // Получаем email пользователя для отправки чека
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
     }
 
     // Генерируем уникальный номер заказа
@@ -42,9 +48,7 @@ router.post('/create', authMiddleware, async (req: AuthRequest, res: Response) =
       description,
       metadata: {
         planType,
-        duration,
-        ...(marathonId && { marathonId }),
-        ...(marathonName && { marathonName })
+        duration
       }
     });
 
@@ -54,6 +58,7 @@ router.post('/create', authMiddleware, async (req: AuthRequest, res: Response) =
         orderNumber,
         amount: amountInKopecks,
         description,
+        email: user.email, // Отправляем email для чека
         jsonParams: {
           userId,
           planType,
@@ -111,6 +116,12 @@ router.post('/create-exercise', authMiddleware, async (req: AuthRequest, res: Re
       });
     }
 
+    // Получаем email пользователя для отправки чека
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
     // Проверка, не куплено ли уже упражнение
     const existingPurchase = await ExercisePurchase.findOne({
       userId,
@@ -152,6 +163,7 @@ router.post('/create-exercise', authMiddleware, async (req: AuthRequest, res: Re
         orderNumber,
         amount: amountInKopecks,
         description: productDescription,
+        email: user.email, // Отправляем email для чека
         jsonParams: {
           userId,
           type: 'exercise',
@@ -210,14 +222,14 @@ router.post('/create-marathon', authMiddleware, async (req: AuthRequest, res: Re
       });
     }
 
+    // Получаем email пользователя для отправки чека
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
     // Генерируем уникальный номер заказа
     const orderNumber = `MARATHON-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
-
-    // Получаем марафон для tenure и numberOfDays
-    const marathon = await (require('../models/Marathon.model').default).findById(marathonId);
-    if (!marathon) {
-      return res.status(404).json({ error: 'Marathon not found' });
-    }
 
     // Сумма в копейках для Альфа-Банка
     const amountInKopecks = Math.round(price * 100);
@@ -235,9 +247,7 @@ router.post('/create-marathon', authMiddleware, async (req: AuthRequest, res: Re
       metadata: {
         type: 'marathon',
         marathonId,
-        marathonName,
-        marathonTenure: marathon.tenure || 44,
-        numberOfDays: marathon.numberOfDays || 14
+        marathonName
       }
     });
 
@@ -247,6 +257,7 @@ router.post('/create-marathon', authMiddleware, async (req: AuthRequest, res: Re
         orderNumber,
         amount: amountInKopecks,
         description: productDescription,
+        email: user.email, // Отправляем email для чека
         jsonParams: {
           userId,
           type: 'marathon',
@@ -624,34 +635,6 @@ async function activateMarathon(userId: string, marathonId: string, paymentId: s
 
     await enrollment.save();
     console.log('✅ Marathon activated for user:', userId, { marathonId, paymentId });
-
-    // Продлеваем фотодневник на 90 дней
-    try {
-      const User = require('../models/User.model').default;
-      const user = await User.findById(userId);
-      if (user) {
-        const now = new Date();
-        const currentEndDate = user.photoDiaryEndDate && user.photoDiaryEndDate > now 
-          ? user.photoDiaryEndDate 
-          : now;
-        
-        // Добавляем 90 дней
-        const newEndDate = new Date(currentEndDate);
-        newEndDate.setDate(newEndDate.getDate() + 90);
-        
-        user.photoDiaryEndDate = newEndDate;
-        await user.save();
-        
-        console.log('✅ Photo diary extended by 90 days:', {
-          email: user.email,
-          previousEndDate: currentEndDate,
-          newEndDate: newEndDate
-        });
-      }
-    } catch (photoError) {
-      console.error('⚠️ Failed to extend photo diary:', photoError instanceof Error ? photoError.message : photoError);
-      // Не падаем, это не критично
-    }
 
     // Send enrollment confirmation email
     try {
