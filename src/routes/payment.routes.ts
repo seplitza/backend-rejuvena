@@ -650,9 +650,29 @@ async function activateMarathon(userId: string, marathonId: string, paymentId: s
     await enrollment.save();
     console.log('✅ Marathon activated for user:', userId, { marathonId, paymentId });
 
+    // Extend photo diary by 90 days
+    const user = await User.findById(userId);
+    if (user) {
+      const now = new Date();
+      let newPhotoEnd: Date;
+      
+      if (user.photoDiaryEndDate && user.photoDiaryEndDate > now) {
+        // Если фотодневник активен - добавляем 90 дней к существующей дате
+        newPhotoEnd = new Date(user.photoDiaryEndDate);
+        newPhotoEnd.setDate(newPhotoEnd.getDate() + 90);
+      } else {
+        // Если фотодневник не активирован или истек - активируем на 90 дней от сейчас
+        newPhotoEnd = new Date(now);
+        newPhotoEnd.setDate(newPhotoEnd.getDate() + 90);
+      }
+      
+      user.photoDiaryEndDate = newPhotoEnd;
+      await user.save();
+      console.log('📸 Photo diary extended by 90 days for user:', userId, '| New end date:', newPhotoEnd.toISOString());
+    }
+
     // Send enrollment confirmation email
     try {
-      const user = await User.findById(userId);
       const marathon = await Marathon.findById(marathonId);
       
       if (user?.email && marathon) {
