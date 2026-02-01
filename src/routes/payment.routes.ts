@@ -628,6 +628,13 @@ async function activateMarathon(userId: string, marathonId: string, paymentId: s
     let enrollment = await MarathonEnrollment.findOne({ userId, marathonId });
 
     const paymentObjectId = new (require('mongoose').Types.ObjectId)(paymentId);
+    
+    // Get marathon details for expiresAt calculation
+    const marathon = await Marathon.findById(marathonId);
+    if (!marathon) {
+      console.error('❌ Marathon not found:', marathonId);
+      return;
+    }
 
     if (enrollment) {
       // Обновляем существующую запись
@@ -636,14 +643,21 @@ async function activateMarathon(userId: string, marathonId: string, paymentId: s
       enrollment.paymentId = paymentObjectId;
       enrollment.enrolledAt = new Date();
     } else {
-      // Создаем новую запись
+      // Создаем новую запись с expiresAt
+      const expiresAt = new Date(marathon.startDate);
+      expiresAt.setDate(expiresAt.getDate() + marathon.tenure);
+      
       enrollment = new MarathonEnrollment({
         userId,
         marathonId,
         status: 'active',
         isPaid: true,
         paymentId: paymentObjectId,
-        enrolledAt: new Date()
+        currentDay: 1,
+        lastAccessedDay: 0,
+        completedDays: [],
+        enrolledAt: new Date(),
+        expiresAt: expiresAt
       });
     }
 
