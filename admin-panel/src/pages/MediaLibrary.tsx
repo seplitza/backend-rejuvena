@@ -45,46 +45,76 @@ export default function MediaLibrary() {
   };
 
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
 
-    // Проверка типа файла
-    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
-      alert('Можно загружать только изображения и видео');
-      return;
+    // Проверка всех файлов
+    const validFiles: File[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      
+      // Проверка типа файла
+      if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+        alert(`"${file.name}" - можно загружать только изображения и видео`);
+        continue;
+      }
+
+      // Проверка размера (макс 50MB)
+      if (file.size > 50 * 1024 * 1024) {
+        alert(`"${file.name}" - максимальный размер файла: 50MB`);
+        continue;
+      }
+
+      validFiles.push(file);
     }
 
-    // Проверка размера (макс 50MB)
-    if (file.size > 50 * 1024 * 1024) {
-      alert('Максимальный размер файла: 50MB');
+    if (validFiles.length === 0) {
+      event.target.value = '';
       return;
     }
 
     setUploading(true);
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      let successCount = 0;
+      let errorCount = 0;
 
-      const token = getAuthToken();
-      const response = await fetch(`${API_URL}/api/media/upload`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
+      // Загружаем файлы последовательно (можно распараллелить при необходимости)
+      for (const file of validFiles) {
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
 
-      if (response.ok) {
-        alert('✅ Файл успешно загружен!');
+          const token = getAuthToken();
+          const response = await fetch(`${API_URL}/api/media/upload`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            },
+            body: formData
+          });
+
+          if (response.ok) {
+            successCount++;
+          } else {
+            errorCount++;
+            console.error(`Ошибка загрузки ${file.name}:`, await response.text());
+          }
+        } catch (error) {
+          errorCount++;
+          console.error(`Ошибка загрузки ${file.name}:`, error);
+        }
+      }
+
+      if (successCount > 0) {
+        alert(`✅ Успешно загружено: ${successCount} из ${validFiles.length} файлов`);
         loadFiles(); // Перезагружаем список
       } else {
-        const error = await response.json();
-        alert(`Ошибка загрузки: ${error.error || 'Неизвестная ошибка'}`);
+        alert('❌ Не удалось загрузить ни один файл');
       }
     } catch (error) {
       console.error('Ошибка загрузки:', error);
-      alert('Не удалось загрузить файл');
+      alert('Не удалось загрузить файлы');
     } finally {
       setUploading(false);
       event.target.value = ''; // Сброс input
@@ -161,10 +191,11 @@ export default function MediaLibrary() {
           fontWeight: '600',
           display: 'inline-block'
         }}>
-          {uploading ? '⏳ Загрузка...' : '📤 Загрузить файл'}
+          {uploading ? '⏳ Загрузка...' : '📤 Загрузить файлы'}
           <input
             type="file"
             accept="image/*,video/*"
+            multiple
             onChange={handleUpload}
             disabled={uploading}
             style={{ display: 'none' }}
