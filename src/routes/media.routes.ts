@@ -7,28 +7,6 @@ import { authMiddleware, AuthRequest } from '../middleware/auth.middleware';
 
 const router = Router();
 
-// Транслитерация кириллицы для SEO-friendly URL
-function transliterate(text: string): string {
-  const cyrillicToLatin: { [key: string]: string } = {
-    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo',
-    'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
-    'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
-    'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
-    'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya',
-    'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D', 'Е': 'E', 'Ё': 'Yo',
-    'Ж': 'Zh', 'З': 'Z', 'И': 'I', 'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M',
-    'Н': 'N', 'О': 'O', 'П': 'P', 'Р': 'R', 'С': 'S', 'Т': 'T', 'У': 'U',
-    'Ф': 'F', 'Х': 'H', 'Ц': 'Ts', 'Ч': 'Ch', 'Ш': 'Sh', 'Щ': 'Sch',
-    'Ъ': '', 'Ы': 'Y', 'Ь': '', 'Э': 'E', 'Ю': 'Yu', 'Я': 'Ya',
-    ' ': '-', '_': '-'
-  };
-  
-  return text.split('').map(char => cyrillicToLatin[char] || char).join('')
-    .replace(/[^a-zA-Z0-9.-]/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
-}
-
 // Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, '../../uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -41,19 +19,16 @@ const storage = multer.diskStorage({
     cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
-    // Транслитерация кириллицы для SEO
-    const originalName = file.originalname;
-    const ext = path.extname(originalName);
-    const nameWithoutExt = path.basename(originalName, ext);
-    const transliteratedName = transliterate(nameWithoutExt);
-    
-    let filename = `${transliteratedName}${ext}`;
+    // Сохраняем оригинальное имя файла с кириллицей
+    let filename = file.originalname;
     const filePath = path.join(uploadsDir, filename);
     
-    // Если файл уже существует, добавляем timestamp
+    // Если файл с таким именем уже существует, добавляем timestamp
     if (fs.existsSync(filePath)) {
+      const ext = path.extname(filename);
+      const nameWithoutExt = path.basename(filename, ext);
       const timestamp = Date.now();
-      filename = `${transliteratedName}-${timestamp}${ext}`;
+      filename = `${nameWithoutExt}-${timestamp}${ext}`;
     }
     
     cb(null, filename);
