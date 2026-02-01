@@ -421,7 +421,10 @@ router.get('/history', authMiddleware, async (req: AuthRequest, res: Response) =
  * Webhook для получения уведомлений от Альфа-Банка
  * POST /api/payment/webhook
  */
-router.post('/webhook', async (req: Request, res: Response) => {
+/**
+ * Webhook handler logic (extracted for reuse)
+ */
+async function handleWebhook(req: Request, res: Response) {
   try {
     const { orderId, orderNumber, status } = req.body;
 
@@ -490,7 +493,19 @@ router.post('/webhook', async (req: Request, res: Response) => {
       message: error.message
     });
   }
-});
+}
+
+/**
+ * Webhook endpoint (primary)
+ * POST /api/payment/webhook
+ */
+router.post('/webhook', handleWebhook);
+
+/**
+ * Callback/webhook endpoint (Alfabank alias)
+ * POST /api/payment/callback
+ */
+router.post('/callback', handleWebhook);
 
 /**
  * Callback URL для возврата пользователя после оплаты
