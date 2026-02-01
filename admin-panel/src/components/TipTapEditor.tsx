@@ -9,7 +9,8 @@ interface TipTapEditorProps {
   onChange: (content: string) => void;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:9527';
+// В продакшене админка на /admin/, API на том же домене
+const API_URL = window.location.origin;
 
 export default function TipTapEditor({ content, onChange }: TipTapEditorProps) {
   const [uploading, setUploading] = useState(false);
