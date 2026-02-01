@@ -11,6 +11,7 @@ import Orders from './pages/Orders';
 import Revenue from './pages/Revenue';
 import MarathonList from './pages/MarathonList';
 import MarathonEditor from './pages/MarathonEditor';
+import MediaLibrary from './pages/MediaLibrary';
 import Layout from './components/Layout';
 import { getAuthToken } from './utils/auth';
 
@@ -49,6 +50,7 @@ function App() {
           <Route path="marathons" element={<MarathonList />} />
           <Route path="marathons/new" element={<MarathonEditor />} />
           <Route path="marathons/:id" element={<MarathonEditor />} />
+          <Route path="media" element={<MediaLibrary />} />
         </Route>
       </Routes>
     </Router>

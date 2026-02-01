@@ -80,6 +80,22 @@ export default function Layout({ onLogout }: LayoutProps) {
           </Link>
 
           <Link
+            to="/media"
+            style={{
+              display: 'block',
+              padding: '12px 16px',
+              marginBottom: '8px',
+              borderRadius: '8px',
+              textDecoration: 'none',
+              color: 'white',
+              background: isActive('/media') ? '#4F46E5' : 'transparent',
+              transition: 'background 0.2s'
+            }}
+          >
+            📚 Медиабиблиотека
+          </Link>
+
+          <Link
             to="/comments"
             style={{
               display: 'block',
