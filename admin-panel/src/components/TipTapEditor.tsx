@@ -63,10 +63,14 @@ export default function TipTapEditor({ content, onChange }: TipTapEditorProps) {
 
     try {
       const formData = new FormData();
-      formData.append('media', file);
+      formData.append('file', file);
 
+      const token = localStorage.getItem('admin_token');
       const response = await fetch(`${API_URL}/api/media/upload`, {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
         body: formData
       });
 
