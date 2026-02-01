@@ -819,8 +819,17 @@ router.patch('/admin/:paymentId/status', authMiddleware, async (req: AuthRequest
       return res.status(404).json({ error: 'Payment not found' });
     }
 
+    console.log('📝 Admin changed payment status:', {
+      paymentId: payment._id,
+      orderNumber: payment.orderNumber,
+      oldStatus: 'unknown',
+      newStatus: status,
+      metadata: payment.metadata
+    });
+
     // Если статус изменен на succeeded, активируем покупку
     if (status === 'succeeded') {
+      console.log('✅ Status changed to succeeded, checking activation...');
       // Активация упражнения
       if (payment.metadata?.type === 'exercise' && payment.metadata.exerciseId) {
         await activateExercise(
@@ -840,11 +849,17 @@ router.patch('/admin/:paymentId/status', authMiddleware, async (req: AuthRequest
       }
       // Активация марафона
       else if ((payment.metadata?.type === 'marathon' || payment.metadata?.planType === 'marathon') && payment.metadata.marathonId) {
+        console.log('🏃 Activating marathon:', {
+          userId: payment.userId.toString(),
+          marathonId: payment.metadata.marathonId,
+          paymentId: payment._id.toString()
+        });
         await activateMarathon(
           payment.userId.toString(),
           payment.metadata.marathonId,
           payment._id.toString()
         );
+        console.log('✅ Marathon activation completed');
       }
       // Marathon без marathonId
       else if ((payment.metadata?.type === 'marathon' || payment.metadata?.planType === 'marathon') && !payment.metadata.marathonId) {
