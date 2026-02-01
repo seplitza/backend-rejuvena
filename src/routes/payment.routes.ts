@@ -830,10 +830,16 @@ router.patch('/admin/:paymentId/status', authMiddleware, async (req: AuthRequest
     // Если статус изменен на succeeded, активируем покупку
     if (status === 'succeeded') {
       console.log('✅ Status changed to succeeded, checking activation...');
+      
+      // Extract userId (может быть populate объектом или строкой)
+      const userId = (payment.userId as any)?._id 
+        ? (payment.userId as any)._id.toString() 
+        : payment.userId.toString();
+      
       // Активация упражнения
       if (payment.metadata?.type === 'exercise' && payment.metadata.exerciseId) {
         await activateExercise(
-          payment.userId.toString(),
+          userId,
           payment.metadata.exerciseId,
           payment.metadata.exerciseName || 'Упражнение',
           payment.amount / 100
@@ -842,7 +848,7 @@ router.patch('/admin/:paymentId/status', authMiddleware, async (req: AuthRequest
       // Активация премиума
       else if (payment.metadata?.type === 'premium' || payment.metadata?.planType === 'premium') {
         await activatePremium(
-          payment.userId.toString(),
+          userId,
           'premium',
           payment.metadata.duration || 30
         );
@@ -850,12 +856,12 @@ router.patch('/admin/:paymentId/status', authMiddleware, async (req: AuthRequest
       // Активация марафона
       else if ((payment.metadata?.type === 'marathon' || payment.metadata?.planType === 'marathon') && payment.metadata.marathonId) {
         console.log('🏃 Activating marathon:', {
-          userId: payment.userId.toString(),
+          userId: userId,
           marathonId: payment.metadata.marathonId,
           paymentId: payment._id.toString()
         });
         await activateMarathon(
-          payment.userId.toString(),
+          userId,
           payment.metadata.marathonId,
           payment._id.toString()
         );
