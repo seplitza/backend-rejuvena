@@ -12,6 +12,23 @@ import crypto from 'crypto';
 const router = Router();
 
 /**
+ * Генерация читаемого номера заказа: 00001-010120262033
+ */
+async function generateOrderNumber(): Promise<string> {
+  const paymentCount = await Payment.countDocuments();
+  const orderSerial = String(paymentCount + 1).padStart(5, '0');
+  const now = new Date();
+  const dateTime = [
+    String(now.getDate()).padStart(2, '0'),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getFullYear()),
+    String(now.getHours()).padStart(2, '0'),
+    String(now.getMinutes()).padStart(2, '0')
+  ].join('');
+  return `${orderSerial}-${dateTime}`;
+}
+
+/**
  * Создание платежа
  * POST /api/payment/create
  */
@@ -32,8 +49,8 @@ router.post('/create', authMiddleware, async (req: AuthRequest, res: Response) =
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Генерируем уникальный номер заказа
-    const orderNumber = `ORDER-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+    // Генерируем уникальный номер заказа в формате: 00001-датаВремя
+    const orderNumber = await generateOrderNumber();
 
     // Сумма в копейках для Альфа-Банка
     const amountInKopecks = Math.round(amount * 100);
@@ -134,7 +151,7 @@ router.post('/create-exercise', authMiddleware, async (req: AuthRequest, res: Re
     }
 
     // Генерируем уникальный номер заказа
-    const orderNumber = `EXERCISE-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+    const orderNumber = await generateOrderNumber();
 
     // Сумма в копейках для Альфа-Банка
     const amountInKopecks = Math.round(price * 100);
@@ -229,7 +246,7 @@ router.post('/create-marathon', authMiddleware, async (req: AuthRequest, res: Re
     }
 
     // Генерируем уникальный номер заказа
-    const orderNumber = `MARATHON-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+    const orderNumber = await generateOrderNumber();
 
     // Сумма в копейках для Альфа-Банка
     const amountInKopecks = Math.round(price * 100);

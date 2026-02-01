@@ -19,8 +19,19 @@ const storage = multer.diskStorage({
     cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
+    // Сохраняем оригинальное имя для SEO
+    let filename = file.originalname;
+    const filePath = path.join(uploadsDir, filename);
+    
+    // Если файл уже существует, добавляем timestamp перед расширением
+    if (fs.existsSync(filePath)) {
+      const ext = path.extname(filename);
+      const nameWithoutExt = path.basename(filename, ext);
+      const timestamp = Date.now();
+      filename = `${nameWithoutExt}-${timestamp}${ext}`;
+    }
+    
+    cb(null, filename);
   }
 });
 
