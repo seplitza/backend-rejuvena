@@ -216,8 +216,6 @@ router.post('/create-marathon', authMiddleware, async (req: AuthRequest, res: Re
     const userId = req.userId;
     const { marathonId, marathonName, price } = req.body;
 
-    console.log('🏃 create-marathon request:', { userId, marathonId, marathonName, price });
-
     if (!marathonId || !marathonName || !price) {
       return res.status(400).json({
         error: 'Marathon ID, name and price are required'
@@ -252,8 +250,6 @@ router.post('/create-marathon', authMiddleware, async (req: AuthRequest, res: Re
         marathonName
       }
     });
-
-    console.log('💾 Payment created:', payment._id, 'metadata:', JSON.stringify(payment.metadata, null, 2));
 
     // Регистрируем заказ в Альфа-Банке
     try {
