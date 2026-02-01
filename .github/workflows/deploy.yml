@@ -48,8 +48,12 @@ jobs:
             mkdir -p backups
             tar -czf backups/backup-$(date +%Y%m%d-%H%M%S).tar.gz dist admin-panel || true
             
-            # Update source code
+            # Pull latest code from git
             cd /var/www/rejuvena-backend
+            git fetch origin
+            git reset --hard origin/main
+            
+            # Update source code
             rm -rf src-new
             mkdir -p src-new
             
@@ -82,16 +86,13 @@ jobs:
           script: |
             # Move new files
             cd /var/www/rejuvena-backend
-            rsync -av --delete /var/www/rejuvena-backend-temp/src/ ./src/
             rsync -av --delete /var/www/rejuvena-backend-temp/dist/ ./dist/
             rsync -av --delete /var/www/rejuvena-backend-temp/admin-panel/ ./admin-panel/
-            cp /var/www/rejuvena-backend-temp/package*.json ./
-            cp /var/www/rejuvena-backend-temp/tsconfig.json ./
             
             # Clean temp
             rm -rf /var/www/rejuvena-backend-temp
             
-            # Install dependencies if needed
+            # Install dependencies
             npm install --production
             
             # Restart backend
