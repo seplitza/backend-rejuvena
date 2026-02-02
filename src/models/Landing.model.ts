@@ -58,6 +58,68 @@ export interface ICtaSection {
   backgroundImage?: string;
 }
 
+export interface IFeaturesSection {
+  sectionTitle: string;
+  subtitle?: string;
+  features: Array<{
+    icon: string;
+    title: string;
+    description: string;
+  }>;
+}
+
+export interface IProblemsSection {
+  sectionTitle: string;
+  subtitle?: string;
+  problems: Array<{
+    number: string;
+    title: string;
+    description: string;
+  }>;
+}
+
+export interface IAboutSection {
+  sectionTitle: string;
+  name: string;
+  bio: string;
+  photo?: string;
+  achievements: Array<{
+    icon: string;
+    title: string;
+    description: string;
+  }>;
+}
+
+export interface IStepsSection {
+  sectionTitle: string;
+  subtitle?: string;
+  steps: Array<{
+    image?: string;
+    title: string;
+    description: string;
+  }>;
+}
+
+export interface IProcessSection {
+  sectionTitle: string;
+  subtitle?: string;
+  steps: Array<{
+    number: number;
+    title: string;
+    description: string;
+    duration?: string;
+  }>;
+}
+
+export interface IStatsSection {
+  sectionTitle: string;
+  stats: Array<{
+    value: string;
+    label: string;
+    description: string;
+  }>;
+}
+
 export interface ICustomSection {
   type: 'html' | 'markdown';
   content: string;
@@ -72,6 +134,12 @@ export interface ILanding extends Document {
   
   // Секции лендинга
   heroSection: IHeroSection;
+  featuresSection?: IFeaturesSection; // "Что такое система"
+  problemsSection?: IProblemsSection; // "Сеплица стирает возрастные признаки"
+  aboutSection?: IAboutSection; // "Обо мне"
+  stepsSection?: IStepsSection; // "4 ступени системы"
+  processSection?: IProcessSection; // "Как проходит программа"
+  statsSection?: IStatsSection; // "Результаты наших клиентов"
   marathonsSection?: IMarathonsSection;
   benefitsSection?: IBenefitsSection;
   testimonialsSection?: ITestimonialsSection;
@@ -124,6 +192,74 @@ const LandingSchema = new Schema<ILanding>({
       text: { type: String, required: true },
       link: { type: String, required: true }
     }
+  },
+  
+  // Секция особенностей/преимуществ системы
+  featuresSection: {
+    sectionTitle: { type: String, default: 'Что такое система Сеплица?' },
+    subtitle: String,
+    features: [{
+      icon: String,
+      title: String,
+      description: String
+    }]
+  },
+  
+  // Секция решаемых проблем
+  problemsSection: {
+    sectionTitle: { type: String, default: 'Сеплица стирает возрастные признаки' },
+    subtitle: String,
+    problems: [{
+      number: String,
+      title: String,
+      description: String
+    }]
+  },
+  
+  // Секция об авторе/эксперте
+  aboutSection: {
+    sectionTitle: { type: String, default: 'Обо мне' },
+    name: String,
+    bio: String,
+    photo: String,
+    achievements: [{
+      icon: String,
+      title: String,
+      description: String
+    }]
+  },
+  
+  // Секция этапов/ступеней системы
+  stepsSection: {
+    sectionTitle: { type: String, default: '4 ступени системы Сеплица' },
+    subtitle: String,
+    steps: [{
+      image: String,
+      title: String,
+      description: String
+    }]
+  },
+  
+  // Секция процесса прохождения программы
+  processSection: {
+    sectionTitle: { type: String, default: 'Как проходит программа' },
+    subtitle: String,
+    steps: [{
+      number: Number,
+      title: String,
+      description: String,
+      duration: String
+    }]
+  },
+  
+  // Секция статистики/результатов
+  statsSection: {
+    sectionTitle: { type: String, default: 'Результаты наших клиентов' },
+    stats: [{
+      value: String,
+      label: String,
+      description: String
+    }]
   },
   
   // Секция с марафонами
