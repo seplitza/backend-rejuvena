@@ -16,6 +16,7 @@ import paymentRoutes from './routes/payment.routes';
 import photoDiaryRoutes from './routes/photo-diary.routes';
 import exercisePurchaseRoutes from './routes/exercise-purchase.routes';
 import marathonRoutes from './routes/marathon.routes';
+import landingRoutes from './routes/landing.routes';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -54,6 +55,7 @@ app.use('/api/payment', paymentRoutes);
 app.use('/api/photo-diary', photoDiaryRoutes);
 app.use('/api/exercise-purchase', exercisePurchaseRoutes);
 app.use('/api/marathons', marathonRoutes);
+app.use('/api/landings', landingRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
