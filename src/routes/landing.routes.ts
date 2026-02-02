@@ -226,6 +226,26 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
 // ============ PUBLIC ENDPOINTS ============
 
 // GET /api/landings/public/:slug - Получить опубликованный лендинг по slug
+// GET /api/landings/public - Получить список всех опубликованных лендингов (для билда)
+router.get('/public', async (req: Request, res: Response) => {
+  try {
+    const landings = await Landing.find({ isPublished: true })
+      .select('slug title')
+      .lean();
+
+    res.json({ 
+      success: true, 
+      landings 
+    });
+  } catch (error) {
+    console.error('Error fetching public landings:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch public landings' 
+    });
+  }
+});
+
 router.get('/public/:slug', async (req: Request, res: Response) => {
   try {
     const { slug } = req.params;

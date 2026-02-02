@@ -175,9 +175,20 @@ export const generateMarathonFeatures = (isBasic: boolean, courseDescription?: s
 
 // Правило 8: Уникальный контент для каждого лендинга
 export const generateUniqueSlug = (marathonTitle: string, stage?: number) => {
-  const clean = marathonTitle
-    .toLowerCase()
-    .replace(/[^а-яa-z0-9]+/g, '-')
+  // Транслитерация кириллицы в латиницу
+  const translitMap: { [key: string]: string } = {
+    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'zh',
+    'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
+    'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'h', 'ц': 'ts',
+    'ч': 'ch', 'ш': 'sh', 'щ': 'sch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+  };
+  
+  const translit = (str: string) => {
+    return str.toLowerCase().split('').map(char => translitMap[char] || char).join('');
+  };
+  
+  const clean = translit(marathonTitle)
+    .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
   
   const stageStr = stage ? `-stage-${stage}` : '';
