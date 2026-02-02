@@ -13,6 +13,7 @@ import MarathonList from './pages/MarathonList';
 import MarathonEditor from './pages/MarathonEditor';
 import MediaLibrary from './pages/MediaLibrary';
 import LandingList from './pages/LandingList';
+import LandingEditor from './pages/LandingEditor';
 import Layout from './components/Layout';
 import { getAuthToken } from './utils/auth';
 
@@ -52,6 +53,8 @@ function App() {
           <Route path="marathons/new" element={<MarathonEditor />} />
           <Route path="marathons/:id" element={<MarathonEditor />} />
           <Route path="landings" element={<LandingList />} />
+          <Route path="landings/new" element={<LandingEditor />} />
+          <Route path="landings/:id" element={<LandingEditor />} />
           <Route path="media" element={<MediaLibrary />} />
         </Route>
       </Routes>
