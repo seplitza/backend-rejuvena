@@ -32,7 +32,7 @@ router.get('/', async (req: Request, res: Response) => {
 
     const marathons = await Marathon.find({ isPublic: true, isDisplay: true })
       .sort({ startDate: -1 })
-      .select('-welcomeMessage -courseDescription -rules');
+      .select('-welcomeMessage -rules');
 
     // Если пользователь авторизован, добавляем информацию о записи
     if (userId) {
