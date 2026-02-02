@@ -9,6 +9,7 @@
     "start": "node dist/server.js",
     "seed": "ts-node src/scripts/seed.ts",
     "create-editor": "ts-node src/scripts/create-editor.ts",
+    "test-landings": "ts-node src/scripts/test-landings.ts",
     "import-exercises": "ts-node src/scripts/import-exercises.ts",
     "update-exercises": "ts-node src/scripts/update-exercises-from-api.ts",
     "import-forehead-eyes-pro": "ts-node src/scripts/import-forehead-eyes-pro.ts",
