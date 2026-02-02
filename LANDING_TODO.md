@@ -108,3 +108,12 @@
 
 **Последнее обновление:** 2 февраля 2026
 **Статус:** Backend готов, Admin Panel - в разработке
+
+## Future Optimization
+
+- [ ] **SSG Optimization**: Convert landing pages to Static Site Generation
+  - Преимущества: Faster initial load, better SEO, less backend load
+  - Требуется: Refactor component to use props from getStaticProps instead of client-side fetch
+  - Текущее: Works with CSR (client-side rendering), fully functional
+  - Priority: Medium (current implementation works fine)
+

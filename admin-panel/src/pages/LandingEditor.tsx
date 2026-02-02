@@ -2,6 +2,25 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api/client';
 import { generateLandingContent, generateMarathonFeatures, generateUniqueSlug } from '../utils/landingGenerator';
+import SectionManager from '../components/SectionManager';
+import type { SectionConfig } from '../components/SectionManager';
+import SectionEditorModal from '../components/sections/SectionEditorModal';
+import {
+  defaultFeatures,
+  defaultProblems,
+  defaultAbout,
+  defaultSteps,
+  defaultProcess,
+  defaultStats
+} from '../types/sections';
+import type {
+  FeaturesSectionData,
+  ProblemsSectionData,
+  AboutSectionData,
+  StepsSectionData,
+  ProcessSectionData,
+  StatsSectionData
+} from '../types/sections';
 
 interface Marathon {
   _id: string;
@@ -20,6 +39,35 @@ const LandingEditor: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [marathons, setMarathons] = useState<Marathon[]>([]);
   const [selectedMarathon, setSelectedMarathon] = useState<string>('');
+  
+  // Section management
+  const [sections, setSections] = useState<SectionConfig[]>([
+    { id: 'hero', type: 'hero', title: 'Первый экран (Hero)', isVisible: true, isRequired: true, icon: '🎯' },
+    { id: 'features', type: 'features', title: 'Что такое система', isVisible: true, icon: '✨' },
+    { id: 'problems', type: 'problems', title: 'Проблемы которые решаем', isVisible: true, icon: '🎯' },
+    { id: 'about', type: 'about', title: 'Об авторе', isVisible: true, icon: '👤' },
+    { id: 'steps', type: 'steps', title: 'Ступени системы', isVisible: true, icon: '📊' },
+    { id: 'process', type: 'process', title: 'Как проходит программа', isVisible: true, icon: '🔄' },
+    { id: 'stats', type: 'stats', title: 'Результаты клиентов', isVisible: true, icon: '📈' },
+    { id: 'marathons', type: 'marathons', title: 'Тарифы и марафоны', isVisible: true, isRequired: true, icon: '🏃' }
+  ]);
+
+  const [editingSection, setEditingSection] = useState<string | null>(null);
+  const [sectionData, setSectionData] = useState<{
+    features: FeaturesSectionData;
+    problems: ProblemsSectionData;
+    about: AboutSectionData;
+    steps: StepsSectionData;
+    process: ProcessSectionData;
+    stats: StatsSectionData;
+  }>({
+    features: defaultFeatures,
+    problems: defaultProblems,
+    about: defaultAbout,
+    steps: defaultSteps,
+    process: defaultProcess,
+    stats: defaultStats
+  });
   
   // Form state
   const [formData, setFormData] = useState({
@@ -99,6 +147,37 @@ const LandingEditor: React.FC = () => {
           advancedFeatures: landing.marathonsSection?.advanced?.features || [],
           isPublished: landing.isPublished
         });
+
+        // Load section data
+        if (landing.featuresSection) {
+          setSectionData(prev => ({ ...prev, features: landing.featuresSection }));
+        }
+        if (landing.problemsSection) {
+          setSectionData(prev => ({ ...prev, problems: landing.problemsSection }));
+        }
+        if (landing.aboutSection) {
+          setSectionData(prev => ({ ...prev, about: landing.aboutSection }));
+        }
+        if (landing.stepsSection) {
+          setSectionData(prev => ({ ...prev, steps: landing.stepsSection }));
+        }
+        if (landing.processSection) {
+          setSectionData(prev => ({ ...prev, process: landing.processSection }));
+        }
+        if (landing.statsSection) {
+          setSectionData(prev => ({ ...prev, stats: landing.statsSection }));
+        }
+
+        // Update section visibility
+        setSections(prev => prev.map(section => {
+          if (section.id === 'features') return { ...section, isVisible: !!landing.featuresSection };
+          if (section.id === 'problems') return { ...section, isVisible: !!landing.problemsSection };
+          if (section.id === 'about') return { ...section, isVisible: !!landing.aboutSection };
+          if (section.id === 'steps') return { ...section, isVisible: !!landing.stepsSection };
+          if (section.id === 'process') return { ...section, isVisible: !!landing.processSection };
+          if (section.id === 'stats') return { ...section, isVisible: !!landing.statsSection };
+          return section;
+        }));
       }
     } catch (error) {
       console.error('Error fetching landing:', error);
@@ -160,7 +239,7 @@ const LandingEditor: React.FC = () => {
     try {
       setLoading(true);
       
-      const landingData = {
+      const landingData: any = {
         slug: formData.slug,
         title: formData.title,
         metaDescription: formData.metaDescription,
@@ -202,6 +281,17 @@ const LandingEditor: React.FC = () => {
         isPublished: formData.isPublished
       };
 
+      // Add visible sections
+      const visibleSections = sections.filter(s => s.isVisible && !s.isRequired);
+      visibleSections.forEach(section => {
+        if (section.id === 'features') landingData.featuresSection = sectionData.features;
+        if (section.id === 'problems') landingData.problemsSection = sectionData.problems;
+        if (section.id === 'about') landingData.aboutSection = sectionData.about;
+        if (section.id === 'steps') landingData.stepsSection = sectionData.steps;
+        if (section.id === 'process') landingData.processSection = sectionData.process;
+        if (section.id === 'stats') landingData.statsSection = sectionData.stats;
+      });
+
       let response;
       if (id && id !== 'new') {
         response = await api.put(`/landings/${id}`, landingData);
@@ -219,6 +309,23 @@ const LandingEditor: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEditSection = (sectionId: string) => {
+    if (!['features', 'problems', 'about', 'steps', 'process', 'stats'].includes(sectionId)) {
+      alert('Для Hero и Marathons используйте основную форму');
+      return;
+    }
+    setEditingSection(sectionId);
+  };
+
+  const handleSaveSection = (data: any) => {
+    if (!editingSection) return;
+    
+    setSectionData(prev => ({
+      ...prev,
+      [editingSection]: data
+    }));
   };
 
   if (loading && id && id !== 'new') {
@@ -267,6 +374,13 @@ const LandingEditor: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Section Manager */}
+      <SectionManager
+        sections={sections}
+        onSectionsChange={setSections}
+        onEditSection={handleEditSection}
+      />
 
       {/* Main Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -528,6 +642,16 @@ const LandingEditor: React.FC = () => {
           </div>
         </div>
       </form>
+
+      {/* Section Editor Modal */}
+      {editingSection && (
+        <SectionEditorModal
+          sectionType={editingSection}
+          data={sectionData[editingSection as keyof typeof sectionData]}
+          onSave={handleSaveSection}
+          onClose={() => setEditingSection(null)}
+        />
+      )}
     </div>
   );
 };
