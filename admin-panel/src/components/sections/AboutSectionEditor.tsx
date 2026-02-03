@@ -126,8 +126,21 @@ const AboutSectionEditor: React.FC<Props> = ({ data, onChange }) => {
                     value={achievement.icon}
                     onChange={(e) => updateAchievement(index, 'icon', e.target.value)}
                     placeholder="🎓"
-                    className="w-full px-3 py-2 border border-gray-300 rounded text-center text-2xl"
+                    className="w-full px-3 py-2 border border-gray-300 rounded text-center text-2xl mb-1"
                   />
+                  <div className="flex gap-1 flex-wrap">
+                    {['🎓', '⭐', '📚', '💼', '🏆', '✨', '💪', '🎯'].map(emoji => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => updateAchievement(index, 'icon', emoji)}
+                        className="px-2 py-1 text-lg hover:bg-gray-100 rounded border border-gray-200"
+                        title={`Выбрать ${emoji}`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div className="col-span-2">
                   <label className="block text-xs text-gray-600 mb-1">Заголовок</label>
