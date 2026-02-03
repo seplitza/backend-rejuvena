@@ -1,4 +1,5 @@
 import React from 'react';
+import ImageUpload from '../ImageUpload';
 
 interface Step {
   title: string;
@@ -118,16 +119,11 @@ const StepsSectionEditor: React.FC<Props> = ({ data, onChange }) => {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">URL изображения (опционально)</label>
-                  <input
-                    type="text"
-                    value={step.image || ''}
-                    onChange={(e) => updateStep(index, 'image', e.target.value)}
-                    placeholder="http://..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded"
-                  />
-                </div>
+                <ImageUpload
+                  currentUrl={step.image}
+                  onUrlChange={(url) => updateStep(index, 'image', url)}
+                  label="Изображение (опционально)"
+                />
               </div>
             </div>
           ))}

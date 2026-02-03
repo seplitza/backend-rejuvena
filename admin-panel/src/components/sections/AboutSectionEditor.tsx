@@ -1,4 +1,5 @@
 import React from 'react';
+import ImageUpload from '../ImageUpload';
 
 interface Achievement {
   icon: string;
@@ -57,32 +58,25 @@ const AboutSectionEditor: React.FC<Props> = ({ data, onChange }) => {
       </div>
 
       {/* Author Info */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Имя
-          </label>
-          <input
-            type="text"
-            value={data.name}
-            onChange={(e) => onChange({ ...data, name: e.target.value })}
-            placeholder="Алексей Пинаев"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            URL фото
-          </label>
-          <input
-            type="text"
-            value={data.photo}
-            onChange={(e) => onChange({ ...data, photo: e.target.value })}
-            placeholder="http://..."
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-          />
-        </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Имя
+        </label>
+        <input
+          type="text"
+          value={data.name}
+          onChange={(e) => onChange({ ...data, name: e.target.value })}
+          placeholder="Алексей Пинаев"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+        />
       </div>
+
+      {/* Photo Upload */}
+      <ImageUpload
+        currentUrl={data.photo}
+        onUrlChange={(url) => onChange({ ...data, photo: url })}
+        label="Фото автора"
+      />
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
