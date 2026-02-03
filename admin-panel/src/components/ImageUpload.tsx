@@ -35,11 +35,13 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       });
 
       if (response.data.url) {
-        // Бэкенд возвращает относительный URL, нужно сделать абсолютный
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:9527';
+        // Бэкенд возвращает относительный URL (/uploads/...), нужно сделать абсолютный
+        const baseUrl = import.meta.env.VITE_API_URL 
+          ? import.meta.env.VITE_API_URL.replace('/api', '') // Убираем /api из конца
+          : 'http://localhost:9527';
         const fullUrl = response.data.url.startsWith('http') 
           ? response.data.url 
-          : `${apiUrl}${response.data.url}`;
+          : `${baseUrl}${response.data.url}`;
         onUrlChange(fullUrl);
       } else {
         throw new Error('Не удалось получить URL изображения');
