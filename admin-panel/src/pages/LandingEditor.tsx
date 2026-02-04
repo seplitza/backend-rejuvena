@@ -11,7 +11,9 @@ import {
   defaultAbout,
   defaultSteps,
   defaultProcess,
-  defaultStats
+  defaultStats,
+  defaultResultsGallery,
+  defaultTestimonialsGallery
 } from '../types/sections';
 import type {
   FeaturesSectionData,
@@ -19,7 +21,9 @@ import type {
   AboutSectionData,
   StepsSectionData,
   ProcessSectionData,
-  StatsSectionData
+  StatsSectionData,
+  ResultsGallerySectionData,
+  TestimonialsGallerySectionData
 } from '../types/sections';
 
 interface Marathon {
@@ -49,6 +53,8 @@ const LandingEditor: React.FC = () => {
     { id: 'steps', type: 'steps', title: 'Ступени системы', isVisible: true, icon: '📊' },
     { id: 'process', type: 'process', title: 'Как проходит программа', isVisible: true, icon: '🔄' },
     { id: 'stats', type: 'stats', title: 'Результаты клиентов', isVisible: true, icon: '📈' },
+    { id: 'resultsGallery', type: 'resultsGallery', title: 'Галерея результатов', isVisible: false, icon: '📸' },
+    { id: 'testimonialsGallery', type: 'testimonialsGallery', title: 'Галерея отзывов', isVisible: false, icon: '💬' },
     { id: 'marathons', type: 'marathons', title: 'Тарифы и марафоны', isVisible: true, isRequired: true, icon: '🏃' }
   ]);
 
@@ -60,13 +66,17 @@ const LandingEditor: React.FC = () => {
     steps: StepsSectionData;
     process: ProcessSectionData;
     stats: StatsSectionData;
+    resultsGallery: ResultsGallerySectionData;
+    testimonialsGallery: TestimonialsGallerySectionData;
   }>({
     features: defaultFeatures,
     problems: defaultProblems,
     about: defaultAbout,
     steps: defaultSteps,
     process: defaultProcess,
-    stats: defaultStats
+    stats: defaultStats,
+    resultsGallery: defaultResultsGallery,
+    testimonialsGallery: defaultTestimonialsGallery
   });
   
   // Form state
@@ -167,6 +177,12 @@ const LandingEditor: React.FC = () => {
         if (landing.statsSection) {
           setSectionData(prev => ({ ...prev, stats: landing.statsSection }));
         }
+        if (landing.resultsGallerySection) {
+          setSectionData(prev => ({ ...prev, resultsGallery: landing.resultsGallerySection }));
+        }
+        if (landing.testimonialsGallerySection) {
+          setSectionData(prev => ({ ...prev, testimonialsGallery: landing.testimonialsGallerySection }));
+        }
 
         // Update section visibility
         setSections(prev => prev.map(section => {
@@ -176,6 +192,8 @@ const LandingEditor: React.FC = () => {
           if (section.id === 'steps') return { ...section, isVisible: !!landing.stepsSection };
           if (section.id === 'process') return { ...section, isVisible: !!landing.processSection };
           if (section.id === 'stats') return { ...section, isVisible: !!landing.statsSection };
+          if (section.id === 'resultsGallery') return { ...section, isVisible: !!landing.resultsGallerySection };
+          if (section.id === 'testimonialsGallery') return { ...section, isVisible: !!landing.testimonialsGallerySection };
           return section;
         }));
       }
@@ -290,6 +308,8 @@ const LandingEditor: React.FC = () => {
         if (section.id === 'steps') landingData.stepsSection = sectionData.steps;
         if (section.id === 'process') landingData.processSection = sectionData.process;
         if (section.id === 'stats') landingData.statsSection = sectionData.stats;
+        if (section.id === 'resultsGallery') landingData.resultsGallerySection = sectionData.resultsGallery;
+        if (section.id === 'testimonialsGallery') landingData.testimonialsGallerySection = sectionData.testimonialsGallery;
       });
 
       let response;

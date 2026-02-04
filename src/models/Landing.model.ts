@@ -50,6 +50,26 @@ export interface ITestimonialsSection {
   }>;
 }
 
+export interface IResultsGallerySection {
+  sectionTitle: string;
+  description?: string;
+  images: Array<{
+    url: string;
+    caption?: string;
+    order: number;
+  }>;
+}
+
+export interface ITestimonialsGallerySection {
+  sectionTitle: string;
+  description?: string;
+  images: Array<{
+    url: string;
+    caption?: string;
+    order: number;
+  }>;
+}
+
 export interface ICtaSection {
   title: string;
   subtitle?: string;
@@ -143,6 +163,8 @@ export interface ILanding extends Document {
   marathonsSection?: IMarathonsSection;
   benefitsSection?: IBenefitsSection;
   testimonialsSection?: ITestimonialsSection;
+  resultsGallerySection?: IResultsGallerySection; // Галерея результатов
+  testimonialsGallerySection?: ITestimonialsGallerySection; // Галерея отзывов
   ctaSection?: ICtaSection;
   customSections?: ICustomSection[];
   
@@ -328,6 +350,28 @@ const LandingSchema = new Schema<ILanding>({
     content: String,
     order: Number
   }],
+  
+  // Галерея результатов
+  resultsGallerySection: {
+    sectionTitle: { type: String, default: 'Результаты наших клиентов' },
+    description: String,
+    images: [{
+      url: String,
+      caption: String,
+      order: { type: Number, default: 0 }
+    }]
+  },
+  
+  // Галерея отзывов
+  testimonialsGallerySection: {
+    sectionTitle: { type: String, default: 'Отзывы клиентов' },
+    description: String,
+    images: [{
+      url: String,
+      caption: String,
+      order: { type: Number, default: 0 }
+    }]
+  },
   
   // Публикация
   isPublished: {

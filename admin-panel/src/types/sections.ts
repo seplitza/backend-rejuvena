@@ -139,3 +139,35 @@ export const defaultStats: StatsSectionData = {
     { value: '-12 кг', label: 'Средняя потеря веса', description: 'Нормализация веса без жестких диет' }
   ]
 };
+
+// Gallery sections
+export interface GalleryImage {
+  url: string;
+  caption?: string;
+  order: number;
+  _tempId?: string;
+}
+
+export interface ResultsGallerySectionData {
+  sectionTitle: string;
+  description?: string;
+  images: GalleryImage[];
+}
+
+export interface TestimonialsGallerySectionData {
+  sectionTitle: string;
+  description?: string;
+  images: GalleryImage[];
+}
+
+export const defaultResultsGallery: ResultsGallerySectionData = {
+  sectionTitle: 'Результаты наших клиентов',
+  description: 'Реальные фотографии до и после работы с системой',
+  images: []
+};
+
+export const defaultTestimonialsGallery: TestimonialsGallerySectionData = {
+  sectionTitle: 'Отзывы клиентов',
+  description: 'Что говорят наши клиенты о результатах',
+  images: []
+};

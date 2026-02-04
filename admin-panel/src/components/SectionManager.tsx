@@ -19,7 +19,7 @@ import { CSS } from '@dnd-kit/utilities';
 
 export interface SectionConfig {
   id: string;
-  type: 'hero' | 'features' | 'problems' | 'about' | 'steps' | 'process' | 'stats' | 'marathons' | 'benefits' | 'testimonials';
+  type: 'hero' | 'features' | 'problems' | 'about' | 'steps' | 'process' | 'stats' | 'marathons' | 'benefits' | 'testimonials' | 'resultsGallery' | 'testimonialsGallery';
   title: string;
   isVisible: boolean;
   isRequired?: boolean; // hero и marathons обязательные
