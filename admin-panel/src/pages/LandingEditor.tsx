@@ -332,7 +332,7 @@ const LandingEditor: React.FC = () => {
   };
 
   const handleEditSection = (sectionId: string) => {
-    if (!['features', 'problems', 'about', 'steps', 'process', 'stats'].includes(sectionId)) {
+    if (!['features', 'problems', 'about', 'steps', 'process', 'stats', 'resultsGallery', 'testimonialsGallery'].includes(sectionId)) {
       alert('Для Hero и Marathons используйте основную форму');
       return;
     }
