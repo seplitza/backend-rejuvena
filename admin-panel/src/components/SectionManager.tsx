@@ -30,9 +30,10 @@ interface SortableItemProps {
   section: SectionConfig;
   onToggleVisibility: (id: string) => void;
   onEdit: (id: string) => void;
+  onDuplicate: (id: string) => void;
 }
 
-const SortableItem: React.FC<SortableItemProps> = ({ section, onToggleVisibility, onEdit }) => {
+const SortableItem: React.FC<SortableItemProps> = ({ section, onToggleVisibility, onEdit, onDuplicate }) => {
   const {
     attributes,
     listeners,
@@ -40,7 +41,7 @@ const SortableItem: React.FC<SortableItemProps> = ({ section, onToggleVisibility
     transform,
     transition,
     isDragging
-  } = useSortable({ id: section.id, disabled: section.isRequired });
+  } = useSortable({ id: section.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -58,17 +59,15 @@ const SortableItem: React.FC<SortableItemProps> = ({ section, onToggleVisibility
       `}
     >
       {/* Drag Handle */}
-      {!section.isRequired && (
-        <div
-          {...attributes}
-          {...listeners}
-          className="cursor-move text-gray-400 hover:text-gray-600"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
-          </svg>
-        </div>
-      )}
+      <div
+        {...attributes}
+        {...listeners}
+        className="cursor-move text-gray-400 hover:text-gray-600"
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+        </svg>
+      </div>
 
       {/* Section Info */}
       <div className="flex-1 flex items-center gap-3">
@@ -94,14 +93,12 @@ const SortableItem: React.FC<SortableItemProps> = ({ section, onToggleVisibility
         <button
           type="button"
           onClick={() => onToggleVisibility(section.id)}
-          disabled={section.isRequired}
           className={`
             p-2 rounded-lg transition
             ${section.isVisible
               ? 'bg-green-100 text-green-700 hover:bg-green-200'
               : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
             }
-            ${section.isRequired ? 'opacity-50 cursor-not-allowed' : ''}
           `}
           title={section.isVisible ? 'Скрыть блок' : 'Показать блок'}
         >
@@ -126,6 +123,18 @@ const SortableItem: React.FC<SortableItemProps> = ({ section, onToggleVisibility
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+        </button>
+
+        {/* Duplicate Button */}
+        <button
+          type="button"
+          onClick={() => onDuplicate(section.id)}
+          className="p-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition"
+          title="Копировать блок"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
           </svg>
         </button>
       </div>
@@ -171,6 +180,26 @@ const SectionManager: React.FC<SectionManagerProps> = ({
     onSectionsChange(updatedSections);
   };
 
+  const handleDuplicate = (sectionId: string) => {
+    const sectionToDuplicate = sections.find(s => s.id === sectionId);
+    if (!sectionToDuplicate) return;
+
+    const timestamp = Date.now();
+    const duplicatedSection: SectionConfig = {
+      ...sectionToDuplicate,
+      id: `${sectionToDuplicate.id}-copy-${timestamp}`,
+      title: `${sectionToDuplicate.title} (копия)`,
+      isRequired: false, // Копии не могут быть обязательными
+    };
+
+    // Вставляем копию сразу после оригинала
+    const originalIndex = sections.findIndex(s => s.id === sectionId);
+    const newSections = [...sections];
+    newSections.splice(originalIndex + 1, 0, duplicatedSection);
+    
+    onSectionsChange(newSections);
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
       <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -196,6 +225,7 @@ const SectionManager: React.FC<SectionManagerProps> = ({
                 section={section}
                 onToggleVisibility={toggleVisibility}
                 onEdit={onEditSection}
+                onDuplicate={handleDuplicate}
               />
             ))}
           </div>

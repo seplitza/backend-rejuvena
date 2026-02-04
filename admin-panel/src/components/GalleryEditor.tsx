@@ -136,14 +136,12 @@ const GalleryEditor: React.FC<GalleryEditorProps> = ({ images, onChange, section
     setUploading(true);
 
     try {
-      const uploadedImages: GalleryImage[] = [];
-
       // Загружаем все файлы параллельно
-      await Promise.all(
-        Array.from(files).map(async (file) => {
-          const formData = new FormData();
-          formData.append('file', file);
+      const uploadPromises = Array.from(files).map(async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
 
+        try {
           const response = await axios.post(
             'https://api-rejuvena.duckdns.org/api/media/upload',
             formData,
@@ -155,21 +153,46 @@ const GalleryEditor: React.FC<GalleryEditorProps> = ({ images, onChange, section
             }
           );
 
+          console.log('Upload response:', response.data);
+
           if (response.data.success && response.data.url) {
-            uploadedImages.push({
+            return {
               url: response.data.url,
               caption: '',
-              order: images.length + uploadedImages.length,
+              order: 0, // Will be recalculated after all uploads
               _tempId: `temp-${Date.now()}-${Math.random()}`,
-            });
+            } as GalleryImage;
+          } else {
+            console.error('Upload failed:', response.data);
+            return null;
           }
-        })
-      );
+        } catch (uploadError: any) {
+          console.error('Upload error for file:', file.name, uploadError.response?.data || uploadError.message);
+          return null;
+        }
+      });
 
-      onChange([...images, ...uploadedImages]);
-    } catch (error) {
+      const results = await Promise.all(uploadPromises);
+      const successfulUploads = results.filter((img): img is GalleryImage => img !== null);
+
+      if (successfulUploads.length === 0) {
+        throw new Error('Не удалось загрузить ни одного файла');
+      }
+
+      // Recalculate order for new images
+      const newImages = successfulUploads.map((img, idx) => ({
+        ...img,
+        order: images.length + idx,
+      }));
+
+      onChange([...images, ...newImages]);
+
+      if (successfulUploads.length < files.length) {
+        alert(`Загружено ${successfulUploads.length} из ${files.length} файлов. Некоторые файлы не удалось загрузить.`);
+      }
+    } catch (error: any) {
       console.error('Ошибка загрузки файлов:', error);
-      alert('Ошибка при загрузке файлов');
+      alert(`Ошибка при загрузке файлов: ${error.message || 'Неизвестная ошибка'}`);
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
