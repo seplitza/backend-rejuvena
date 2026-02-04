@@ -491,7 +491,7 @@ const LandingEditor: React.FC = () => {
                 value={formData.heroSubtitle}
                 onChange={(e) => setFormData({...formData, heroSubtitle: e.target.value})}
                 placeholder="Естественное омоложение без инъекций..."
-                rows={2}
+                rows={4}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
               />
             </div>

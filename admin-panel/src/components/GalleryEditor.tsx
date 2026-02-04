@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+ import React, { useState, useRef } from 'react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
@@ -148,7 +148,7 @@ const GalleryEditor: React.FC<GalleryEditorProps> = ({ images, onChange, section
             {
               headers: {
                 'Content-Type': 'multipart/form-data',
-                Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+                Authorization: `Bearer ${localStorage.getItem('authToken')}`,
               },
             }
           );
