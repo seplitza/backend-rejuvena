@@ -667,7 +667,11 @@ const LandingEditor: React.FC = () => {
       {editingSection && (
         <SectionEditorModal
           sectionType={editingSection}
-          data={sectionData[editingSection as keyof typeof sectionData]}
+          data={
+            editingSection === 'resultsGallery' ? sectionData.resultsGallery :
+            editingSection === 'testimonialsGallery' ? sectionData.testimonialsGallery :
+            sectionData[editingSection as keyof typeof sectionData]
+          }
           onSave={handleSaveSection}
           onClose={() => setEditingSection(null)}
         />
