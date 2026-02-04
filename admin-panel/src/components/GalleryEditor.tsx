@@ -142,7 +142,7 @@ const GalleryEditor: React.FC<GalleryEditorProps> = ({ images, onChange, section
       await Promise.all(
         Array.from(files).map(async (file) => {
           const formData = new FormData();
-          formData.append('media', file);
+          formData.append('file', file);
 
           const response = await axios.post(
             'https://api-rejuvena.duckdns.org/api/media/upload',
