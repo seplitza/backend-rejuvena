@@ -806,18 +806,19 @@ const LandingEditor: React.FC = () => {
       </form>
 
       {/* Section Editor Modal */}
-      {editingSection && (
-        <SectionEditorModal
-          sectionType={editingSection}
-          data={
-            editingSection === 'resultsGallery' ? sectionData.resultsGallery :
-            editingSection === 'testimonialsGallery' ? sectionData.testimonialsGallery :
-            sectionData[editingSection as keyof typeof sectionData]
-          }
-          onSave={handleSaveSection}
-          onClose={() => setEditingSection(null)}
-        />
-      )}
+      {editingSection && (() => {
+        // Извлекаем базовый тип для определения редактора
+        const baseType = editingSection.split('-copy-')[0];
+        
+        return (
+          <SectionEditorModal
+            sectionType={baseType}
+            data={sectionData[editingSection] || sectionData[baseType]}
+            onSave={handleSaveSection}
+            onClose={() => setEditingSection(null)}
+          />
+        );
+      })()}
     </div>
   );
 };
