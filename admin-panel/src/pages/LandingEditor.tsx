@@ -137,9 +137,14 @@ const LandingEditor: React.FC = () => {
         const landing = response.data.landing;
         console.log('📥 Loaded landing:', landing);
         console.log('📥 Marathon IDs:', {
-          basic: landing.marathonsSection?.basic?.marathonId,
-          advanced: landing.marathonsSection?.advanced?.marathonId
+          basic: landing.marathonsSection?.basic?.marathonId || landing.marathonsSection?.basic?._id,
+          advanced: landing.marathonsSection?.advanced?.marathonId || landing.marathonsSection?.advanced?._id
         });
+        
+        // Backend возвращает populated объекты марафонов, берем _id
+        const basicMarathonId = landing.marathonsSection?.basic?._id || landing.marathonsSection?.basic?.marathonId || '';
+        const advancedMarathonId = landing.marathonsSection?.advanced?._id || landing.marathonsSection?.advanced?.marathonId || '';
+        
         setFormData({
           slug: landing.slug,
           title: landing.title,
@@ -149,13 +154,13 @@ const LandingEditor: React.FC = () => {
           heroCtaText: landing.heroSection.ctaButton.text,
           heroCtaLink: landing.heroSection.ctaButton.link,
           marathonsSectionTitle: landing.marathonsSection?.sectionTitle || 'Выберите свой уровень',
-          basicMarathonId: landing.marathonsSection?.basic?.marathonId || '',
+          basicMarathonId: basicMarathonId,
           basicTitle: landing.marathonsSection?.basic?.title || '',
           basicStartDate: landing.marathonsSection?.basic?.startDate || '',
           basicPrice: landing.marathonsSection?.basic?.price || 0,
           basicDuration: landing.marathonsSection?.basic?.duration || '',
           basicFeatures: landing.marathonsSection?.basic?.features || [],
-          advancedMarathonId: landing.marathonsSection?.advanced?.marathonId || '',
+          advancedMarathonId: advancedMarathonId,
           advancedTitle: landing.marathonsSection?.advanced?.title || '',
           advancedStartDate: landing.marathonsSection?.advanced?.startDate || '',
           advancedPrice: landing.marathonsSection?.advanced?.price || 0,
@@ -341,9 +346,18 @@ const LandingEditor: React.FC = () => {
 
       // Add visible sections (including duplicates)
       const visibleSections = sections.filter(s => s.isVisible && !s.isRequired);
+      console.log('💾 Saving sections:', visibleSections.map(s => s.id));
+      console.log('💾 Section data keys:', Object.keys(sectionData));
+      
       visibleSections.forEach(section => {
         const baseType = section.id.split('-copy-')[0] as string;
         const sectionKey = section.id; // Используем полный ID (features или features-copy-123)
+        
+        console.log(`💾 Processing section ${sectionKey}:`, {
+          hasData: !!sectionData[sectionKey],
+          hasBaseData: !!sectionData[baseType],
+          data: sectionData[sectionKey] || sectionData[baseType]
+        });
         
         // Проверяем есть ли данные для этой секции (по полному ID)
         if (sectionData[sectionKey]) {
