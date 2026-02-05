@@ -73,6 +73,10 @@ router.get('/admin/:id', authMiddleware, async (req: Request, res: Response) => 
       });
     }
     
+    // Проверяем какие кастомные поля есть
+    const customFieldsKeys = Object.keys(landing).filter(k => /Section_\d+$/.test(k));
+    console.log('📤 Loading landing, custom fields found:', customFieldsKeys);
+    
     res.json({ success: true, landing });
   } catch (error) {
     console.error('Error fetching landing:', error);
@@ -122,6 +126,10 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     
+    // Логируем что пришло с фронта
+    const customFieldsKeys = Object.keys(req.body).filter(k => /Section_\d+$/.test(k));
+    console.log('📥 Updating landing, custom fields:', customFieldsKeys);
+    
     // Не позволяем изменить createdBy
     delete req.body.createdBy;
     
@@ -137,6 +145,11 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
         error: 'Landing not found' 
       });
     }
+    
+    // Проверяем что сохранилось
+    const savedDoc = await Landing.findById(id).lean();
+    const savedCustomFields = Object.keys(savedDoc || {}).filter(k => /Section_\d+$/.test(k));
+    console.log('📤 Saved landing, custom fields:', savedCustomFields);
     
     res.json({ 
       success: true, 
