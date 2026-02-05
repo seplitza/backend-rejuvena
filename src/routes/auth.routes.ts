@@ -246,4 +246,77 @@ router.post('/reset-password', async (req: Request, res: Response) => {
   }
 });
 
+// Quick registration from landing page (email only)
+router.post('/register-and-pay', async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    
+    // Normalize email
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(normalizedEmail)) {
+      return res.status(400).json({ success: false, error: 'Неверный формат email' });
+    }
+
+    // Check if user already exists
+    let existingUser = await User.findOne({ email: normalizedEmail });
+    
+    if (existingUser) {
+      // User exists - just return token
+      const token = jwt.sign(
+        { userId: existingUser._id, role: existingUser.role },
+        process.env.JWT_SECRET || 'secret',
+        { expiresIn: '7d' }
+      );
+
+      return res.json({
+        success: true,
+        token,
+        message: 'Пользователь уже существует, выполнен вход',
+        existingUser: true
+      });
+    }
+
+    // Generate random 4-digit password
+    const generatedPassword = emailService.generatePassword();
+    
+    // Hash password
+    const hashedPassword = await bcrypt.hash(generatedPassword, 10);
+
+    // Create new user
+    const user = new User({
+      email: normalizedEmail,
+      password: hashedPassword,
+      role: 'admin', // Default role
+      isPremium: false
+    });
+
+    await user.save();
+    console.log(`✅ Quick registration from landing: ${normalizedEmail}`);
+
+    // Send registration email with password
+    await emailService.sendRegistrationEmail(normalizedEmail, generatedPassword);
+
+    // Generate token for immediate login
+    const token = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.JWT_SECRET || 'secret',
+      { expiresIn: '7d' }
+    );
+
+    res.json({
+      success: true,
+      token,
+      password: generatedPassword,
+      message: 'Регистрация успешна! Пароль отправлен на email',
+      existingUser: false
+    });
+  } catch (error) {
+    console.error('Quick registration error:', error);
+    res.status(500).json({ success: false, error: 'Ошибка регистрации' });
+  }
+});
+
 export default router;
