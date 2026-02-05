@@ -149,10 +149,10 @@ const LandingEditor: React.FC = () => {
         
         // Если это populated объект (имеет поля title, cost и т.д.), берем _id, иначе это уже ID
         const basicMarathonId = basicMarathonObj 
-          ? (basicMarathonObj._id ? String(basicMarathonObj._id) : (basicMarathonObj.marathonId ? String(basicMarathonObj.marathonId) : ''))
+          ? (typeof basicMarathonObj === 'string' ? basicMarathonObj : (basicMarathonObj._id || basicMarathonObj.marathonId || ''))
           : '';
         const advancedMarathonId = advancedMarathonObj
-          ? (advancedMarathonObj._id ? String(advancedMarathonObj._id) : (advancedMarathonObj.marathonId ? String(advancedMarathonObj.marathonId) : ''))
+          ? (typeof advancedMarathonObj === 'string' ? advancedMarathonObj : (advancedMarathonObj._id || advancedMarathonObj.marathonId || ''))
           : '';
         
         console.log('📥 Converted IDs:', { basicMarathonId, advancedMarathonId });
@@ -393,6 +393,11 @@ const LandingEditor: React.FC = () => {
         }
       });
 
+      console.log('📤 Sending data:', {
+        marathonsSection: landingData.marathonsSection,
+        customFields: Object.keys(landingData).filter(k => k.includes('_copy_'))
+      });
+      
       let response;
       if (id && id !== 'new') {
         response = await api.put(`/landings/${id}`, landingData);

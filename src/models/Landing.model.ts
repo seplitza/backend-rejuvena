@@ -399,7 +399,8 @@ const LandingSchema = new Schema<ILanding>({
     required: true
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  strict: false  // Разрешаем дополнительные поля (для копий секций типа featuresSection_copy_123)
 });
 
 // Индексы для производительности
