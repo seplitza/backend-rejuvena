@@ -138,12 +138,24 @@ const LandingEditor: React.FC = () => {
         console.log('📥 Loaded landing:', landing);
         console.log('📥 Marathon IDs:', {
           basic: landing.marathonsSection?.basic?.marathonId || landing.marathonsSection?.basic?._id,
-          advanced: landing.marathonsSection?.advanced?.marathonId || landing.marathonsSection?.advanced?._id
+          advanced: landing.marathonsSection?.advanced?.marathonId || landing.marathonsSection?.advanced?._id,
+          basicType: typeof (landing.marathonsSection?.basic?.marathonId || landing.marathonsSection?.basic?._id),
+          advancedType: typeof (landing.marathonsSection?.advanced?.marathonId || landing.marathonsSection?.advanced?._id)
         });
         
-        // Backend возвращает populated объекты марафонов, берем _id
-        const basicMarathonId = landing.marathonsSection?.basic?._id || landing.marathonsSection?.basic?.marathonId || '';
-        const advancedMarathonId = landing.marathonsSection?.advanced?._id || landing.marathonsSection?.advanced?.marathonId || '';
+        // Backend возвращает populated объекты марафонов, берем _id и конвертируем в строку
+        const basicMarathonObj = landing.marathonsSection?.basic;
+        const advancedMarathonObj = landing.marathonsSection?.advanced;
+        
+        // Если это populated объект (имеет поля title, cost и т.д.), берем _id, иначе это уже ID
+        const basicMarathonId = basicMarathonObj 
+          ? (basicMarathonObj._id ? String(basicMarathonObj._id) : (basicMarathonObj.marathonId ? String(basicMarathonObj.marathonId) : ''))
+          : '';
+        const advancedMarathonId = advancedMarathonObj
+          ? (advancedMarathonObj._id ? String(advancedMarathonObj._id) : (advancedMarathonObj.marathonId ? String(advancedMarathonObj.marathonId) : ''))
+          : '';
+        
+        console.log('📥 Converted IDs:', { basicMarathonId, advancedMarathonId });
         
         setFormData({
           slug: landing.slug,
@@ -316,30 +328,34 @@ const LandingEditor: React.FC = () => {
         },
         marathonsSection: {
           sectionTitle: formData.marathonsSectionTitle,
-          basic: formData.basicMarathonId && formData.basicMarathonId.trim() !== '' ? {
-            marathonId: formData.basicMarathonId,
-            title: formData.basicTitle,
-            startDate: formData.basicStartDate,
-            price: formData.basicPrice,
-            duration: formData.basicDuration,
-            features: formData.basicFeatures,
-            ctaButton: {
-              text: 'Начать обучение',
-              link: '/marathons'
+          ...(formData.basicMarathonId && formData.basicMarathonId.trim() !== '' ? {
+            basic: {
+              marathonId: formData.basicMarathonId,
+              title: formData.basicTitle,
+              startDate: formData.basicStartDate,
+              price: formData.basicPrice,
+              duration: formData.basicDuration,
+              features: formData.basicFeatures,
+              ctaButton: {
+                text: 'Начать обучение',
+                link: '/marathons'
+              }
             }
-          } : null,
-          advanced: formData.advancedMarathonId && formData.advancedMarathonId.trim() !== '' ? {
-            marathonId: formData.advancedMarathonId,
-            title: formData.advancedTitle,
-            startDate: formData.advancedStartDate,
-            price: formData.advancedPrice,
-            duration: formData.advancedDuration,
-            features: formData.advancedFeatures,
-            ctaButton: {
-              text: 'Перейти на PRO',
-              link: '/marathons'
+          } : {}),
+          ...(formData.advancedMarathonId && formData.advancedMarathonId.trim() !== '' ? {
+            advanced: {
+              marathonId: formData.advancedMarathonId,
+              title: formData.advancedTitle,
+              startDate: formData.advancedStartDate,
+              price: formData.advancedPrice,
+              duration: formData.advancedDuration,
+              features: formData.advancedFeatures,
+              ctaButton: {
+                text: 'Перейти на PRO',
+                link: '/marathons'
+              }
             }
-          } : null
+          } : {})
         },
         isPublished: formData.isPublished
       };
