@@ -68,6 +68,7 @@ const LandingEditor: React.FC = () => {
     stats: StatsSectionData;
     resultsGallery: ResultsGallerySectionData;
     testimonialsGallery: TestimonialsGallerySectionData;
+    [key: string]: any; // Поддержка динамических ключей для копий
   }>({
     features: defaultFeatures,
     problems: defaultProblems,
@@ -303,23 +304,23 @@ const LandingEditor: React.FC = () => {
       const visibleSections = sections.filter(s => s.isVisible && !s.isRequired);
       visibleSections.forEach(section => {
         const baseType = section.id.split('-copy-')[0] as string;
-        const sectionKey = section.id; // Используем полный ID
+        const sectionKey = section.id; // Используем полный ID (features или features-copy-123)
         
-        // Проверяем есть ли данные для этой секции
-        if (sectionData[sectionKey as keyof typeof sectionData]) {
+        // Проверяем есть ли данные для этой секции (по полному ID)
+        if (sectionData[sectionKey]) {
           // Для копий создаем уникальное поле (например featuresSection_copy_123)
           const fieldName = section.id.includes('-copy-') 
             ? `${baseType}Section_${section.id.split('-copy-')[1]}`
             : `${baseType}Section`;
           
-          landingData[fieldName] = sectionData[sectionKey as keyof typeof sectionData];
-        } else if (sectionData[baseType as keyof typeof sectionData]) {
+          landingData[fieldName] = sectionData[sectionKey];
+        } else if (sectionData[baseType]) {
           // Если это копия без своих данных, используем данные оригинала
           const fieldName = section.id.includes('-copy-') 
             ? `${baseType}Section_${section.id.split('-copy-')[1]}`
             : `${baseType}Section`;
           
-          landingData[fieldName] = sectionData[baseType as keyof typeof sectionData];
+          landingData[fieldName] = sectionData[baseType];
         }
       });
 
@@ -372,10 +373,10 @@ const LandingEditor: React.FC = () => {
       const baseType = newSection.id.split('-copy-')[0];
       
       // Копируем данные оригинальной секции в новую
-      if (sectionData[baseType as keyof typeof sectionData]) {
+      if (sectionData[baseType]) {
         setSectionData(prev => ({
           ...prev,
-          [newSection.id]: { ...sectionData[baseType as keyof typeof sectionData] }
+          [newSection.id]: { ...sectionData[baseType] }
         }));
       }
     }
