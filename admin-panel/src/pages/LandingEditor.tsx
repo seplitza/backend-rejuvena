@@ -135,6 +135,11 @@ const LandingEditor: React.FC = () => {
       const response = await api.get(`/landings/admin/${id}`);
       if (response.data.success) {
         const landing = response.data.landing;
+        console.log('📥 Loaded landing:', landing);
+        console.log('📥 Marathon IDs:', {
+          basic: landing.marathonsSection?.basic?.marathonId,
+          advanced: landing.marathonsSection?.advanced?.marathonId
+        });
         setFormData({
           slug: landing.slug,
           title: landing.title,
@@ -306,7 +311,7 @@ const LandingEditor: React.FC = () => {
         },
         marathonsSection: {
           sectionTitle: formData.marathonsSectionTitle,
-          basic: formData.basicMarathonId ? {
+          basic: formData.basicMarathonId && formData.basicMarathonId.trim() !== '' ? {
             marathonId: formData.basicMarathonId,
             title: formData.basicTitle,
             startDate: formData.basicStartDate,
@@ -317,8 +322,8 @@ const LandingEditor: React.FC = () => {
               text: 'Начать обучение',
               link: '/marathons'
             }
-          } : undefined,
-          advanced: formData.advancedMarathonId ? {
+          } : null,
+          advanced: formData.advancedMarathonId && formData.advancedMarathonId.trim() !== '' ? {
             marathonId: formData.advancedMarathonId,
             title: formData.advancedTitle,
             startDate: formData.advancedStartDate,
@@ -329,7 +334,7 @@ const LandingEditor: React.FC = () => {
               text: 'Перейти на PRO',
               link: '/marathons'
             }
-          } : undefined
+          } : null
         },
         isPublished: formData.isPublished
       };
