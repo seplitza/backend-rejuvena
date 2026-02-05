@@ -147,13 +147,29 @@ const LandingEditor: React.FC = () => {
         const basicMarathonObj = landing.marathonsSection?.basic;
         const advancedMarathonObj = landing.marathonsSection?.advanced;
         
-        // Если это populated объект (имеет поля title, cost и т.д.), берем _id, иначе это уже ID
-        const basicMarathonId = basicMarathonObj 
-          ? (typeof basicMarathonObj === 'string' ? basicMarathonObj : (basicMarathonObj._id || basicMarathonObj.marathonId || ''))
-          : '';
-        const advancedMarathonId = advancedMarathonObj
-          ? (typeof advancedMarathonObj === 'string' ? advancedMarathonObj : (advancedMarathonObj._id || advancedMarathonObj.marathonId || ''))
-          : '';
+        // Извлекаем _id из объекта если это объект, иначе используем как есть
+        let basicMarathonId = '';
+        let advancedMarathonId = '';
+        
+        if (basicMarathonObj) {
+          if (typeof basicMarathonObj === 'string') {
+            basicMarathonId = basicMarathonObj;
+          } else if (basicMarathonObj._id) {
+            basicMarathonId = String(basicMarathonObj._id);
+          } else if (basicMarathonObj.marathonId) {
+            basicMarathonId = String(basicMarathonObj.marathonId);
+          }
+        }
+        
+        if (advancedMarathonObj) {
+          if (typeof advancedMarathonObj === 'string') {
+            advancedMarathonId = advancedMarathonObj;
+          } else if (advancedMarathonObj._id) {
+            advancedMarathonId = String(advancedMarathonObj._id);
+          } else if (advancedMarathonObj.marathonId) {
+            advancedMarathonId = String(advancedMarathonObj.marathonId);
+          }
+        }
         
         console.log('📥 Converted IDs:', { basicMarathonId, advancedMarathonId });
         
@@ -395,7 +411,9 @@ const LandingEditor: React.FC = () => {
 
       console.log('📤 Sending data:', {
         marathonsSection: landingData.marathonsSection,
-        customFields: Object.keys(landingData).filter(k => k.includes('_copy_'))
+        allKeys: Object.keys(landingData),
+        customFields: Object.keys(landingData).filter(k => k.includes('_copy_')),
+        landingDataSample: landingData
       });
       
       let response;
