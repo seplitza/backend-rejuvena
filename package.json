@@ -1,6 +1,6 @@
 {
   "name": "rejuvena-backend",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Backend and Admin Panel for Rejuvena App",
   "main": "dist/server.js",
   "scripts": {
