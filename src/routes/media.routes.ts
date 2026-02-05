@@ -38,7 +38,7 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   limits: {
-    fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760') // 10MB default
+    fileSize: parseInt(process.env.MAX_FILE_SIZE || '52428800') // 50MB default (было 10MB)
   },
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|gif|webp|mp4|mov|avi/;
@@ -66,8 +66,8 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req: AuthRe
     // Optimize images
     if (isImage) {
       await sharp(file.path)
-        .resize(1920, 1920, { fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: 85 })
+        .resize(2560, 2560, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 90 })
         .toFile(file.path + '.optimized');
 
       // Replace original with optimized
