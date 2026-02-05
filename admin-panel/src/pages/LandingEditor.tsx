@@ -463,10 +463,19 @@ const LandingEditor: React.FC = () => {
   const handleSaveSection = (data: any) => {
     if (!editingSection) return;
     
-    setSectionData(prev => ({
-      ...prev,
-      [editingSection]: data // Сохраняем с полным ID (включая -copy-)
-    }));
+    console.log(`💾 Saving section ${editingSection} with data:`, data);
+    
+    setSectionData(prev => {
+      const newData = {
+        ...prev,
+        [editingSection]: data // Сохраняем с полным ID (включая -copy-)
+      };
+      console.log('💾 New sectionData state:', Object.keys(newData));
+      return newData;
+    });
+    
+    // Закрываем модалку после сохранения
+    setEditingSection(null);
   };
 
   // Обработчик копирования секции с данными

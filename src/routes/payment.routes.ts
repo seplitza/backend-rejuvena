@@ -35,8 +35,83 @@ async function generateOrderNumber(): Promise<string> {
 router.post('/create', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId;
-    const { amount, description, planType, duration } = req.body;
+    const { amount, description, planType, duration, marathonId, marathonName, type } = req.body;
 
+    // Проверка для марафонов
+    if (type === 'marathon' || planType === 'marathon') {
+      if (!marathonId || !marathonName) {
+        return res.status(400).json({
+          error: 'Marathon ID and name are required'
+        });
+      }
+      
+      // Получаем марафон для цены
+      const Marathon = require('../models/Marathon.model').default;
+      const marathon = await Marathon.findById(marathonId);
+      if (!marathon) {
+        return res.status(404).json({ error: 'Marathon not found' });
+      }
+
+      // Получаем email пользователя
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      const orderNumber = await generateOrderNumber();
+      const amountInKopecks = Math.round(marathon.cost * 100);
+      const productDescription = `Марафон: ${marathonName}`;
+
+      const payment = await Payment.create({
+        userId,
+        orderNumber,
+        amount: amountInKopecks,
+        currency: '643',
+        status: 'pending',
+        description: productDescription,
+        metadata: {
+          type: 'marathon',
+          marathonId,
+          marathonName
+        }
+      });
+
+      try {
+        const alfaResponse = await alfabankService.registerOrder({
+          orderNumber,
+          amount: amountInKopecks,
+          description: productDescription,
+          email: user.email,
+          jsonParams: {
+            userId,
+            type: 'marathon',
+            marathonId,
+            marathonName
+          }
+        });
+
+        payment.alfaBankOrderId = alfaResponse.orderId;
+        payment.paymentUrl = alfaResponse.formUrl;
+        payment.status = 'processing';
+        await payment.save();
+
+        return res.status(200).json({
+          success: true,
+          paymentUrl: payment.paymentUrl
+        });
+      } catch (alfaError: any) {
+        payment.status = 'failed';
+        payment.errorMessage = alfaError.message;
+        await payment.save();
+
+        return res.status(500).json({
+          error: 'Failed to create payment',
+          message: alfaError.message
+        });
+      }
+    }
+
+    // Обычная обработка для premium/photo-diary
     if (!amount || !description) {
       return res.status(400).json({
         error: 'Amount and description are required'
