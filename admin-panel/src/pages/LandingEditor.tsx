@@ -155,9 +155,10 @@ const LandingEditor: React.FC = () => {
           if (typeof basicMarathonObj === 'string') {
             basicMarathonId = basicMarathonObj;
           } else if (basicMarathonObj._id) {
-            basicMarathonId = String(basicMarathonObj._id);
+            // Используем template string для конверсии
+            basicMarathonId = `${basicMarathonObj._id}`;
           } else if (basicMarathonObj.marathonId) {
-            basicMarathonId = String(basicMarathonObj.marathonId);
+            basicMarathonId = `${basicMarathonObj.marathonId}`;
           }
         }
         
@@ -165,9 +166,9 @@ const LandingEditor: React.FC = () => {
           if (typeof advancedMarathonObj === 'string') {
             advancedMarathonId = advancedMarathonObj;
           } else if (advancedMarathonObj._id) {
-            advancedMarathonId = String(advancedMarathonObj._id);
+            advancedMarathonId = `${advancedMarathonObj._id}`;
           } else if (advancedMarathonObj.marathonId) {
-            advancedMarathonId = String(advancedMarathonObj.marathonId);
+            advancedMarathonId = `${advancedMarathonObj.marathonId}`;
           }
         }
         
@@ -412,7 +413,7 @@ const LandingEditor: React.FC = () => {
       console.log('📤 Sending data:', {
         marathonsSection: landingData.marathonsSection,
         allKeys: Object.keys(landingData),
-        customFields: Object.keys(landingData).filter(k => k.includes('_copy_')),
+        customFields: Object.keys(landingData).filter(k => /Section_\d+$/.test(k)),
         landingDataSample: landingData
       });
       
