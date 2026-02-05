@@ -78,6 +78,7 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req: AuthRe
     const mediaUrl = `/uploads/${file.filename}`;
 
     res.json({
+      success: true,
       url: mediaUrl,
       filename: file.filename,
       type: isImage ? 'image' : 'video',
@@ -85,7 +86,7 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req: AuthRe
     });
   } catch (error) {
     console.error('Upload error:', error);
-    res.status(500).json({ message: 'Upload failed' });
+    res.status(500).json({ success: false, message: 'Upload failed' });
   }
 });
 
