@@ -152,11 +152,14 @@ const LandingEditor: React.FC = () => {
         let advancedMarathonId = '';
         
         if (basicMarathonObj) {
+          console.log('🔍 basicMarathonObj type:', typeof basicMarathonObj, basicMarathonObj);
           if (typeof basicMarathonObj === 'string') {
             basicMarathonId = basicMarathonObj;
           } else if (basicMarathonObj._id) {
             // Используем template string для конверсии
+            console.log('🔍 basicMarathonObj._id:', basicMarathonObj._id, 'type:', typeof basicMarathonObj._id);
             basicMarathonId = `${basicMarathonObj._id}`;
+            console.log('🔍 Converted basicMarathonId:', basicMarathonId, 'type:', typeof basicMarathonId);
           } else if (basicMarathonObj.marathonId) {
             basicMarathonId = `${basicMarathonObj.marathonId}`;
           }
