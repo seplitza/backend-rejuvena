@@ -60,18 +60,20 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 // GET /api/landings/:id - Получить один лендинг по ID (для админки)
 router.get('/admin/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const landing = await Landing.findById(req.params.id)
+    const landingDoc = await Landing.findById(req.params.id)
       .populate('createdBy', 'email firstName lastName')
       .populate('marathonsSection.basic.marathonId')
-      .populate('marathonsSection.advanced.marathonId')
-      .lean();
+      .populate('marathonsSection.advanced.marathonId');
     
-    if (!landing) {
+    if (!landingDoc) {
       return res.status(404).json({ 
         success: false, 
         error: 'Landing not found' 
       });
     }
+
+    // Используем toObject чтобы получить все поля включая динамические
+    const landing = landingDoc.toObject({ flattenMaps: true, virtuals: false });
     
     // Проверяем какие кастомные поля есть
     const customFieldsKeys = Object.keys(landing).filter(k => /Section_\d+$/.test(k));
