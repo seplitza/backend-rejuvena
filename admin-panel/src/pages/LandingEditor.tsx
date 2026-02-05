@@ -356,9 +356,6 @@ const LandingEditor: React.FC = () => {
   const handleSaveSection = (data: any) => {
     if (!editingSection) return;
     
-    // Извлекаем базовый тип секции
-    const baseType = editingSection.split('-copy-')[0];
-    
     setSectionData(prev => ({
       ...prev,
       [editingSection]: data // Сохраняем с полным ID (включая -copy-)
