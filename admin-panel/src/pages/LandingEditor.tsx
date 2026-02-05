@@ -159,34 +159,68 @@ const LandingEditor: React.FC = () => {
           isPublished: landing.isPublished
         });
 
-        // Load section data
+        // Load section data (including copies)
+        const newSectionData: any = { ...sectionData };
+        const newSections: SectionConfig[] = [...sections];
+        
+        // Load base sections
         if (landing.featuresSection) {
-          setSectionData(prev => ({ ...prev, features: landing.featuresSection }));
+          newSectionData.features = landing.featuresSection;
         }
         if (landing.problemsSection) {
-          setSectionData(prev => ({ ...prev, problems: landing.problemsSection }));
+          newSectionData.problems = landing.problemsSection;
         }
         if (landing.aboutSection) {
-          setSectionData(prev => ({ ...prev, about: landing.aboutSection }));
+          newSectionData.about = landing.aboutSection;
         }
         if (landing.stepsSection) {
-          setSectionData(prev => ({ ...prev, steps: landing.stepsSection }));
+          newSectionData.steps = landing.stepsSection;
         }
         if (landing.processSection) {
-          setSectionData(prev => ({ ...prev, process: landing.processSection }));
+          newSectionData.process = landing.processSection;
         }
         if (landing.statsSection) {
-          setSectionData(prev => ({ ...prev, stats: landing.statsSection }));
+          newSectionData.stats = landing.statsSection;
         }
         if (landing.resultsGallerySection) {
-          setSectionData(prev => ({ ...prev, resultsGallery: landing.resultsGallerySection }));
+          newSectionData.resultsGallery = landing.resultsGallerySection;
         }
         if (landing.testimonialsGallerySection) {
-          setSectionData(prev => ({ ...prev, testimonialsGallery: landing.testimonialsGallerySection }));
+          newSectionData.testimonialsGallery = landing.testimonialsGallerySection;
         }
 
-        // Update section visibility
-        setSections(prev => prev.map(section => {
+        // Load copied sections (e.g. featuresSection_copy_1738747234)
+        Object.keys(landing).forEach(key => {
+          if (key.includes('Section_copy_')) {
+            // Extract type and timestamp: featuresSection_copy_1738747234 -> features-copy-1738747234
+            const match = key.match(/^(\w+)Section_copy_(\d+)$/);
+            if (match) {
+              const baseType = match[1];
+              const timestamp = match[2];
+              const sectionId = `${baseType}-copy-${timestamp}`;
+              
+              // Add to section data
+              newSectionData[sectionId] = landing[key];
+              
+              // Add to sections list
+              const baseSection = sections.find(s => s.id === baseType);
+              if (baseSection) {
+                newSections.push({
+                  ...baseSection,
+                  id: sectionId,
+                  title: `${baseSection.title} (копия)`,
+                  isRequired: false,
+                  isVisible: true
+                });
+              }
+            }
+          }
+        });
+
+        setSectionData(newSectionData);
+
+        // Update section visibility for base sections
+        setSections(newSections.map(section => {
           if (section.id === 'features') return { ...section, isVisible: !!landing.featuresSection };
           if (section.id === 'problems') return { ...section, isVisible: !!landing.problemsSection };
           if (section.id === 'about') return { ...section, isVisible: !!landing.aboutSection };
