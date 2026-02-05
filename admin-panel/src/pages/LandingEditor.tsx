@@ -299,17 +299,28 @@ const LandingEditor: React.FC = () => {
         isPublished: formData.isPublished
       };
 
-      // Add visible sections
+      // Add visible sections (including duplicates)
       const visibleSections = sections.filter(s => s.isVisible && !s.isRequired);
       visibleSections.forEach(section => {
-        if (section.id === 'features') landingData.featuresSection = sectionData.features;
-        if (section.id === 'problems') landingData.problemsSection = sectionData.problems;
-        if (section.id === 'about') landingData.aboutSection = sectionData.about;
-        if (section.id === 'steps') landingData.stepsSection = sectionData.steps;
-        if (section.id === 'process') landingData.processSection = sectionData.process;
-        if (section.id === 'stats') landingData.statsSection = sectionData.stats;
-        if (section.id === 'resultsGallery') landingData.resultsGallerySection = sectionData.resultsGallery;
-        if (section.id === 'testimonialsGallery') landingData.testimonialsGallerySection = sectionData.testimonialsGallery;
+        const baseType = section.id.split('-copy-')[0] as string;
+        const sectionKey = section.id; // Используем полный ID
+        
+        // Проверяем есть ли данные для этой секции
+        if (sectionData[sectionKey as keyof typeof sectionData]) {
+          // Для копий создаем уникальное поле (например featuresSection_copy_123)
+          const fieldName = section.id.includes('-copy-') 
+            ? `${baseType}Section_${section.id.split('-copy-')[1]}`
+            : `${baseType}Section`;
+          
+          landingData[fieldName] = sectionData[sectionKey as keyof typeof sectionData];
+        } else if (sectionData[baseType as keyof typeof sectionData]) {
+          // Если это копия без своих данных, используем данные оригинала
+          const fieldName = section.id.includes('-copy-') 
+            ? `${baseType}Section_${section.id.split('-copy-')[1]}`
+            : `${baseType}Section`;
+          
+          landingData[fieldName] = sectionData[baseType as keyof typeof sectionData];
+        }
       });
 
       let response;
@@ -332,7 +343,10 @@ const LandingEditor: React.FC = () => {
   };
 
   const handleEditSection = (sectionId: string) => {
-    if (!['features', 'problems', 'about', 'steps', 'process', 'stats', 'resultsGallery', 'testimonialsGallery'].includes(sectionId)) {
+    // Извлекаем базовый тип секции (без -copy-timestamp)
+    const baseType = sectionId.split('-copy-')[0];
+    
+    if (!['features', 'problems', 'about', 'steps', 'process', 'stats', 'resultsGallery', 'testimonialsGallery'].includes(baseType)) {
       alert('Для Hero и Marathons используйте основную форму');
       return;
     }
@@ -342,10 +356,34 @@ const LandingEditor: React.FC = () => {
   const handleSaveSection = (data: any) => {
     if (!editingSection) return;
     
+    // Извлекаем базовый тип секции
+    const baseType = editingSection.split('-copy-')[0];
+    
     setSectionData(prev => ({
       ...prev,
-      [editingSection]: data
+      [editingSection]: data // Сохраняем с полным ID (включая -copy-)
     }));
+  };
+
+  // Обработчик копирования секции с данными
+  const handleDuplicateSection = (newSections: SectionConfig[]) => {
+    // Находим новую секцию (последнюю добавленную копию)
+    const oldSectionIds = sections.map(s => s.id);
+    const newSection = newSections.find(s => !oldSectionIds.includes(s.id));
+    
+    if (newSection && newSection.id.includes('-copy-')) {
+      const baseType = newSection.id.split('-copy-')[0];
+      
+      // Копируем данные оригинальной секции в новую
+      if (sectionData[baseType as keyof typeof sectionData]) {
+        setSectionData(prev => ({
+          ...prev,
+          [newSection.id]: { ...sectionData[baseType as keyof typeof sectionData] }
+        }));
+      }
+    }
+    
+    setSections(newSections);
   };
 
   if (loading && id && id !== 'new') {
@@ -398,7 +436,7 @@ const LandingEditor: React.FC = () => {
       {/* Section Manager */}
       <SectionManager
         sections={sections}
-        onSectionsChange={setSections}
+        onSectionsChange={handleDuplicateSection}
         onEditSection={handleEditSection}
       />
 
