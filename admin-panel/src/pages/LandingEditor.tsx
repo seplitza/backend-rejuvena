@@ -155,23 +155,33 @@ const LandingEditor: React.FC = () => {
           console.log('🔍 basicMarathonObj type:', typeof basicMarathonObj, basicMarathonObj);
           if (typeof basicMarathonObj === 'string') {
             basicMarathonId = basicMarathonObj;
-          } else if (basicMarathonObj._id) {
-            // Используем template string для конверсии
-            console.log('🔍 basicMarathonObj._id:', basicMarathonObj._id, 'type:', typeof basicMarathonObj._id);
-            basicMarathonId = `${basicMarathonObj._id}`;
-            console.log('🔍 Converted basicMarathonId:', basicMarathonId, 'type:', typeof basicMarathonId);
           } else if (basicMarathonObj.marathonId) {
-            basicMarathonId = `${basicMarathonObj.marathonId}`;
+            // Backend populate заполняет поле marathonId внутри basic
+            const marathonIdObj = basicMarathonObj.marathonId;
+            if (typeof marathonIdObj === 'string') {
+              basicMarathonId = marathonIdObj;
+            } else if (marathonIdObj._id) {
+              basicMarathonId = `${marathonIdObj._id}`;
+            }
+            console.log('🔍 Extracted from marathonId:', basicMarathonId);
+          } else if (basicMarathonObj._id) {
+            // Fallback - если структура другая
+            basicMarathonId = `${basicMarathonObj._id}`;
           }
         }
         
         if (advancedMarathonObj) {
           if (typeof advancedMarathonObj === 'string') {
             advancedMarathonId = advancedMarathonObj;
+          } else if (advancedMarathonObj.marathonId) {
+            const marathonIdObj = advancedMarathonObj.marathonId;
+            if (typeof marathonIdObj === 'string') {
+              advancedMarathonId = marathonIdObj;
+            } else if (marathonIdObj._id) {
+              advancedMarathonId = `${marathonIdObj._id}`;
+            }
           } else if (advancedMarathonObj._id) {
             advancedMarathonId = `${advancedMarathonObj._id}`;
-          } else if (advancedMarathonObj.marathonId) {
-            advancedMarathonId = `${advancedMarathonObj.marathonId}`;
           }
         }
         
