@@ -46,8 +46,91 @@ cd web && npm run dev  # http://localhost:3000
 
 ### 3. Automated Deployment
 - **Backend:** GitHub Actions auto-deploys on push to `main` → pulls on VPS → rebuilds → restarts PM2
-- **Frontend:** GitHub Actions deploys to GitHub Pages via `peaceiris/actions-gh-pages@v3`
+- **Frontend:** GitHub Actions deploys to GitHub Pages (see section below for EXACT configuration)
 - Manual frontend deploy: `npm run build && npx gh-pages -d out -m "Deploy: description"`
+
+### 4. Frontend GitHub Actions Deployment (CRITICAL!)
+
+**IMPORTANT:** The rejuvena repository on GitHub has this structure:
+```
+rejuvena/
+├── web/           # Next.js frontend (THIS is what we work with locally)
+├── Backend-rejuvena/
+└── other files
+```
+
+**Working GitHub Actions Configuration** (commit aa283d9, Feb 6 2026):
+```yaml
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./web
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0      # REQUIRED: Prevents git exit code 128
+          clean: true         # REQUIRED: Cleans working directory
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        run: npm install      # NOT npm ci - use npm install
+      
+      - name: Build
+        run: npm run build    # Uses next build with output: 'export'
+      
+      - name: Create .nojekyll file
+        run: touch ./out/.nojekyll
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./web/out     # IMPORTANT: ./web/out not ./out
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+```
+
+**Key Points:**
+- ✅ Use `working-directory: ./web` (repository has web/ folder)
+- ✅ Use `fetch-depth: 0` and `clean: true` in checkout (fixes git errors)
+- ✅ Use `npm install` not `npm ci`
+- ✅ Upload path is `./web/out` not `./out`
+- ✅ Separate `build` and `deploy` jobs with `needs: build`
+- ❌ DON'T use `npm run export` - use `npm run build`
+- ❌ DON'T use explicit `cd web &&` commands - use `working-directory`
 
 ### 4. Which Repository?
 - Backend API changes (`src/models/`, `src/routes/`) → `backend-rejuvena`
