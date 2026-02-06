@@ -7,6 +7,7 @@ export interface IMarathon extends Document {
   image?: string;
   numberOfDays: number;
   cost: number;
+  oldPrice?: number;
   materialAvailabilityDays: number;
   isPublic: boolean;
   isDisplay: boolean;
@@ -55,6 +56,9 @@ const MarathonSchema = new Schema<IMarathon>(
       type: Number,
       required: true,
       default: 0
+    },
+    oldPrice: {
+      type: Number
     },
     materialAvailabilityDays: {
       type: Number,

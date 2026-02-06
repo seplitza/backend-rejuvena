@@ -16,6 +16,7 @@ export interface IMarathonBlock {
   title: string;
   startDate: Date;
   price: number;
+  oldPrice?: number;
   duration: string; // например "14 дней обучения + 30 практики"
   features: string[];
   ctaButton: {
@@ -292,6 +293,7 @@ const LandingSchema = new Schema<ILanding>({
       title: String,
       startDate: Date,
       price: Number,
+      oldPrice: Number,
       duration: String,
       features: [String],
       ctaButton: {
@@ -304,6 +306,7 @@ const LandingSchema = new Schema<ILanding>({
       title: String,
       startDate: Date,
       price: Number,
+      oldPrice: Number,
       duration: String,
       features: [String],
       ctaButton: {

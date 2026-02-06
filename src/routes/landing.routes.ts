@@ -269,8 +269,8 @@ router.get('/public/:slug', async (req: Request, res: Response) => {
       slug, 
       isPublished: true 
     })
-      .populate('marathonsSection.basic.marathonId', 'title numberOfDays cost')
-      .populate('marathonsSection.advanced.marathonId', 'title numberOfDays cost')
+      .populate('marathonsSection.basic.marathonId', 'title numberOfDays cost tenure courseDescription')
+      .populate('marathonsSection.advanced.marathonId', 'title numberOfDays cost tenure courseDescription')
       .lean();
     
     if (!landing) {

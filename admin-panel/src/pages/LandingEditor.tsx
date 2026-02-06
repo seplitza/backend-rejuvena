@@ -98,6 +98,7 @@ const LandingEditor: React.FC = () => {
     basicTitle: 'Базовый уровень',
     basicStartDate: '',
     basicPrice: 0,
+    basicOldPrice: undefined as number | undefined,
     basicDuration: '',
     basicFeatures: [] as string[],
     
@@ -105,6 +106,7 @@ const LandingEditor: React.FC = () => {
     advancedTitle: 'Продвинутый уровень',
     advancedStartDate: '',
     advancedPrice: 0,
+    advancedOldPrice: undefined as number | undefined,
     advancedDuration: '',
     advancedFeatures: [] as string[],
     
@@ -200,12 +202,14 @@ const LandingEditor: React.FC = () => {
           basicTitle: landing.marathonsSection?.basic?.title || '',
           basicStartDate: landing.marathonsSection?.basic?.startDate || '',
           basicPrice: landing.marathonsSection?.basic?.price || 0,
+          basicOldPrice: landing.marathonsSection?.basic?.oldPrice,
           basicDuration: landing.marathonsSection?.basic?.duration || '',
           basicFeatures: landing.marathonsSection?.basic?.features || [],
           advancedMarathonId: advancedMarathonId,
           advancedTitle: landing.marathonsSection?.advanced?.title || '',
           advancedStartDate: landing.marathonsSection?.advanced?.startDate || '',
           advancedPrice: landing.marathonsSection?.advanced?.price || 0,
+          advancedOldPrice: landing.marathonsSection?.advanced?.oldPrice,
           advancedDuration: landing.marathonsSection?.advanced?.duration || '',
           advancedFeatures: landing.marathonsSection?.advanced?.features || [],
           isPublished: landing.isPublished
@@ -364,6 +368,7 @@ const LandingEditor: React.FC = () => {
               title: formData.basicTitle,
               startDate: formData.basicStartDate,
               price: formData.basicPrice,
+              oldPrice: formData.basicOldPrice,
               duration: formData.basicDuration,
               features: formData.basicFeatures,
               ctaButton: {
@@ -378,6 +383,7 @@ const LandingEditor: React.FC = () => {
               title: formData.advancedTitle,
               startDate: formData.advancedStartDate,
               price: formData.advancedPrice,
+              oldPrice: formData.advancedOldPrice,
               duration: formData.advancedDuration,
               features: formData.advancedFeatures,
               ctaButton: {
@@ -714,6 +720,20 @@ const LandingEditor: React.FC = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                 />
               </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Старая цена (₽)
+                </label>
+                <input
+                  type="number"
+                  value={formData.basicOldPrice || ''}
+                  onChange={(e) => setFormData({...formData, basicOldPrice: e.target.value ? Number(e.target.value) : undefined})}
+                  placeholder="Например, 4500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">Показывается перечеркнутой на лендинге</p>
+              </div>
             </div>
 
             <div className="mb-4">
@@ -761,6 +781,20 @@ const LandingEditor: React.FC = () => {
                   onChange={(e) => setFormData({...formData, advancedPrice: Number(e.target.value)})}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                 />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Старая цена (₽)
+                </label>
+                <input
+                  type="number"
+                  value={formData.advancedOldPrice || ''}
+                  onChange={(e) => setFormData({...formData, advancedOldPrice: e.target.value ? Number(e.target.value) : undefined})}
+                  placeholder="Например, 6000"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">Показывается перечеркнутой на лендинге</p>
               </div>
             </div>
 

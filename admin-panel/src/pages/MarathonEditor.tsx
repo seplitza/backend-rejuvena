@@ -35,6 +35,7 @@ export default function MarathonEditor() {
   const [numberOfDays, setNumberOfDays] = useState(44);
   const [tenure, setTenure] = useState(44);
   const [cost, setCost] = useState(0);
+  const [oldPrice, setOldPrice] = useState<number | undefined>(undefined);
   const [isPaid, setIsPaid] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
   const [isDisplay, setIsDisplay] = useState(false);
@@ -98,6 +99,7 @@ export default function MarathonEditor() {
       setNumberOfDays(m.numberOfDays);
       setTenure(m.tenure);
       setCost(m.cost);
+      setOldPrice(m.oldPrice);
       setIsPaid(m.isPaid);
       setIsPublic(m.isPublic);
       setIsDisplay(m.isDisplay);
@@ -141,6 +143,7 @@ export default function MarathonEditor() {
         numberOfDays,
         tenure,
         cost,
+        oldPrice,
         isPaid,
         isPublic,
         isDisplay,
@@ -449,6 +452,31 @@ export default function MarathonEditor() {
                     fontSize: '14px'
                   }}
                 />
+              </div>
+            )}
+
+            {isPaid && (
+              <div style={{ marginBottom: '20px', marginLeft: '26px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#374151' }}>
+                  Старая цена (₽) - необязательно
+                </label>
+                <input
+                  type="number"
+                  value={oldPrice || ''}
+                  onChange={(e) => setOldPrice(e.target.value ? Number(e.target.value) : undefined)}
+                  min="0"
+                  placeholder="Например, 4500"
+                  style={{
+                    width: '200px',
+                    padding: '10px 14px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '8px',
+                    fontSize: '14px'
+                  }}
+                />
+                <div style={{ marginTop: '4px', fontSize: '12px', color: '#6B7280' }}>
+                  Будет показана перечеркнутой на лендинге
+                </div>
               </div>
             )}
 
