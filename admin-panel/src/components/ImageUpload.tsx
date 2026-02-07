@@ -31,6 +31,14 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       const response = await api.post('/media/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
+        },
+        timeout: 60000, // 60 секунд для загрузки
+        onUploadProgress: (progressEvent) => {
+          // Можно добавить прогресс-бар если нужно
+          if (progressEvent.total) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            console.log(`Upload progress: ${percentCompleted}%`);
+          }
         }
       });
 
@@ -47,7 +55,17 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         throw new Error('Не удалось получить URL изображения');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Ошибка загрузки файла');
+      let errorMessage = 'Ошибка загрузки файла';
+      
+      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        errorMessage = 'Превышено время ожидания. Попробуйте загрузить файл меньшего размера или проверьте соединение.';
+      } else if (err.response?.status === 413) {
+        errorMessage = 'Файл слишком большой. Максимальный размер: 50MB';
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      }
+      
+      setError(errorMessage);
       console.error('Upload error:', err);
     } finally {
       setUploading(false);

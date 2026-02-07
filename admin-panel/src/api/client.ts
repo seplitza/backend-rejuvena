@@ -3,7 +3,8 @@ import axios from 'axios';
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export const api = axios.create({
-  baseURL: API_URL
+  baseURL: API_URL,
+  timeout: 30000, // 30 секунд по умолчанию (можно переопределить в конкретных запросах)
 });
 
 // Add auth token to requests
