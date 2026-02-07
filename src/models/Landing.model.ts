@@ -104,6 +104,7 @@ export interface IAboutSection {
   name: string;
   bio: string;
   photo?: string;
+  gallery?: string[]; // Галерея дополнительных фото
   achievements: Array<{
     icon: string;
     title: string;

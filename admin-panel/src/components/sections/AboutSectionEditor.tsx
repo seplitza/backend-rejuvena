@@ -12,6 +12,7 @@ interface AboutSectionData {
   name: string;
   bio: string;
   photo: string;
+  gallery?: string[]; // Галерея дополнительных фото
   achievements: Achievement[];
 }
 
@@ -77,6 +78,59 @@ const AboutSectionEditor: React.FC<Props> = ({ data, onChange }) => {
         onUrlChange={(url) => onChange({ ...data, photo: url })}
         label="Фото автора"
       />
+
+      {/* Gallery Upload */}
+      <div>
+        <div className="flex justify-between items-center mb-3">
+          <label className="block text-sm font-medium text-gray-700">
+            Галерея фото (под основным фото)
+          </label>
+          <button
+            type="button"
+            onClick={() => {
+              const newGallery = [...(data.gallery || []), ''];
+              onChange({ ...data, gallery: newGallery });
+            }}
+            className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 transition"
+          >
+            + Добавить фото
+          </button>
+        </div>
+
+        {data.gallery && data.gallery.length > 0 && (
+          <div className="space-y-3">
+            {data.gallery.map((photoUrl, index) => (
+              <div key={index} className="flex gap-3 items-start p-3 bg-gray-50 rounded border">
+                <div className="flex-1">
+                  <ImageUpload
+                    currentUrl={photoUrl}
+                    onUrlChange={(url) => {
+                      const updated = [...(data.gallery || [])];
+                      updated[index] = url;
+                      onChange({ ...data, gallery: updated });
+                    }}
+                    label={`Фото ${index + 1}`}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const updated = data.gallery?.filter((_, i) => i !== index) || [];
+                    onChange({ ...data, gallery: updated });
+                  }}
+                  className="mt-6 px-3 py-2 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition"
+                >
+                  Удалить
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {(!data.gallery || data.gallery.length === 0) && (
+          <p className="text-sm text-gray-500 italic">Галерея пуста. Нажмите "Добавить фото" чтобы добавить изображения.</p>
+        )}
+      </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -178,6 +232,22 @@ const AboutSectionEditor: React.FC<Props> = ({ data, onChange }) => {
             <div>
               {data.photo && (
                 <img src={data.photo} alt={data.name} className="w-full rounded-2xl shadow-xl" />
+              )}
+              
+              {/* Превью галереи */}
+              {data.gallery && data.gallery.length > 0 && (
+                <div className="grid grid-cols-3 gap-2 mt-3">
+                  {data.gallery.map((url, idx) => (
+                    url && (
+                      <img
+                        key={idx}
+                        src={url}
+                        alt={`Gallery ${idx + 1}`}
+                        className="w-full aspect-square object-cover rounded-lg shadow"
+                      />
+                    )
+                  ))}
+                </div>
               )}
             </div>
             <div>
