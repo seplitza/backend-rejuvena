@@ -4,6 +4,44 @@ import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
 import Typography from '@tiptap/extension-typography';
 import { useState, useRef } from 'react';
+import { Node } from '@tiptap/core';
+
+// Кастомное расширение для поддержки <div> с атрибутами (для якорей)
+const DivWithAttributes = Node.create({
+  name: 'divWithAttributes',
+  group: 'block',
+  content: 'block*',
+  
+  parseHTML() {
+    return [
+      {
+        tag: 'div',
+        getAttrs: (node) => {
+          if (typeof node === 'string') return null;
+          const element = node as HTMLElement;
+          // Сохраняем все атрибуты div
+          const attrs: Record<string, string> = {};
+          Array.from(element.attributes).forEach(attr => {
+            attrs[attr.name] = attr.value;
+          });
+          return attrs;
+        }
+      }
+    ];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ['div', HTMLAttributes, 0];
+  },
+
+  addAttributes() {
+    return {
+      id: { default: null },
+      class: { default: null },
+      style: { default: null }
+    };
+  }
+});
 
 interface TipTapEditorProps {
   content: string;
@@ -71,6 +109,7 @@ export default function TipTapEditor({ content, onChange }: TipTapEditorProps) {
           }
         }
       }),
+      DivWithAttributes, // Добавляем поддержку <div> с атрибутами
       Typography,
       Image.configure({
         inline: false,
@@ -357,8 +396,10 @@ export default function TipTapEditor({ content, onChange }: TipTapEditorProps) {
               setHtmlContent(editor?.getHTML() || '');
             } else {
               // Возвращаемся в визуальный режим - применяем изменения
-              editor?.commands.setContent(htmlContent);
+              // Сначала сохраняем через onChange (чтобы родитель получил чистый HTML)
               onChange(htmlContent);
+              // Затем обновляем editor (может немного изменить форматирование, но основной контент сохранится)
+              editor?.commands.setContent(htmlContent);
             }
             setShowHTML(!showHTML);
           }}
