@@ -171,9 +171,26 @@ export default function TipTapEditor({ content, onChange }: TipTapEditorProps) {
   };
 
   const addLink = () => {
-    const url = prompt('Введите URL ссылки:');
+    const url = prompt('Введите URL ссылки (например: #reason-posture для якоря):');
     if (url) {
-      editor.chain().focus().setLink({ href: url }).run();
+      const { from, to } = editor.state.selection;
+      const selectedText = editor.state.doc.textBetween(from, to, '');
+      
+      if (selectedText) {
+        // Если есть выделенный текст - просто добавляем ссылку
+        editor.chain().focus().setLink({ href: url }).run();
+      } else {
+        // Если текст не выделен - вставляем URL как текст ссылки
+        const linkText = url.startsWith('#') 
+          ? url.substring(1).replace(/-/g, ' ') // Для якорей убираем # и заменяем - на пробелы
+          : url; // Для обычных URL используем сам URL
+        
+        editor
+          .chain()
+          .focus()
+          .insertContent(`<a href="${url}">${linkText}</a> `)
+          .run();
+      }
     }
   };
 

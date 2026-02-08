@@ -428,7 +428,18 @@ const LandingSchema = new Schema<ILanding>({
   // Интерактивные элементы
   detailModals: [{
     title: { type: String, required: true },
-    content: { type: String, required: true },
+    content: { 
+      type: String, 
+      required: true,
+      validate: {
+        validator: function(v: string) {
+          // Убираем HTML теги и проверяем что остался текст
+          const textOnly = v.replace(/<[^>]*>/g, '').trim();
+          return textOnly.length > 0;
+        },
+        message: 'Модальное окно: контент не может быть пустым. Добавьте текст или удалите это модальное окно.'
+      }
+    },
     linkText: String,
     linkUrl: String
   }],
