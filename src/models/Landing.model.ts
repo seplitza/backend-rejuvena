@@ -148,6 +148,34 @@ export interface ICustomSection {
   order: number;
 }
 
+// Модальное окно "Подробнее"
+export interface IDetailModal {
+  title: string;
+  content: string; // HTML или текст
+  linkText?: string; // Текст кнопки, если нужна ссылка
+  linkUrl?: string; // URL ссылки
+}
+
+// Кнопка записи на марафон
+export interface IEnrollButton {
+  text: string;
+  targetId: string; // ID секции для скролла (например 'pricing')
+}
+
+// Кнопка оплаты
+export interface IPaymentButton {
+  text: string;
+  targetId: string; // ID секции для скролла
+}
+
+// Блок с видео
+export interface IVideoBlock {
+  title?: string;
+  videoUrl: string; // URL видео (YouTube, Vimeo, или прямая ссылка)
+  poster?: string; // Превью изображение
+  order: number;
+}
+
 export interface ILanding extends Document {
   slug: string; // URL идентификатор (например 'marathon-7')
   title: string; // Заголовок страницы
@@ -169,6 +197,12 @@ export interface ILanding extends Document {
   testimonialsGallerySection?: ITestimonialsGallerySection; // Галерея отзывов
   ctaSection?: ICtaSection;
   customSections?: ICustomSection[];
+  
+  // Новые интерактивные элементы
+  detailModals?: IDetailModal[]; // До 3 модальных окон "Подробнее"
+  enrollButtons?: IEnrollButton[]; // До 3 кнопок "Записаться на марафон"
+  paymentButtons?: IPaymentButton[]; // До 2 кнопок "Оплатить сейчас"
+  videoBlocks?: IVideoBlock[]; // До 2 видео блоков (карусель если больше 1)
   
   // Статус публикации
   isPublished: boolean;
@@ -376,6 +410,31 @@ const LandingSchema = new Schema<ILanding>({
       order: { type: Number, default: 0 }
     }]
   },
+  
+  // Интерактивные элементы
+  detailModals: [{
+    title: { type: String, required: true },
+    content: { type: String, required: true },
+    linkText: String,
+    linkUrl: String
+  }],
+  
+  enrollButtons: [{
+    text: { type: String, required: true },
+    targetId: { type: String, required: true }
+  }],
+  
+  paymentButtons: [{
+    text: { type: String, required: true },
+    targetId: { type: String, required: true }
+  }],
+  
+  videoBlocks: [{
+    title: String,
+    videoUrl: { type: String, required: true },
+    poster: String,
+    order: { type: Number, default: 0 }
+  }],
   
   // Публикация
   isPublished: {
