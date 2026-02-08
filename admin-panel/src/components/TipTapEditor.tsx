@@ -2,6 +2,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
+import Typography from '@tiptap/extension-typography';
 import { useState, useRef } from 'react';
 
 interface TipTapEditorProps {
@@ -18,7 +19,25 @@ export default function TipTapEditor({ content, onChange }: TipTapEditorProps) {
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        // Включаем markdown shortcuts
+        heading: {
+          levels: [1, 2, 3]
+        },
+        bold: {
+          // ** или __ для жирного
+          HTMLAttributes: {
+            style: 'font-weight: bold;'
+          }
+        },
+        italic: {
+          // * или _ для курсива
+          HTMLAttributes: {
+            style: 'font-style: italic;'
+          }
+        }
+      }),
+      Typography,
       Image.configure({
         inline: false,
         allowBase64: false,
@@ -263,6 +282,18 @@ export default function TipTapEditor({ content, onChange }: TipTapEditorProps) {
         >
           🔗 Link
         </button>
+      </div>
+
+      {/* Подсказка о Markdown */}
+      <div style={{
+        padding: '8px 12px',
+        background: '#EEF2FF',
+        borderLeft: '3px solid #6366F1',
+        fontSize: '12px',
+        color: '#4338CA',
+        marginBottom: '8px'
+      }}>
+        💡 <strong>Markdown shortcuts:</strong> **жирный**, *курсив*, ## заголовок, * список, [текст](ссылка)
       </div>
 
       {/* Editor */}
