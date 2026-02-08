@@ -37,6 +37,7 @@ export interface IBenefitsSection {
     icon: string;
     title: string;
     description: string;
+    modalId?: number; // Индекс модального окна из detailModals
   }>;
 }
 
@@ -86,6 +87,7 @@ export interface IFeaturesSection {
     icon: string;
     title: string;
     description: string;
+    modalId?: number; // Индекс модального окна из detailModals
   }>;
 }
 
@@ -96,6 +98,7 @@ export interface IProblemsSection {
     number: string;
     title: string;
     description: string;
+    modalId?: number; // Индекс модального окна из detailModals
   }>;
 }
 
@@ -109,6 +112,7 @@ export interface IAboutSection {
     icon: string;
     title: string;
     description: string;
+    modalId?: number; // Индекс модального окна из detailModals
   }>;
 }
 
@@ -119,6 +123,7 @@ export interface IStepsSection {
     image?: string;
     title: string;
     description: string;
+    modalId?: number; // Индекс модального окна из detailModals
   }>;
 }
 
@@ -130,6 +135,7 @@ export interface IProcessSection {
     title: string;
     description: string;
     duration?: string;
+    modalId?: number; // Индекс модального окна из detailModals
   }>;
 }
 
@@ -139,6 +145,7 @@ export interface IStatsSection {
     value: string;
     label: string;
     description: string;
+    modalId?: number; // Индекс модального окна из detailModals
   }>;
 }
 
@@ -259,7 +266,8 @@ const LandingSchema = new Schema<ILanding>({
     features: [{
       icon: String,
       title: String,
-      description: String
+      description: String,
+      modalId: Number
     }]
   },
   
@@ -270,7 +278,8 @@ const LandingSchema = new Schema<ILanding>({
     problems: [{
       number: String,
       title: String,
-      description: String
+      description: String,
+      modalId: Number
     }]
   },
   
@@ -283,7 +292,8 @@ const LandingSchema = new Schema<ILanding>({
     achievements: [{
       icon: String,
       title: String,
-      description: String
+      description: String,
+      modalId: Number
     }]
   },
   
@@ -294,7 +304,8 @@ const LandingSchema = new Schema<ILanding>({
     steps: [{
       image: String,
       title: String,
-      description: String
+      description: String,
+      modalId: Number
     }]
   },
   
@@ -306,7 +317,8 @@ const LandingSchema = new Schema<ILanding>({
       number: Number,
       title: String,
       description: String,
-      duration: String
+      duration: String,
+      modalId: Number
     }]
   },
   
@@ -316,7 +328,8 @@ const LandingSchema = new Schema<ILanding>({
     stats: [{
       value: String,
       label: String,
-      description: String
+      description: String,
+      modalId: Number
     }]
   },
   
@@ -357,7 +370,8 @@ const LandingSchema = new Schema<ILanding>({
     benefits: [{
       icon: String,
       title: String,
-      description: String
+      description: String,
+      modalId: Number
     }]
   },
   
