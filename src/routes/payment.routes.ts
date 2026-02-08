@@ -801,7 +801,8 @@ async function activateMarathon(userId: string, marathonId: string, paymentId: s
           user.email,
           marathon.title,
           marathon.startDate,
-          true // paid marathon
+          true, // paid marathon
+          marathon.telegramGroupUrl
         );
       }
     } catch (emailError) {

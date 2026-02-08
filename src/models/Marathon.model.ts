@@ -24,6 +24,7 @@ export interface IMarathon extends Document {
   welcomeMessage: string;
   courseDescription: string;
   rules: string;
+  telegramGroupUrl?: string; // Ссылка на группу Telegram для участников марафона
   tenure: number; // Общая длительность (обучение + практика)
   createdAt: Date;
   updatedAt: Date;
@@ -119,6 +120,10 @@ const MarathonSchema = new Schema<IMarathon>(
       default: ''
     },
     rules: {
+      type: String,
+      default: ''
+    },
+    telegramGroupUrl: {
       type: String,
       default: ''
     },

@@ -141,7 +141,8 @@ class EmailService {
     email: string,
     marathonTitle: string,
     startDate: Date,
-    isPaid: boolean
+    isPaid: boolean,
+    telegramGroupUrl?: string
   ): Promise<boolean> {
     if (!this.resend) {
       console.error('❌ Resend not initialized - cannot send email');
@@ -174,6 +175,16 @@ class EmailService {
             </div>
             
             <p>Доступ к упражнениям откроется в день старта марафона. Каждый день будет открываться по одному новому дню марафона.</p>
+            
+            ${telegramGroupUrl ? `
+              <div style="background-color: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2196F3;">
+                <h3 style="margin: 0 0 10px 0; color: #1976d2;">📱 Присоединяйтесь к группе в Telegram</h3>
+                <p style="margin: 5px 0;">Там выходят прямые эфиры с автором</p>
+                <a href="${telegramGroupUrl}" style="display: inline-block; background-color: #2196F3; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; margin-top: 10px;">
+                  Открыть группу →
+                </a>
+              </div>
+            ` : ''}
             
             <p style="color: #666; font-size: 14px;">
               Мы отправим вам напоминание перед стартом марафона.

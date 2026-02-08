@@ -271,7 +271,8 @@ router.post('/:id/enroll', authMiddleware, async (req: AuthRequest, res: Respons
           user.email,
           marathon.title,
           marathon.startDate,
-          false // free marathon
+          false, // free marathon
+          marathon.telegramGroupUrl
         );
       }
     } catch (emailError) {

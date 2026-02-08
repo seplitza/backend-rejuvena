@@ -47,6 +47,7 @@ export default function MarathonEditor() {
   // Tab 3: Правила и Welcome Message
   const [welcomeMessage, setWelcomeMessage] = useState('');
   const [rules, setRules] = useState('');
+  const [telegramGroupUrl, setTelegramGroupUrl] = useState('');
 
   // Tab 4: Упражнения
   const [marathonDays, setMarathonDays] = useState<MarathonDay[]>([]);
@@ -107,6 +108,7 @@ export default function MarathonEditor() {
       setCourseDescription(m.courseDescription || '');
       setWelcomeMessage(m.welcomeMessage || '');
       setRules(m.rules || '');
+      setTelegramGroupUrl(m.telegramGroupUrl || '');
       setHasContest(m.hasContest);
       setContestStartDate(m.contestStartDate ? m.contestStartDate.split('T')[0] : '');
       setContestEndDate(m.contestEndDate ? m.contestEndDate.split('T')[0] : '');
@@ -151,6 +153,7 @@ export default function MarathonEditor() {
         courseDescription,
         welcomeMessage,
         rules,
+        telegramGroupUrl,
         hasContest,
         contestStartDate: contestStartDate ? new Date(contestStartDate).toISOString() : undefined,
         contestEndDate: contestEndDate ? new Date(contestEndDate).toISOString() : undefined,
@@ -531,6 +534,28 @@ export default function MarathonEditor() {
               content={rules}
               onChange={setRules}
             />
+
+            <h2 style={{ fontSize: '20px', fontWeight: '600', marginTop: '40px', marginBottom: '16px' }}>Ссылка на группу Telegram</h2>
+            <input
+              type="url"
+              value={telegramGroupUrl}
+              onChange={(e) => setTelegramGroupUrl(e.target.value)}
+              placeholder="https://t.me/your_group"
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                fontSize: '15px',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#8b5cf6'}
+              onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
+            />
+            <p style={{ marginTop: '8px', fontSize: '14px', color: '#64748b' }}>
+              Ссылка будет показана после успешной оплаты и в email-уведомлениях
+            </p>
           </div>
         )}
 
