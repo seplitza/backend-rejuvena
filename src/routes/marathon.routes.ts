@@ -10,6 +10,29 @@ import User from '../models/User.model';
 const router = Router();
 
 /**
+ * PUBLIC: Get marathon welcome message
+ * GET /api/marathons/:id/welcome
+ */
+router.get('/:id/welcome', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const marathon = await Marathon.findById(id).select('welcomeMessage');
+    
+    if (!marathon) {
+      return res.status(404).json({ error: 'Marathon not found' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      welcomeMessage: marathon.welcomeMessage || ''
+    });
+  } catch (error) {
+    console.error('Error fetching welcome message:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
  * PUBLIC: Get all public marathons
  * GET /api/marathons
  * Optional: Authorization header to get enrollment status
