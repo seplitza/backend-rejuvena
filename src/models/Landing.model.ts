@@ -430,14 +430,17 @@ const LandingSchema = new Schema<ILanding>({
     title: { type: String, required: true },
     content: { 
       type: String, 
-      required: true,
+      required: [true, 'Контент модального окна обязателен. Добавьте текст или удалите это модальное окно.'],
       validate: {
         validator: function(v: string) {
           // Убираем HTML теги и проверяем что остался текст
           const textOnly = v.replace(/<[^>]*>/g, '').trim();
-          return textOnly.length > 0;
+          if (textOnly.length === 0) {
+            return false;
+          }
+          return true;
         },
-        message: 'Модальное окно: контент не может быть пустым. Добавьте текст или удалите это модальное окно.'
+        message: 'Модальное окно содержит только HTML теги без текста. Добавьте текст или удалите это модальное окно.'
       }
     },
     linkText: String,
