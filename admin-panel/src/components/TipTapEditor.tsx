@@ -13,6 +13,38 @@ interface TipTapEditorProps {
 // В продакшене админка на /admin/, API на том же домене
 const API_URL = window.location.origin;
 
+// Функция парсинга markdown в HTML
+const parseMarkdownToHTML = (text: string): string => {
+  let html = text;
+  
+  // Заголовки
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  
+  // Жирный текст
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+  
+  // Курсив
+  html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  html = html.replace(/_([^_]+)_/g, '<em>$1</em>');
+  
+  // Списки
+  html = html.replace(/^\* (.+)$/gm, '<li>$1</li>');
+  html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>.*?<\/li>\n?)+/g, (match) => `<ul>${match}</ul>`);
+  
+  // Параграфы
+  const paragraphs = html.split('\n\n');
+  html = paragraphs.map(p => {
+    if (p.match(/^<h[123]>/) || p.match(/^<ul>/)) return p;
+    return `<p>${p.replace(/\n/g, '<br>')}</p>`;
+  }).join('');
+  
+  return html;
+};
+
 export default function TipTapEditor({ content, onChange }: TipTapEditorProps) {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -55,6 +87,21 @@ export default function TipTapEditor({ content, onChange }: TipTapEditorProps) {
     content,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
+    },
+    editorProps: {
+      handlePaste: (_view, event) => {
+        const text = event.clipboardData?.getData('text/plain');
+        if (!text || !editor) return false;
+        
+        const hasMarkdown = /(\*\*|__|\*|_|^#{1,3} |^\* |^- )/m.test(text);
+        if (hasMarkdown) {
+          event.preventDefault();
+          const html = parseMarkdownToHTML(text);
+          editor.chain().focus().insertContent(html).run();
+          return true;
+        }
+        return false;
+      }
     }
   });
 
