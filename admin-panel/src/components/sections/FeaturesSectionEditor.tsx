@@ -4,6 +4,7 @@ interface Feature {
   icon: string;
   title: string;
   description: string;
+  modalId?: number;
 }
 
 interface FeaturesSectionData {
@@ -106,7 +107,7 @@ const FeaturesSectionEditor: React.FC<Props> = ({ data, onChange }) => {
                     className="w-full px-3 py-2 border border-gray-300 rounded text-center text-2xl"
                   />
                 </div>
-                <div className="col-span-2">
+                <div>
                   <label className="block text-xs text-gray-600 mb-1">Заголовок</label>
                   <input
                     type="text"
@@ -115,6 +116,18 @@ const FeaturesSectionEditor: React.FC<Props> = ({ data, onChange }) => {
                     placeholder="Забота о теле"
                     className="w-full px-3 py-2 border border-gray-300 rounded"
                   />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">Модальное окно</label>
+                  <input
+                    type="number"
+                    value={feature.modalId ?? ''}
+                    onChange={(e) => updateFeature(index, 'modalId' as keyof Feature, e.target.value ? String(Number(e.target.value)) : '')}
+                    placeholder="0, 1, 2..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded"
+                    min="0"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Индекс модального окна (0=первое)</p>
                 </div>
               </div>
 

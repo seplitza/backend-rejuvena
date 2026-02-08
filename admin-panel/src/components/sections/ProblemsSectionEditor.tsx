@@ -4,6 +4,7 @@ interface Problem {
   number: string;
   title: string;
   description: string;
+  modalId?: number;
 }
 
 interface ProblemsSectionData {
@@ -96,7 +97,7 @@ const ProblemsSectionEditor: React.FC<Props> = ({ data, onChange }) => {
                 </button>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-4 gap-3">
                 <div>
                   <label className="block text-xs text-gray-600 mb-1">Номер</label>
                   <input
@@ -115,6 +116,17 @@ const ProblemsSectionEditor: React.FC<Props> = ({ data, onChange }) => {
                     onChange={(e) => updateProblem(index, 'title', e.target.value)}
                     placeholder="Отеки и птоз лица"
                     className="w-full px-3 py-2 border border-gray-300 rounded"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">Модальное окно</label>
+                  <input
+                    type="number"
+                    value={problem.modalId ?? ''}
+                    onChange={(e) => updateProblem(index, 'modalId' as keyof Problem, e.target.value ? String(Number(e.target.value)) : '')}
+                    placeholder="0, 1, 2..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded"
+                    min="0"
                   />
                 </div>
               </div>
