@@ -469,7 +469,32 @@ const LandingEditor: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Error saving landing:', error);
-      alert(error.response?.data?.error || 'Ошибка сохранения лендинга');
+      
+      // Детальная обработка ошибки
+      let errorMessage = 'Ошибка сохранения лендинга';
+      let errorDetails = '';
+      
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+        
+        // Дополнительные детали
+        if (error.response.data.details) {
+          errorDetails = JSON.stringify(error.response.data.details, null, 2);
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      // Логируем полную ошибку
+      console.error('🚨 Full error details:', {
+        message: errorMessage,
+        details: errorDetails,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
+      // Показываем подробное сообщение
+      alert(`❌ Ошибка сохранения:\n\n${errorMessage}\n\n${errorDetails ? `Детали:\n${errorDetails}` : ''}\n\nПроверьте консоль браузера для подробностей.`);
     } finally {
       setLoading(false);
     }

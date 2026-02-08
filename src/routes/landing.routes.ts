@@ -159,18 +159,41 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
       message: 'Landing updated successfully' 
     });
   } catch (error: any) {
-    console.error('Error updating landing:', error);
+    console.error('❌ Error updating landing:', error);
     
-    if (error.code === 11000) {
+    // Детальная обработка ValidationError от Mongoose
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.keys(error.errors).map(key => ({
+        field: key,
+        message: error.errors[key].message,
+        value: error.errors[key].value
+      }));
+      
+      console.error('🚨 Validation errors:', validationErrors);
+      
       return res.status(400).json({ 
         success: false, 
-        error: 'Landing with this slug already exists' 
+        error: 'Validation failed',
+        details: validationErrors,
+        message: `Ошибка валидации: ${validationErrors.map(e => `${e.field} - ${e.message}`).join('; ')}`
+      });
+    }
+    
+    if (error.code === 11000) {
+      const duplicateField = Object.keys(error.keyPattern || {})[0];
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Duplicate key error',
+        details: { field: duplicateField, value: error.keyValue },
+        message: `Лендинг с таким ${duplicateField} уже существует`
       });
     }
     
     res.status(500).json({ 
       success: false, 
-      error: 'Failed to update landing' 
+      error: 'Failed to update landing',
+      message: error.message || 'Неизвестная ошибка при сохранении',
+      details: process.env.NODE_ENV === 'development' ? error : undefined
     });
   }
 });
