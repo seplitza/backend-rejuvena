@@ -110,6 +110,12 @@ const LandingEditor: React.FC = () => {
     advancedDuration: '',
     advancedFeatures: [] as string[],
     
+    // Интерактивные элементы
+    detailModals: [] as Array<{ title: string; content: string; linkText?: string; linkUrl?: string }>,
+    enrollButtons: [] as Array<{ text: string; targetId: string }>,
+    paymentButtons: [] as Array<{ text: string; targetId: string }>,
+    videoBlocks: [] as Array<{ title?: string; videoUrl: string; poster?: string; order: number }>,
+    
     isPublished: false
   });
 
@@ -212,6 +218,13 @@ const LandingEditor: React.FC = () => {
           advancedOldPrice: landing.marathonsSection?.advanced?.oldPrice,
           advancedDuration: landing.marathonsSection?.advanced?.duration || '',
           advancedFeatures: landing.marathonsSection?.advanced?.features || [],
+          
+          // Интерактивные элементы
+          detailModals: landing.detailModals || [],
+          enrollButtons: landing.enrollButtons || [],
+          paymentButtons: landing.paymentButtons || [],
+          videoBlocks: landing.videoBlocks || [],
+          
           isPublished: landing.isPublished
         });
 
@@ -393,6 +406,13 @@ const LandingEditor: React.FC = () => {
             }
           } : {})
         },
+        
+        // Интерактивные элементы
+        ...(formData.detailModals.length > 0 && { detailModals: formData.detailModals }),
+        ...(formData.enrollButtons.length > 0 && { enrollButtons: formData.enrollButtons }),
+        ...(formData.paymentButtons.length > 0 && { paymentButtons: formData.paymentButtons }),
+        ...(formData.videoBlocks.length > 0 && { videoBlocks: formData.videoBlocks }),
+        
         isPublished: formData.isPublished
       };
 
@@ -810,6 +830,301 @@ const LandingEditor: React.FC = () => {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
               />
             </div>
+          </div>
+        </div>
+
+        {/* Интерактивные элементы */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-lg font-semibold mb-4">🎯 Интерактивные элементы</h3>
+          
+          {/* Модальные окна "Подробнее" */}
+          <div className="mb-6">
+            <h4 className="font-semibold mb-3 flex items-center gap-2">
+              <span>💬 Модальные окна "Подробнее"</span>
+              <span className="text-xs text-gray-500">(макс. 3)</span>
+            </h4>
+            {formData.detailModals.map((modal, index) => (
+              <div key={index} className="border border-gray-200 rounded-lg p-4 mb-3">
+                <div className="flex justify-between items-center mb-3">
+                  <span className="font-medium text-sm">Модальное окно #{index + 1}</span>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({
+                      ...formData,
+                      detailModals: formData.detailModals.filter((_, i) => i !== index)
+                    })}
+                    className="text-red-500 hover:text-red-700 text-sm"
+                  >
+                    Удалить
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    placeholder="Заголовок модального окна"
+                    value={modal.title}
+                    onChange={(e) => {
+                      const newModals = [...formData.detailModals];
+                      newModals[index].title = e.target.value;
+                      setFormData({...formData, detailModals: newModals});
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
+                  <textarea
+                    placeholder="Текст (можно использовать markdown: **жирный**, *курсив*, ## заголовок)"
+                    value={modal.content}
+                    onChange={(e) => {
+                      const newModals = [...formData.detailModals];
+                      newModals[index].content = e.target.value;
+                      setFormData({...formData, detailModals: newModals});
+                    }}
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="text"
+                      placeholder="Текст ссылки (необязательно)"
+                      value={modal.linkText || ''}
+                      onChange={(e) => {
+                        const newModals = [...formData.detailModals];
+                        newModals[index].linkText = e.target.value;
+                        setFormData({...formData, detailModals: newModals});
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    />
+                    <input
+                      type="text"
+                      placeholder="URL ссылки"
+                      value={modal.linkUrl || ''}
+                      onChange={(e) => {
+                        const newModals = [...formData.detailModals];
+                        newModals[index].linkUrl = e.target.value;
+                        setFormData({...formData, detailModals: newModals});
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+            {formData.detailModals.length < 3 && (
+              <button
+                type="button"
+                onClick={() => setFormData({
+                  ...formData,
+                  detailModals: [...formData.detailModals, { title: '', content: '' }]
+                })}
+                className="text-purple-600 hover:text-purple-700 text-sm font-medium"
+              >
+                + Добавить модальное окно
+              </button>
+            )}
+          </div>
+
+          {/* Кнопки записи на марафон */}
+          <div className="mb-6">
+            <h4 className="font-semibold mb-3 flex items-center gap-2">
+              <span>✍️ Кнопки "Записаться на марафон"</span>
+              <span className="text-xs text-gray-500">(макс. 3)</span>
+            </h4>
+            {formData.enrollButtons.map((button, index) => (
+              <div key={index} className="border border-gray-200 rounded-lg p-4 mb-3">
+                <div className="flex justify-between items-center mb-3">
+                  <span className="font-medium text-sm">Кнопка #{index + 1}</span>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({
+                      ...formData,
+                      enrollButtons: formData.enrollButtons.filter((_, i) => i !== index)
+                    })}
+                    className="text-red-500 hover:text-red-700 text-sm"
+                  >
+                    Удалить
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    placeholder="Текст кнопки"
+                    value={button.text}
+                    onChange={(e) => {
+                      const newButtons = [...formData.enrollButtons];
+                      newButtons[index].text = e.target.value;
+                      setFormData({...formData, enrollButtons: newButtons});
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
+                  <input
+                    type="text"
+                    placeholder="ID блока (например, marathons)"
+                    value={button.targetId}
+                    onChange={(e) => {
+                      const newButtons = [...formData.enrollButtons];
+                      newButtons[index].targetId = e.target.value;
+                      setFormData({...formData, enrollButtons: newButtons});
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
+                </div>
+              </div>
+            ))}
+            {formData.enrollButtons.length < 3 && (
+              <button
+                type="button"
+                onClick={() => setFormData({
+                  ...formData,
+                  enrollButtons: [...formData.enrollButtons, { text: 'Записаться на марафон', targetId: 'marathons' }]
+                })}
+                className="text-purple-600 hover:text-purple-700 text-sm font-medium"
+              >
+                + Добавить кнопку записи
+              </button>
+            )}
+          </div>
+
+          {/* Кнопки оплаты */}
+          <div className="mb-6">
+            <h4 className="font-semibold mb-3 flex items-center gap-2">
+              <span>💳 Кнопки "Оплатить сейчас"</span>
+              <span className="text-xs text-gray-500">(макс. 2)</span>
+            </h4>
+            {formData.paymentButtons.map((button, index) => (
+              <div key={index} className="border border-gray-200 rounded-lg p-4 mb-3">
+                <div className="flex justify-between items-center mb-3">
+                  <span className="font-medium text-sm">Кнопка #{index + 1}</span>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({
+                      ...formData,
+                      paymentButtons: formData.paymentButtons.filter((_, i) => i !== index)
+                    })}
+                    className="text-red-500 hover:text-red-700 text-sm"
+                  >
+                    Удалить
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    placeholder="Текст кнопки"
+                    value={button.text}
+                    onChange={(e) => {
+                      const newButtons = [...formData.paymentButtons];
+                      newButtons[index].text = e.target.value;
+                      setFormData({...formData, paymentButtons: newButtons});
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
+                  <input
+                    type="text"
+                    placeholder="ID блока (например, marathons)"
+                    value={button.targetId}
+                    onChange={(e) => {
+                      const newButtons = [...formData.paymentButtons];
+                      newButtons[index].targetId = e.target.value;
+                      setFormData({...formData, paymentButtons: newButtons});
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
+                </div>
+              </div>
+            ))}
+            {formData.paymentButtons.length < 2 && (
+              <button
+                type="button"
+                onClick={() => setFormData({
+                  ...formData,
+                  paymentButtons: [...formData.paymentButtons, { text: 'Оплатить сейчас', targetId: 'marathons' }]
+                })}
+                className="text-purple-600 hover:text-purple-700 text-sm font-medium"
+              >
+                + Добавить кнопку оплаты
+              </button>
+            )}
+          </div>
+
+          {/* Видео блоки */}
+          <div className="mb-6">
+            <h4 className="font-semibold mb-3 flex items-center gap-2">
+              <span>🎥 Видео блоки</span>
+              <span className="text-xs text-gray-500">(макс. 2, карусель если больше 1)</span>
+            </h4>
+            {formData.videoBlocks.map((video, index) => (
+              <div key={index} className="border border-gray-200 rounded-lg p-4 mb-3">
+                <div className="flex justify-between items-center mb-3">
+                  <span className="font-medium text-sm">Видео #{index + 1}</span>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({
+                      ...formData,
+                      videoBlocks: formData.videoBlocks.filter((_, i) => i !== index)
+                    })}
+                    className="text-red-500 hover:text-red-700 text-sm"
+                  >
+                    Удалить
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    placeholder="Заголовок (необязательно)"
+                    value={video.title || ''}
+                    onChange={(e) => {
+                      const newVideos = [...formData.videoBlocks];
+                      newVideos[index].title = e.target.value;
+                      setFormData({...formData, videoBlocks: newVideos});
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
+                  <input
+                    type="text"
+                    placeholder="URL видео (YouTube, Vimeo, прямая ссылка)"
+                    value={video.videoUrl}
+                    onChange={(e) => {
+                      const newVideos = [...formData.videoBlocks];
+                      newVideos[index].videoUrl = e.target.value;
+                      setFormData({...formData, videoBlocks: newVideos});
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
+                  <input
+                    type="text"
+                    placeholder="URL постера (необязательно)"
+                    value={video.poster || ''}
+                    onChange={(e) => {
+                      const newVideos = [...formData.videoBlocks];
+                      newVideos[index].poster = e.target.value;
+                      setFormData({...formData, videoBlocks: newVideos});
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Порядок (0-10)"
+                    value={video.order}
+                    onChange={(e) => {
+                      const newVideos = [...formData.videoBlocks];
+                      newVideos[index].order = Number(e.target.value);
+                      setFormData({...formData, videoBlocks: newVideos});
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
+                </div>
+              </div>
+            ))}
+            {formData.videoBlocks.length < 2 && (
+              <button
+                type="button"
+                onClick={() => setFormData({
+                  ...formData,
+                  videoBlocks: [...formData.videoBlocks, { videoUrl: '', order: formData.videoBlocks.length }]
+                })}
+                className="text-purple-600 hover:text-purple-700 text-sm font-medium"
+              >
+                + Добавить видео
+              </button>
+            )}
           </div>
         </div>
 
