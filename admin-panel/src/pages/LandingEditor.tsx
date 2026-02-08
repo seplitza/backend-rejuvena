@@ -933,18 +933,16 @@ const LandingEditor: React.FC = () => {
                 </div>
               </div>
             ))}
-            {formData.detailModals.length < 3 && (
-              <button
-                type="button"
-                onClick={() => setFormData({
-                  ...formData,
-                  detailModals: [...formData.detailModals, { title: '', content: '' }]
-                })}
-                className="text-purple-600 hover:text-purple-700 text-sm font-medium"
-              >
-                + Добавить модальное окно
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => setFormData({
+                ...formData,
+                detailModals: [...formData.detailModals, { title: '', content: '' }]
+              })}
+              className="text-purple-600 hover:text-purple-700 text-sm font-medium"
+            >
+              + Добавить модальное окно
+            </button>
           </div>
 
           {/* Кнопки записи на марафон */}
