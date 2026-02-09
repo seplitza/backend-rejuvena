@@ -60,7 +60,7 @@ router.post('/create', authMiddleware, async (req: AuthRequest, res: Response) =
 
       const orderNumber = await generateOrderNumber();
       const amountInKopecks = Math.round(marathon.cost * 100);
-      const productDescription = `Марафон: ${marathonName}`;
+      const productDescription = `Доступ к фото и видео материалам марафона Сеплица ${marathonName}`;
 
       const payment = await Payment.create({
         userId,
@@ -326,7 +326,7 @@ router.post('/create-marathon', authMiddleware, async (req: AuthRequest, res: Re
     // Сумма в копейках для Альфа-Банка
     const amountInKopecks = Math.round(price * 100);
 
-    const productDescription = `Марафон: ${marathonName}`;
+    const productDescription = `Доступ к фото и видео материалам марафона Сеплица ${marathonName}`;
 
     // Создаем запись о платеже в БД
     const payment = await Payment.create({
