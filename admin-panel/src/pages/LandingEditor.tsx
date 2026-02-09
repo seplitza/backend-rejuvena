@@ -110,11 +110,11 @@ const LandingEditor: React.FC = () => {
     advancedDuration: '',
     advancedFeatures: [] as string[],
     
-    // Интерактивные элементы
-    detailModals: [] as Array<{ title: string; content: string; linkText?: string; linkUrl?: string }>,
-    enrollButtons: [] as Array<{ text: string; targetId: string }>,
-    paymentButtons: [] as Array<{ text: string; targetId: string }>,
-    videoBlocks: [] as Array<{ title?: string; videoUrl: string; poster?: string; order: number }>,
+    // Интерактивные элементы  
+    detailModals: [] as Array<{ title: string; content: string; linkText?: string; linkUrl?: string; position?: string }>,
+    enrollButtons: [] as Array<{ text: string; targetId: string; position?: string }>,
+    paymentButtons: [] as Array<{ text: string; targetId: string; position?: string }>,
+    videoBlocks: [] as Array<{ title?: string; videoUrl: string; poster?: string; order: number; position?: string }>,
     
     isPublished: false
   });
