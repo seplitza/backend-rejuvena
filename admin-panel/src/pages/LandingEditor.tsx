@@ -916,6 +916,28 @@ const LandingEditor: React.FC = () => {
                   </button>
                 </div>
                 <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Показать после секции:</label>
+                    <select
+                      value={modal.position || 'hero'}
+                      onChange={(e) => {
+                        const newModals = [...formData.detailModals];
+                        newModals[index].position = e.target.value;
+                        setFormData({...formData, detailModals: newModals});
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    >
+                      <option value="hero">После Hero (первый экран)</option>
+                      <option value="features">После "Что такое система"</option>
+                      <option value="problems">После "Проблемы которые решаем"</option>
+                      <option value="about">После "Об авторе"</option>
+                      <option value="steps">После "Ступени системы"</option>
+                      <option value="process">После "Как проходит программа"</option>
+                      <option value="stats">После "Результаты клиентов"</option>
+                      <option value="resultsGallery">После "Галерея результатов"</option>
+                      <option value="testimonialsGallery">После "Галерея отзывов"</option>
+                    </select>
+                  </div>
                   <input
                     type="text"
                     placeholder="Заголовок модального окна"
@@ -969,7 +991,7 @@ const LandingEditor: React.FC = () => {
               type="button"
               onClick={() => setFormData({
                 ...formData,
-                detailModals: [...formData.detailModals, { title: '', content: '' }]
+                detailModals: [...formData.detailModals, { title: '', content: '', position: 'hero' }]
               })}
               className="text-purple-600 hover:text-purple-700 text-sm font-medium"
             >
@@ -1030,14 +1052,37 @@ const LandingEditor: React.FC = () => {
                     Удалить
                   </button>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <input
-                    type="text"
-                    placeholder="Текст кнопки"
-                    value={button.text}
-                    onChange={(e) => {
-                      const newButtons = [...formData.enrollButtons];
-                      newButtons[index].text = e.target.value;
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Показать после секции:</label>
+                    <select
+                      value={button.position || 'hero'}
+                      onChange={(e) => {
+                        const newButtons = [...formData.enrollButtons];
+                        newButtons[index].position = e.target.value;
+                        setFormData({...formData, enrollButtons: newButtons});
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    >
+                      <option value="hero">После Hero (первый экран)</option>
+                      <option value="features">После "Что такое система"</option>
+                      <option value="problems">После "Проблемы которые решаем"</option>
+                      <option value="about">После "Об авторе"</option>
+                      <option value="steps">После "Ступени системы"</option>
+                      <option value="process">После "Как проходит программа"</option>
+                      <option value="stats">После "Результаты клиентов"</option>
+                      <option value="resultsGallery">После "Галерея результатов"</option>
+                      <option value="testimonialsGallery">После "Галерея отзывов"</option>
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="text"
+                      placeholder="Текст кнопки"
+                      value={button.text}
+                      onChange={(e) => {
+                        const newButtons = [...formData.enrollButtons];
+                        newButtons[index].text = e.target.value;
                       setFormData({...formData, enrollButtons: newButtons});
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
@@ -1055,12 +1100,13 @@ const LandingEditor: React.FC = () => {
                   />
                 </div>
               </div>
+            </div>
             ))}
             <button
               type="button"
               onClick={() => setFormData({
                 ...formData,
-                enrollButtons: [...formData.enrollButtons, { text: 'Записаться на марафон', targetId: 'marathons' }]
+                enrollButtons: [...formData.enrollButtons, { text: 'Записаться на марафон', targetId: 'marathons', position: 'hero' }]
               })}
               className="text-purple-600 hover:text-purple-700 text-sm font-medium"
             >
@@ -1121,14 +1167,37 @@ const LandingEditor: React.FC = () => {
                     Удалить
                   </button>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <input
-                    type="text"
-                    placeholder="Текст кнопки"
-                    value={button.text}
-                    onChange={(e) => {
-                      const newButtons = [...formData.paymentButtons];
-                      newButtons[index].text = e.target.value;
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Показать после секции:</label>
+                    <select
+                      value={button.position || 'hero'}
+                      onChange={(e) => {
+                        const newButtons = [...formData.paymentButtons];
+                        newButtons[index].position = e.target.value;
+                        setFormData({...formData, paymentButtons: newButtons});
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    >
+                      <option value="hero">После Hero (первый экран)</option>
+                      <option value="features">После "Что такое система"</option>
+                      <option value="problems">После "Проблемы которые решаем"</option>
+                      <option value="about">После "Об авторе"</option>
+                      <option value="steps">После "Ступени системы"</option>
+                      <option value="process">После "Как проходит программа"</option>
+                      <option value="stats">После "Результаты клиентов"</option>
+                      <option value="resultsGallery">После "Галерея результатов"</option>
+                      <option value="testimonialsGallery">После "Галерея отзывов"</option>
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="text"
+                      placeholder="Текст кнопки"
+                      value={button.text}
+                      onChange={(e) => {
+                        const newButtons = [...formData.paymentButtons];
+                        newButtons[index].text = e.target.value;
                       setFormData({...formData, paymentButtons: newButtons});
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
@@ -1146,12 +1215,13 @@ const LandingEditor: React.FC = () => {
                   />
                 </div>
               </div>
+            </div>
             ))}
             <button
               type="button"
               onClick={() => setFormData({
                 ...formData,
-                paymentButtons: [...formData.paymentButtons, { text: 'Оплатить сейчас', targetId: 'marathons' }]
+                paymentButtons: [...formData.paymentButtons, { text: 'Оплатить сейчас', targetId: 'marathons', position: 'hero' }]
               })}
               className="text-purple-600 hover:text-purple-700 text-sm font-medium"
             >
