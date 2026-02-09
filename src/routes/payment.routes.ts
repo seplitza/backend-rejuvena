@@ -60,7 +60,7 @@ router.post('/create', authMiddleware, async (req: AuthRequest, res: Response) =
 
       const orderNumber = await generateOrderNumber();
       const amountInKopecks = Math.round(marathon.cost * 100);
-      const productDescription = `Доступ к фото и видео материалам марафона Сеплица ${marathonName}`;
+      const productDescription = marathon.paymentDescription || `Доступ к фото и видео материалам марафона Сеплица ${marathonName}`;
 
       const payment = await Payment.create({
         userId,
@@ -320,13 +320,19 @@ router.post('/create-marathon', authMiddleware, async (req: AuthRequest, res: Re
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // Загружаем марафон для получения paymentDescription
+    const marathon = await Marathon.findById(marathonId);
+    if (!marathon) {
+      return res.status(404).json({ error: 'Marathon not found' });
+    }
+
     // Генерируем уникальный номер заказа
     const orderNumber = await generateOrderNumber();
 
     // Сумма в копейках для Альфа-Банка
     const amountInKopecks = Math.round(price * 100);
 
-    const productDescription = `Доступ к фото и видео материалам марафона Сеплица ${marathonName}`;
+    const productDescription = marathon.paymentDescription || `Доступ к фото и видео материалам марафона Сеплица ${marathonName}`;
 
     // Создаем запись о платеже в БД
     const payment = await Payment.create({

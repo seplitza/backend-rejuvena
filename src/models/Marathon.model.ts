@@ -2,6 +2,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IMarathon extends Document {
   title: string;
+  paymentDescription?: string; // Описание в чеке оплаты
   subTitle?: string;
   description?: string;
   image?: string;
@@ -36,6 +37,10 @@ const MarathonSchema = new Schema<IMarathon>(
       type: String,
       required: true,
       trim: true
+    },
+    paymentDescription: {
+      type: String,
+      default: ''
     },
     subTitle: {
       type: String,

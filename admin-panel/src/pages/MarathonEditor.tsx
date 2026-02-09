@@ -31,6 +31,7 @@ export default function MarathonEditor() {
 
   // Tab 1: Информация
   const [title, setTitle] = useState('');
+  const [paymentDescription, setPaymentDescription] = useState('');
   const [startDate, setStartDate] = useState('');
   const [numberOfDays, setNumberOfDays] = useState(44);
   const [tenure, setTenure] = useState(44);
@@ -96,6 +97,7 @@ export default function MarathonEditor() {
       const m = response.data.marathon; // FIX: API returns { success: true, marathon: {...} }
       
       setTitle(m.title);
+      setPaymentDescription(m.paymentDescription || '');
       setStartDate(m.startDate.split('T')[0]);
       setNumberOfDays(m.numberOfDays);
       setTenure(m.tenure);
@@ -141,6 +143,7 @@ export default function MarathonEditor() {
     try {
       const data = {
         title,
+        paymentDescription,
         startDate: new Date(startDate).toISOString(),
         numberOfDays,
         tenure,
@@ -343,6 +346,28 @@ export default function MarathonEditor() {
                   fontSize: '14px'
                 }}
               />
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#374151' }}>
+                Описание в чеке оплаты
+              </label>
+              <input
+                type="text"
+                value={paymentDescription}
+                onChange={(e) => setPaymentDescription(e.target.value)}
+                placeholder="Доступ к фото и видео материалам марафона Сеплица"
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: '8px',
+                  fontSize: '14px'
+                }}
+              />
+              <p style={{ marginTop: '6px', fontSize: '13px', color: '#6B7280' }}>
+                Если пусто, будет использовано: "Доступ к фото и видео материалам марафона Сеплица [название]"
+              </p>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
