@@ -866,11 +866,44 @@ const LandingEditor: React.FC = () => {
           <div className="mb-6">
             <h4 className="font-semibold mb-3 flex items-center gap-2">
               <span>💬 Модальные окна "Подробнее"</span>
+              <span className="text-xs text-gray-500">(используйте ↑↓ для изменения порядка)</span>
             </h4>
             {formData.detailModals.map((modal, index) => (
               <div key={index} className="border border-gray-200 rounded-lg p-4 mb-3">
                 <div className="flex justify-between items-center mb-3">
-                  <span className="font-medium text-sm">Модальное окно #{index + 1}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-sm">Модальное окно #{index + 1}</span>
+                    <div className="flex gap-1">
+                      {index > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newModals = [...formData.detailModals];
+                            [newModals[index - 1], newModals[index]] = [newModals[index], newModals[index - 1]];
+                            setFormData({...formData, detailModals: newModals});
+                          }}
+                          className="text-gray-500 hover:text-gray-700 px-1"
+                          title="Переместить вверх"
+                        >
+                          ↑
+                        </button>
+                      )}
+                      {index < formData.detailModals.length - 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newModals = [...formData.detailModals];
+                            [newModals[index], newModals[index + 1]] = [newModals[index + 1], newModals[index]];
+                            setFormData({...formData, detailModals: newModals});
+                          }}
+                          className="text-gray-500 hover:text-gray-700 px-1"
+                          title="Переместить вниз"
+                        >
+                          ↓
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   <button
                     type="button"
                     onClick={() => setFormData({
@@ -948,12 +981,44 @@ const LandingEditor: React.FC = () => {
           <div className="mb-6">
             <h4 className="font-semibold mb-3 flex items-center gap-2">
               <span>✍️ Кнопки "Записаться на марафон"</span>
-              <span className="text-xs text-gray-500">(для разных секций)</span>
+              <span className="text-xs text-gray-500">(для разных секций, используйте ↑↓ для порядка)</span>
             </h4>
             {formData.enrollButtons.map((button, index) => (
               <div key={index} className="border border-gray-200 rounded-lg p-4 mb-3">
                 <div className="flex justify-between items-center mb-3">
-                  <span className="font-medium text-sm">Кнопка #{index + 1}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-sm">Кнопка #{index + 1}</span>
+                    <div className="flex gap-1">
+                      {index > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newButtons = [...formData.enrollButtons];
+                            [newButtons[index - 1], newButtons[index]] = [newButtons[index], newButtons[index - 1]];
+                            setFormData({...formData, enrollButtons: newButtons});
+                          }}
+                          className="text-gray-500 hover:text-gray-700 px-1"
+                          title="Переместить вверх"
+                        >
+                          ↑
+                        </button>
+                      )}
+                      {index < formData.enrollButtons.length - 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newButtons = [...formData.enrollButtons];
+                            [newButtons[index], newButtons[index + 1]] = [newButtons[index + 1], newButtons[index]];
+                            setFormData({...formData, enrollButtons: newButtons});
+                          }}
+                          className="text-gray-500 hover:text-gray-700 px-1"
+                          title="Переместить вниз"
+                        >
+                          ↓
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   <button
                     type="button"
                     onClick={() => setFormData({
@@ -1007,12 +1072,44 @@ const LandingEditor: React.FC = () => {
           <div className="mb-6">
             <h4 className="font-semibold mb-3 flex items-center gap-2">
               <span>💳 Кнопки "Оплатить сейчас"</span>
-              <span className="text-xs text-gray-500">(для разных секций)</span>
+              <span className="text-xs text-gray-500">(для разных секций, используйте ↑↓ для порядка)</span>
             </h4>
             {formData.paymentButtons.map((button, index) => (
               <div key={index} className="border border-gray-200 rounded-lg p-4 mb-3">
                 <div className="flex justify-between items-center mb-3">
-                  <span className="font-medium text-sm">Кнопка #{index + 1}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-sm">Кнопка #{index + 1}</span>
+                    <div className="flex gap-1">
+                      {index > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newButtons = [...formData.paymentButtons];
+                            [newButtons[index - 1], newButtons[index]] = [newButtons[index], newButtons[index - 1]];
+                            setFormData({...formData, paymentButtons: newButtons});
+                          }}
+                          className="text-gray-500 hover:text-gray-700 px-1"
+                          title="Переместить вверх"
+                        >
+                          ↑
+                        </button>
+                      )}
+                      {index < formData.paymentButtons.length - 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newButtons = [...formData.paymentButtons];
+                            [newButtons[index], newButtons[index + 1]] = [newButtons[index + 1], newButtons[index]];
+                            setFormData({...formData, paymentButtons: newButtons});
+                          }}
+                          className="text-gray-500 hover:text-gray-700 px-1"
+                          title="Переместить вниз"
+                        >
+                          ↓
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   <button
                     type="button"
                     onClick={() => setFormData({
