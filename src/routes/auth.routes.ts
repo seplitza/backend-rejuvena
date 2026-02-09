@@ -249,7 +249,7 @@ router.post('/reset-password', async (req: Request, res: Response) => {
 // Quick registration from landing page (email only)
 router.post('/register-and-pay', async (req: Request, res: Response) => {
   try {
-    const { email } = req.body;
+    const { email, firstName, lastName, telegramNick } = req.body;
     
     // Normalize email
     const normalizedEmail = email.toLowerCase().trim();
@@ -289,6 +289,9 @@ router.post('/register-and-pay', async (req: Request, res: Response) => {
     const user = new User({
       email: normalizedEmail,
       password: hashedPassword,
+      firstName: firstName?.trim() || undefined,
+      lastName: lastName?.trim() || undefined,
+      telegramUsername: telegramNick?.trim() || undefined,
       role: 'admin', // Default role
       isPremium: false
     });

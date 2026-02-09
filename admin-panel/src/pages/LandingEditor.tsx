@@ -866,7 +866,6 @@ const LandingEditor: React.FC = () => {
           <div className="mb-6">
             <h4 className="font-semibold mb-3 flex items-center gap-2">
               <span>💬 Модальные окна "Подробнее"</span>
-              <span className="text-xs text-gray-500">(макс. 3)</span>
             </h4>
             {formData.detailModals.map((modal, index) => (
               <div key={index} className="border border-gray-200 rounded-lg p-4 mb-3">
@@ -949,7 +948,7 @@ const LandingEditor: React.FC = () => {
           <div className="mb-6">
             <h4 className="font-semibold mb-3 flex items-center gap-2">
               <span>✍️ Кнопки "Записаться на марафон"</span>
-              <span className="text-xs text-gray-500">(макс. 3)</span>
+              <span className="text-xs text-gray-500">(для разных секций)</span>
             </h4>
             {formData.enrollButtons.map((button, index) => (
               <div key={index} className="border border-gray-200 rounded-lg p-4 mb-3">
@@ -992,25 +991,23 @@ const LandingEditor: React.FC = () => {
                 </div>
               </div>
             ))}
-            {formData.enrollButtons.length < 3 && (
-              <button
-                type="button"
-                onClick={() => setFormData({
-                  ...formData,
-                  enrollButtons: [...formData.enrollButtons, { text: 'Записаться на марафон', targetId: 'marathons' }]
-                })}
-                className="text-purple-600 hover:text-purple-700 text-sm font-medium"
-              >
-                + Добавить кнопку записи
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => setFormData({
+                ...formData,
+                enrollButtons: [...formData.enrollButtons, { text: 'Записаться на марафон', targetId: 'marathons' }]
+              })}
+              className="text-purple-600 hover:text-purple-700 text-sm font-medium"
+            >
+              + Добавить кнопку записи
+            </button>
           </div>
 
           {/* Кнопки оплаты */}
           <div className="mb-6">
             <h4 className="font-semibold mb-3 flex items-center gap-2">
               <span>💳 Кнопки "Оплатить сейчас"</span>
-              <span className="text-xs text-gray-500">(макс. 2)</span>
+              <span className="text-xs text-gray-500">(для разных секций)</span>
             </h4>
             {formData.paymentButtons.map((button, index) => (
               <div key={index} className="border border-gray-200 rounded-lg p-4 mb-3">
@@ -1053,18 +1050,16 @@ const LandingEditor: React.FC = () => {
                 </div>
               </div>
             ))}
-            {formData.paymentButtons.length < 2 && (
-              <button
-                type="button"
-                onClick={() => setFormData({
-                  ...formData,
-                  paymentButtons: [...formData.paymentButtons, { text: 'Оплатить сейчас', targetId: 'marathons' }]
-                })}
-                className="text-purple-600 hover:text-purple-700 text-sm font-medium"
-              >
-                + Добавить кнопку оплаты
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => setFormData({
+                ...formData,
+                paymentButtons: [...formData.paymentButtons, { text: 'Оплатить сейчас', targetId: 'marathons' }]
+              })}
+              className="text-purple-600 hover:text-purple-700 text-sm font-medium"
+            >
+              + Добавить кнопку оплаты
+            </button>
           </div>
 
           {/* Видео блоки */}
