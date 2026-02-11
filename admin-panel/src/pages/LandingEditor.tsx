@@ -116,7 +116,8 @@ const LandingEditor: React.FC = () => {
     paymentButtons: [] as Array<{ text: string; targetId: string; position?: string }>,
     videoBlocks: [] as Array<{ title?: string; videoUrl: string; poster?: string; order: number; position?: string }>,
     
-    isPublished: false
+    isPublished: false,
+    showStartDateBlock: true // По умолчанию показываем анимированный блок с датой старта
   });
 
   useEffect(() => {
@@ -225,7 +226,8 @@ const LandingEditor: React.FC = () => {
           paymentButtons: landing.paymentButtons || [],
           videoBlocks: landing.videoBlocks || [],
           
-          isPublished: landing.isPublished
+          isPublished: landing.isPublished,
+          showStartDateBlock: landing.showStartDateBlock !== undefined ? landing.showStartDateBlock : true
         });
 
         // Load section data (including copies)
@@ -413,7 +415,8 @@ const LandingEditor: React.FC = () => {
         ...(formData.paymentButtons.length > 0 && { paymentButtons: formData.paymentButtons }),
         ...(formData.videoBlocks.length > 0 && { videoBlocks: formData.videoBlocks }),
         
-        isPublished: formData.isPublished
+        isPublished: formData.isPublished,
+        showStartDateBlock: formData.showStartDateBlock
       };
 
       // Add visible sections (including duplicates)
@@ -1315,7 +1318,7 @@ const LandingEditor: React.FC = () => {
 
         {/* Actions */}
         <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 mb-4">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
@@ -1327,6 +1330,21 @@ const LandingEditor: React.FC = () => {
                 Опубликовать сразу
               </span>
             </label>
+            
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.showStartDateBlock}
+                onChange={(e) => setFormData({...formData, showStartDateBlock: e.target.checked})}
+                className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+              />
+              <span className="text-sm font-medium text-gray-700">
+                🚀 Показывать анимированный блок "Старт марафона" с обратным отсчетом
+              </span>
+            </label>
+          </div>
+          
+          <div className="flex items-center justify-between">
 
             <div className="flex gap-4">
               <button

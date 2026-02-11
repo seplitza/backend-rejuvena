@@ -214,6 +214,7 @@ export interface ILanding extends Document {
   // Статус публикации
   isPublished: boolean;
   publishedAt?: Date;
+  showStartDateBlock?: boolean; // Показывать анимированный блок с датой старта
   
   // Аналитика
   views: number;
@@ -461,6 +462,10 @@ const LandingSchema = new Schema<ILanding>({
   },
   publishedAt: {
     type: Date
+  },
+  showStartDateBlock: {
+    type: Boolean,
+    default: true // По умолчанию показываем блок
   },
   
   // Аналитика
