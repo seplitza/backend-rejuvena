@@ -1089,6 +1089,7 @@ const LandingEditor: React.FC = () => {
                       <option value="stats">После "Результаты клиентов"</option>
                       <option value="resultsGallery">После "Галерея результатов"</option>
                       <option value="testimonialsGallery">После "Галерея отзывов"</option>
+                      <option value="marathons">После блока Тарифы</option>
                     </select>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
@@ -1204,6 +1205,7 @@ const LandingEditor: React.FC = () => {
                       <option value="stats">После "Результаты клиентов"</option>
                       <option value="resultsGallery">После "Галерея результатов"</option>
                       <option value="testimonialsGallery">После "Галерея отзывов"</option>
+                      <option value="marathons">После блока Тарифы</option>
                     </select>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
