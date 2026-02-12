@@ -153,7 +153,8 @@ export default function MarathonEditor() {
   const loadMarathonDays = async () => {
     try {
       const response = await api.get(`/marathons/${id}/days`);
-      setMarathonDays(response.data.sort((a: MarathonDay, b: MarathonDay) => a.dayNumber - b.dayNumber));
+      const days = response.data.days || response.data || [];
+      setMarathonDays(days.sort((a: MarathonDay, b: MarathonDay) => a.dayNumber - b.dayNumber));
     } catch (error) {
       console.error('Failed to load marathon days:', error);
     }
