@@ -34,6 +34,7 @@ interface MarathonDay {
   description: string;
   exerciseGroups: ExerciseGroup[];
   exercises: string[]; // For backward compatibility
+  newExerciseIds?: string[]; // Новые упражнения в этом дне (подсветка зеленым)
   order: number;
 }
 
@@ -154,6 +155,13 @@ export default function MarathonEditor() {
     try {
       const response = await api.get(`/marathons/${id}/days`);
       const days = response.data.days || response.data || [];
+      console.log('📦 Loaded days from API:', days);
+      days.forEach((day: any, i: number) => {
+        console.log(`  Day ${day.dayNumber}:`, {
+          exerciseGroups: day.exerciseGroups,
+          groupCount: day.exerciseGroups?.length || 0
+        });
+      });
       setMarathonDays(days.sort((a: MarathonDay, b: MarathonDay) => a.dayNumber - b.dayNumber));
     } catch (error) {
       console.error('Failed to load marathon days:', error);
@@ -215,15 +223,21 @@ export default function MarathonEditor() {
 
     const newDayNumber = marathonDays.length + 1;
     try {
+      // API автоматически скопирует exerciseGroups из предыдущего дня
       await api.post(`/marathons/admin/${id}/days`, {
         dayNumber: newDayNumber,
         dayType: 'learning',
-        description: '',
-        exerciseGroups: [],
+        description: '', // Описание не копируется - редактор заполняет сам
+        exerciseGroups: [], // API заполнит из предыдущего дня
         exercises: [], // For backward compatibility
         order: newDayNumber
       });
       await loadMarathonDays();
+      
+      // Если создан не первый день - показываем подсказку
+      if (newDayNumber > 1) {
+        alert(`День ${newDayNumber} создан как копия дня ${newDayNumber - 1}.\nНовые упражнения будут подсвечены зеленым во фронтенде.`);
+      }
     } catch (error) {
       console.error('Failed to add day:', error);
       alert('Ошибка добавления дня');
@@ -848,6 +862,99 @@ export default function MarathonEditor() {
   );
 }
 
+// Sortable Exercise Row Component (для drag-and-drop внутри категории)
+interface SortableExerciseRowProps {
+  exerciseId: string;
+  exercise: Exercise;
+  idx: number;
+  isNew: boolean;
+  onRemove: () => void;
+}
+
+function SortableExerciseRow({ exerciseId, exercise, idx, isNew, onRemove }: SortableExerciseRowProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: exerciseId });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        ...style,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '8px 12px',
+        background: isNew ? '#DCFCE7' : 'white',
+        borderRadius: '6px',
+        border: isNew ? '1px solid #86EFAC' : '1px solid #E5E7EB'
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div
+          {...attributes}
+          {...listeners}
+          style={{
+            cursor: 'grab',
+            padding: '2px',
+            color: '#9CA3AF',
+            fontSize: '14px',
+            display: 'flex',
+            alignItems: 'center'
+          }}
+        >
+          ⋮⋮
+        </div>
+        <span style={{ 
+          color: '#6B7280', 
+          fontSize: '13px',
+          fontWeight: '600',
+          minWidth: '24px'
+        }}>
+          {idx + 1}.
+        </span>
+        <span style={{ fontSize: '14px' }}>{exercise.title}</span>
+        {isNew && (
+          <span style={{
+            padding: '2px 6px',
+            background: '#22C55E',
+            color: 'white',
+            fontSize: '10px',
+            fontWeight: '600',
+            borderRadius: '4px',
+            textTransform: 'uppercase'
+          }}>
+            Новое
+          </span>
+        )}
+      </div>
+      <button
+        onClick={onRemove}
+        style={{
+          padding: '4px 8px',
+          background: '#FEE2E2',
+          color: '#DC2626',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontSize: '12px'
+        }}
+      >
+        ✕
+      </button>
+    </div>
+  );
+}
+
 // Sortable Day Item Component
 interface DayItemProps {
   day: MarathonDay;
@@ -875,8 +982,54 @@ function DayItem({ day, availableExercises, exerciseCategories, onUpdate, onDele
 
   const [localDescription, setLocalDescription] = useState(day.description);
   const [localDayType, setLocalDayType] = useState(day.dayType);
-  const [localExerciseGroups, setLocalExerciseGroups] = useState<ExerciseGroup[]>(
-    day.exerciseGroups || []
+  const [localExerciseGroups, setLocalExerciseGroups] = useState<ExerciseGroup[]>(() => {
+    // Нормализуем при начальной инициализации
+    return (day.exerciseGroups || []).map(group => ({
+      categoryId: typeof group.categoryId === 'string' 
+        ? group.categoryId 
+        : (group.categoryId as any)?._id || group.categoryId,
+      categoryName: group.categoryName,
+      exerciseIds: group.exerciseIds.map(id => 
+        typeof id === 'string' ? id : (id as any)._id
+      )
+    }));
+  });
+
+  // Синхронизируем локальный state с props при изменении дня
+  useEffect(() => {
+    console.log(`🔄 Day ${day.dayNumber} - updating local state:`, {
+      exerciseGroups: day.exerciseGroups,
+      groupCount: day.exerciseGroups?.length || 0,
+      groups: day.exerciseGroups?.map(g => ({
+        categoryId: g.categoryId,
+        exerciseCount: g.exerciseIds.length
+      }))
+    });
+    
+    // Нормализуем exerciseGroups (MongoDB может вернуть populated объекты)
+    const normalizedGroups = (day.exerciseGroups || []).map(group => ({
+      categoryId: typeof group.categoryId === 'string' 
+        ? group.categoryId 
+        : (group.categoryId as any)?._id || group.categoryId,
+      categoryName: group.categoryName,
+      exerciseIds: group.exerciseIds.map(id => 
+        typeof id === 'string' ? id : (id as any)._id
+      )
+    }));
+    
+    console.log('✅ Normalized groups:', normalizedGroups);
+    
+    setLocalDescription(day.description);
+    setLocalDayType(day.dayType);
+    setLocalExerciseGroups(normalizedGroups);
+  }, [day.description, day.dayType, day.exerciseGroups, day._id]);
+
+  // Sensors для drag-and-drop упражнений
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
   );
 
   const handleSave = () => {
@@ -923,16 +1076,36 @@ function DayItem({ day, availableExercises, exerciseCategories, onUpdate, onDele
     setLocalExerciseGroups(updated);
   };
 
-  const toggleExerciseInGroup = (groupIndex: number, exerciseId: string) => {
+  const addExerciseToGroup = (groupIndex: number, exerciseId: string) => {
+    if (!exerciseId) return;
+    
     const updated = [...localExerciseGroups];
     const group = updated[groupIndex];
     
-    if (group.exerciseIds.includes(exerciseId)) {
-      group.exerciseIds = group.exerciseIds.filter(id => id !== exerciseId);
-    } else {
+    if (!group.exerciseIds.includes(exerciseId)) {
       group.exerciseIds = [...group.exerciseIds, exerciseId];
+      setLocalExerciseGroups(updated);
     }
+  };
+
+  const removeExerciseFromGroup = (groupIndex: number, exerciseId: string) => {
+    const updated = [...localExerciseGroups];
+    const group = updated[groupIndex];
+    group.exerciseIds = group.exerciseIds.filter(id => id !== exerciseId);
+    setLocalExerciseGroups(updated);
+  };
+
+  const handleExerciseDragEnd = (groupIndex: number, event: DragEndEvent) => {
+    const { active, over } = event;
     
+    if (!over || active.id === over.id) return;
+    
+    const updated = [...localExerciseGroups];
+    const group = updated[groupIndex];
+    const oldIndex = group.exerciseIds.indexOf(active.id as string);
+    const newIndex = group.exerciseIds.indexOf(over.id as string);
+    
+    group.exerciseIds = arrayMove(group.exerciseIds, oldIndex, newIndex);
     setLocalExerciseGroups(updated);
   };
 
@@ -1018,6 +1191,87 @@ function DayItem({ day, availableExercises, exerciseCategories, onUpdate, onDele
         </div>
       </div>
 
+      {/* Свернутый вид: показываем список упражнений */}
+      {!isEditing && (
+        <div style={{ padding: '16px', borderTop: '1px solid #E5E7EB' }}>
+          {day.exerciseGroups.length === 0 ? (
+            <div style={{ color: '#9CA3AF', fontSize: '14px', textAlign: 'center' }}>
+              Нет упражнений
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {day.exerciseGroups.map((group, groupIndex) => {
+                // Нормализуем ID
+                const categoryIdStr = typeof group.categoryId === 'string' 
+                  ? group.categoryId 
+                  : (group.categoryId as any)?._id || group.categoryId;
+                
+                const category = exerciseCategories.find(c => c._id === categoryIdStr);
+                
+                return (
+                  <div key={groupIndex}>
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '8px', 
+                      marginBottom: '8px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      <span style={{ fontSize: '20px' }}>{category?.icon || '💪'}</span>
+                      <span>{category?.name || 'Без категории'}</span>
+                      <span style={{ color: '#9CA3AF', fontWeight: '400' }}>({group.exerciseIds.length})</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginLeft: '28px' }}>
+                      {group.exerciseIds.map((exerciseId, idx) => {
+                        // Нормализуем exerciseId
+                        const exIdStr = typeof exerciseId === 'string' ? exerciseId : (exerciseId as any)?._id;
+                        const exercise = availableExercises.find(e => e._id === exIdStr);
+                        if (!exercise) return null;
+                        
+                        const isNew = day.dayNumber > 1 && 
+                                     day.newExerciseIds && 
+                                     day.newExerciseIds.includes(exIdStr);
+                        
+                        return (
+                          <div 
+                            key={exIdStr}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              fontSize: '13px',
+                              color: '#6B7280',
+                              padding: '4px 8px',
+                              borderRadius: '4px',
+                              background: isNew ? '#DCFCE7' : '#F9FAFB'
+                            }}
+                          >
+                            <span style={{ fontWeight: '600', minWidth: '20px' }}>{idx + 1}.</span>
+                            <span>{exercise.title}</span>
+                            {isNew && (
+                              <span style={{
+                                padding: '2px 4px',
+                                background: '#22C55E',
+                                color: 'white',
+                                fontSize: '9px',
+                                fontWeight: '600',
+                                borderRadius: '3px'
+                              }}>NEW</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {isEditing && (
         <div style={{ padding: '20px', borderTop: '1px solid #E5E7EB' }}>
           <div style={{ marginBottom: '16px' }}>
@@ -1084,7 +1338,32 @@ function DayItem({ day, availableExercises, exerciseCategories, onUpdate, onDele
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {localExerciseGroups.map((group, groupIndex) => {
-                  const category = exerciseCategories.find(c => c._id === group.categoryId);
+                  // MongoDB может вернуть populated объект или просто ID
+                  const categoryIdStr = typeof group.categoryId === 'string' 
+                    ? group.categoryId 
+                    : (group.categoryId as any)?._id || group.categoryId;
+                  
+                  const category = exerciseCategories.find(c => c._id === categoryIdStr);
+                  
+                  // exerciseIds могут быть строками или объектами с _id
+                  const exerciseIdsArray = group.exerciseIds.map(id => 
+                    typeof id === 'string' ? id : (id as any)._id
+                  );
+                  
+                  console.log(`📋 Rendering group ${groupIndex}:`, {
+                    categoryId: categoryIdStr,
+                    categoryName: category?.name || 'NOT FOUND',
+                    exerciseIds: exerciseIdsArray,
+                    exerciseCount: exerciseIdsArray.length
+                  });
+                  
+                  // Нормализуем group для использования в компоненте
+                  const normalizedGroup = {
+                    ...group,
+                    categoryId: categoryIdStr,
+                    exerciseIds: exerciseIdsArray
+                  };
+                  
                   return (
                     <div
                       key={groupIndex}
@@ -1099,7 +1378,7 @@ function DayItem({ day, availableExercises, exerciseCategories, onUpdate, onDele
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
                           <span style={{ fontSize: '24px' }}>{category?.icon || '💪'}</span>
                           <select
-                            value={group.categoryId}
+                            value={normalizedGroup.categoryId}
                             onChange={(e) => updateGroupCategory(groupIndex, e.target.value)}
                             style={{
                               flex: 1,
@@ -1134,44 +1413,90 @@ function DayItem({ day, availableExercises, exerciseCategories, onUpdate, onDele
                         </button>
                       </div>
 
-                      <div style={{
-                        maxHeight: '200px',
-                        overflowY: 'auto',
-                        background: 'white',
-                        borderRadius: '6px',
-                        padding: '8px'
-                      }}>
-                        {availableExercises.length === 0 ? (
-                          <div style={{ padding: '12px', textAlign: 'center', color: '#6B7280' }}>
-                            Нет доступных упражнений
-                          </div>
-                        ) : (
-                          availableExercises.map(exercise => (
-                            <label
-                              key={exercise._id}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                padding: '8px',
-                                cursor: 'pointer',
-                                borderRadius: '4px',
-                                background: group.exerciseIds.includes(exercise._id) ? '#EEF2FF' : 'transparent'
-                              }}
+                      <div style={{ marginTop: '12px' }}>
+                        {/* Список выбранных упражнений с drag-and-drop */}
+                        {normalizedGroup.exerciseIds.length > 0 && (
+                          <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={(event) => handleExerciseDragEnd(groupIndex, event)}
+                          >
+                            <SortableContext
+                              items={normalizedGroup.exerciseIds}
+                              strategy={verticalListSortingStrategy}
                             >
-                              <input
-                                type="checkbox"
-                                checked={group.exerciseIds.includes(exercise._id)}
-                                onChange={() => toggleExerciseInGroup(groupIndex, exercise._id)}
-                                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                              />
-                              <span style={{ fontSize: '14px' }}>{exercise.title}</span>
-                            </label>
-                          ))
+                              <div style={{ 
+                                display: 'flex', 
+                                flexDirection: 'column', 
+                                gap: '6px',
+                                marginBottom: '12px'
+                              }}>
+                                {normalizedGroup.exerciseIds.map((exerciseId, idx) => {
+                                  const exercise = availableExercises.find(e => e._id === exerciseId);
+                                  if (!exercise) return null;
+                                  
+                                  const isNew = !!(day.dayNumber > 1 && 
+                                               day.newExerciseIds && 
+                                               day.newExerciseIds.includes(exerciseId));
+                                  
+                                  return <SortableExerciseRow 
+                                    key={exerciseId}
+                                    exerciseId={exerciseId}
+                                    exercise={exercise}
+                                    idx={idx}
+                                    isNew={isNew}
+                                    onRemove={() => removeExerciseFromGroup(groupIndex, exerciseId)}
+                                  />;
+                                })}
+                              </div>
+                            </SortableContext>
+                          </DndContext>
                         )}
-                      </div>
-                      <div style={{ marginTop: '8px', fontSize: '13px', color: '#6B7280' }}>
-                        Выбрано: {group.exerciseIds.length} упражнений
+
+                        {/* Поле поиска и добавления упражнения */}
+                        <div style={{ position: 'relative' }}>
+                          <input
+                            type="text"
+                            list={`exercises-datalist-${groupIndex}`}
+                            placeholder="🔍 Начните вводить название упражнения..."
+                            onChange={(e) => {
+                              const selectedExercise = availableExercises.find(
+                                ex => ex.title === e.target.value
+                              );
+                              if (selectedExercise) {
+                                addExerciseToGroup(groupIndex, selectedExercise._id);
+                                e.target.value = ''; // Clear input
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                const input = e.target as HTMLInputElement;
+                                const selectedExercise = availableExercises.find(
+                                  ex => ex.title === input.value
+                                );
+                                if (selectedExercise) {
+                                  addExerciseToGroup(groupIndex, selectedExercise._id);
+                                  input.value = '';
+                                }
+                              }
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '8px 12px',
+                              border: '1px solid #D1D5DB',
+                              borderRadius: '6px',
+                              fontSize: '14px',
+                              background: 'white'
+                            }}
+                          />
+                          <datalist id={`exercises-datalist-${groupIndex}`}>
+                            {availableExercises
+                              .filter(ex => !normalizedGroup.exerciseIds.includes(ex._id))
+                              .map(exercise => (
+                                <option key={exercise._id} value={exercise.title} />
+                              ))}
+                          </datalist>
+                        </div>
                       </div>
                     </div>
                   );

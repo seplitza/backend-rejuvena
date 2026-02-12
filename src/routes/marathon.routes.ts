@@ -609,9 +609,56 @@ router.post('/admin/:id/days', authMiddleware, async (req: AuthRequest, res: Res
       return res.status(404).json({ error: 'Marathon not found' });
     }
 
+    // Если создается не первый день - копируем предыдущий
+    let finalExerciseGroups = dayData.exerciseGroups || [];
+    let newExerciseIds: any[] = [];
+
+    console.log('📝 Creating day', dayData.dayNumber);
+    console.log('📦 Received exerciseGroups:', dayData.exerciseGroups);
+
+    if (dayData.dayNumber && dayData.dayNumber > 1) {
+      const previousDay = await MarathonDay.findOne({
+        marathonId: id,
+        dayNumber: dayData.dayNumber - 1
+      });
+
+      console.log('🔍 Previous day found:', previousDay ? 'YES' : 'NO');
+      if (previousDay) {
+        console.log('📋 Previous exerciseGroups:', previousDay.exerciseGroups);
+      }
+
+      if (previousDay) {
+        // Если exerciseGroups пустой в запросе - копируем из предыдущего дня
+        if (!dayData.exerciseGroups || dayData.exerciseGroups.length === 0) {
+          finalExerciseGroups = previousDay.exerciseGroups.map(group => ({
+            categoryId: group.categoryId,
+            exerciseIds: [...group.exerciseIds]
+          }));
+          
+          console.log('✅ Copied exerciseGroups from previous day:', finalExerciseGroups);
+          
+          // При первом копировании новых упражнений нет (все скопированы)
+          newExerciseIds = [];
+        } else {
+          // Если exerciseGroups уже заполнен - вычисляем новые упражнения
+          const previousExerciseIds = new Set(
+            previousDay.exerciseGroups.flatMap(g => g.exerciseIds.map(id => id.toString()))
+          );
+
+          const currentExerciseIds = dayData.exerciseGroups.flatMap((g: any) => 
+            g.exerciseIds.map((id: any) => id.toString())
+          );
+
+          newExerciseIds = currentExerciseIds.filter((id: string) => !previousExerciseIds.has(id));
+        }
+      }
+    }
+
     const day = await MarathonDay.create({
       marathonId: id,
-      ...dayData
+      ...dayData,
+      exerciseGroups: finalExerciseGroups,
+      newExerciseIds
     });
 
     return res.status(201).json({
@@ -640,11 +687,35 @@ router.put('/admin/:id/days/:dayId', authMiddleware, async (req: AuthRequest, re
     const { dayId } = req.params;
     const updateData = req.body;
 
-    const day = await MarathonDay.findByIdAndUpdate(dayId, updateData, { new: true });
-
-    if (!day) {
+    const currentDay = await MarathonDay.findById(dayId);
+    if (!currentDay) {
       return res.status(404).json({ error: 'Day not found' });
     }
+
+    // Пересчитываем новые упражнения при обновлении (только для дней > 1)
+    if (currentDay.dayNumber > 1 && updateData.exerciseGroups) {
+      const previousDay = await MarathonDay.findOne({
+        marathonId: currentDay.marathonId,
+        dayNumber: currentDay.dayNumber - 1
+      });
+
+      if (previousDay) {
+        const previousExerciseIds = new Set(
+          previousDay.exerciseGroups.flatMap(g => g.exerciseIds.map(id => id.toString()))
+        );
+
+        const currentExerciseIds = updateData.exerciseGroups.flatMap((g: any) => 
+          g.exerciseIds.map((id: any) => id.toString())
+        );
+
+        updateData.newExerciseIds = currentExerciseIds.filter((id: string) => !previousExerciseIds.has(id));
+      }
+    } else if (currentDay.dayNumber === 1) {
+      // Первый день - всегда пустой массив новых упражнений
+      updateData.newExerciseIds = [];
+    }
+
+    const day = await MarathonDay.findByIdAndUpdate(dayId, updateData, { new: true });
 
     return res.status(200).json({
       success: true,

@@ -13,6 +13,7 @@ export interface IMarathonDay extends Document {
   description: string; // Rich text content from TipTap
   exerciseGroups: IExerciseGroup[]; // Упражнения, сгруппированные по категориям
   exercises: mongoose.Types.ObjectId[]; // Для обратной совместимости (deprecated)
+  newExerciseIds: mongoose.Types.ObjectId[]; // Новые упражнения в этом дне (подсветка зеленым)
   order: number;
   createdAt: Date;
   updatedAt: Date;
@@ -61,6 +62,10 @@ const MarathonDaySchema = new Schema<IMarathonDay>(
       default: []
     },
     exercises: [{
+      type: Schema.Types.ObjectId,
+      ref: 'Exercise'
+    }],
+    newExerciseIds: [{
       type: Schema.Types.ObjectId,
       ref: 'Exercise'
     }],
