@@ -166,6 +166,8 @@ router.get('/:id/days', async (req: Request, res: Response) => {
 
     const days = await MarathonDay.find({ marathonId: id })
       .populate('exercises', 'title description isPremium carouselMedia')
+      .populate('exerciseGroups.categoryId', 'name slug icon order')
+      .populate('exerciseGroups.exerciseIds', 'title description isPremium carouselMedia')
       .sort({ order: 1 });
 
     return res.status(200).json({
@@ -221,7 +223,10 @@ router.get('/:id/day/:dayNumber', authMiddleware, async (req: AuthRequest, res: 
     const day = await MarathonDay.findOne({
       marathonId: id,
       dayNumber: Number(dayNumber)
-    }).populate('exercises');
+    })
+      .populate('exercises')
+      .populate('exerciseGroups.categoryId', 'name slug icon order')
+      .populate('exerciseGroups.exerciseIds', 'title description isPremium carouselMedia');
 
     if (!day) {
       return res.status(404).json({ error: 'Day not found' });

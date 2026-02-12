@@ -8,6 +8,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "seed": "ts-node src/scripts/seed.ts",
+    "seed-categories": "ts-node src/scripts/seed-categories.ts",
     "create-editor": "ts-node src/scripts/create-editor.ts",
     "test-landings": "ts-node src/scripts/test-landings.ts",
     "import-exercises": "ts-node src/scripts/import-exercises.ts",

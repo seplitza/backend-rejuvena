@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import ExerciseList from './pages/ExerciseList';
 import ExerciseEditor from './pages/ExerciseEditor';
+import ExerciseCategoriesPage from './pages/ExerciseCategoriesPage';
 import Comments from './pages/Comments';
 import Users from './pages/Users';
 import Notifications from './pages/Notifications';
@@ -44,6 +45,7 @@ function App() {
           <Route path="exercises" element={<ExerciseList />} />
           <Route path="exercises/new" element={<ExerciseEditor />} />
           <Route path="exercises/:id" element={<ExerciseEditor />} />
+          <Route path="exercise-categories" element={<ExerciseCategoriesPage />} />
           <Route path="comments" element={<Comments />} />
           <Route path="users" element={<Users />} />
           <Route path="notifications" element={<Notifications />} />

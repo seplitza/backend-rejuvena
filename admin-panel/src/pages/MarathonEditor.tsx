@@ -13,12 +13,27 @@ interface Exercise {
   title: string;
 }
 
+interface ExerciseCategory {
+  _id: string;
+  name: string;
+  slug: string;
+  icon: string;
+  order: number;
+}
+
+interface ExerciseGroup {
+  categoryId: string;
+  categoryName?: string;
+  exerciseIds: string[];
+}
+
 interface MarathonDay {
   _id?: string;
   dayNumber: number;
   dayType: 'learning' | 'practice';
   description: string;
-  exercises: string[]; // Exercise IDs
+  exerciseGroups: ExerciseGroup[];
+  exercises: string[]; // For backward compatibility
   order: number;
 }
 
@@ -53,6 +68,7 @@ export default function MarathonEditor() {
   // Tab 4: Упражнения
   const [marathonDays, setMarathonDays] = useState<MarathonDay[]>([]);
   const [availableExercises, setAvailableExercises] = useState<Exercise[]>([]);
+  const [exerciseCategories, setExerciseCategories] = useState<ExerciseCategory[]>([]);
   const [editingDay, setEditingDay] = useState<number | null>(null);
 
   // Tab 5: Фото дневник
@@ -76,6 +92,7 @@ export default function MarathonEditor() {
 
   useEffect(() => {
     loadExercises();
+    loadCategories();
     if (id) {
       loadMarathon();
       loadMarathonDays();
@@ -88,6 +105,15 @@ export default function MarathonEditor() {
       setAvailableExercises(response.data);
     } catch (error) {
       console.error('Failed to load exercises:', error);
+    }
+  };
+
+  const loadCategories = async () => {
+    try {
+      const response = await api.get('/exercise-categories');
+      setExerciseCategories(response.data.categories || []);
+    } catch (error) {
+      console.error('Failed to load categories:', error);
     }
   };
 
@@ -192,7 +218,8 @@ export default function MarathonEditor() {
         dayNumber: newDayNumber,
         dayType: 'learning',
         description: '',
-        exercises: [],
+        exerciseGroups: [],
+        exercises: [], // For backward compatibility
         order: newDayNumber
       });
       await loadMarathonDays();
@@ -626,6 +653,7 @@ export default function MarathonEditor() {
                     key={day._id}
                     day={day}
                     availableExercises={availableExercises}
+                    exerciseCategories={exerciseCategories}
                     onUpdate={handleUpdateDay}
                     onDelete={handleDeleteDay}
                     isEditing={editingDay === day.dayNumber}
@@ -823,13 +851,14 @@ export default function MarathonEditor() {
 interface DayItemProps {
   day: MarathonDay;
   availableExercises: Exercise[];
+  exerciseCategories: ExerciseCategory[];
   onUpdate: (dayId: string, updates: Partial<MarathonDay>) => void;
   onDelete: (dayId: string) => void;
   isEditing: boolean;
   onEditToggle: () => void;
 }
 
-function DayItem({ day, availableExercises, onUpdate, onDelete, isEditing, onEditToggle }: DayItemProps) {
+function DayItem({ day, availableExercises, exerciseCategories, onUpdate, onDelete, isEditing, onEditToggle }: DayItemProps) {
   const {
     attributes,
     listeners,
@@ -845,25 +874,69 @@ function DayItem({ day, availableExercises, onUpdate, onDelete, isEditing, onEdi
 
   const [localDescription, setLocalDescription] = useState(day.description);
   const [localDayType, setLocalDayType] = useState(day.dayType);
-  const [localExercises, setLocalExercises] = useState<string[]>(day.exercises);
+  const [localExerciseGroups, setLocalExerciseGroups] = useState<ExerciseGroup[]>(
+    day.exerciseGroups || []
+  );
 
   const handleSave = () => {
     if (day._id) {
+      // Также обновляем exercises для backward compatibility
+      const allExercises = localExerciseGroups.flatMap(g => g.exerciseIds);
       onUpdate(day._id, {
         description: localDescription,
         dayType: localDayType,
-        exercises: localExercises
+        exerciseGroups: localExerciseGroups,
+        exercises: allExercises
       });
     }
     onEditToggle();
   };
 
-  const toggleExercise = (exerciseId: string) => {
-    if (localExercises.includes(exerciseId)) {
-      setLocalExercises(localExercises.filter(id => id !== exerciseId));
-    } else {
-      setLocalExercises([...localExercises, exerciseId]);
+  const addExerciseGroup = () => {
+    if (exerciseCategories.length === 0) {
+      alert('Сначала создайте категории упражнений');
+      return;
     }
+    setLocalExerciseGroups([
+      ...localExerciseGroups,
+      {
+        categoryId: exerciseCategories[0]._id,
+        categoryName: exerciseCategories[0].name,
+        exerciseIds: []
+      }
+    ]);
+  };
+
+  const removeExerciseGroup = (index: number) => {
+    setLocalExerciseGroups(localExerciseGroups.filter((_, i) => i !== index));
+  };
+
+  const updateGroupCategory = (index: number, categoryId: string) => {
+    const category = exerciseCategories.find(c => c._id === categoryId);
+    const updated = [...localExerciseGroups];
+    updated[index] = {
+      ...updated[index],
+      categoryId,
+      categoryName: category?.name
+    };
+    setLocalExerciseGroups(updated);
+  };
+
+  const toggleExerciseInGroup = (groupIndex: number, exerciseId: string) => {
+    const updated = [...localExerciseGroups];
+    const group = updated[groupIndex];
+    
+    if (group.exerciseIds.includes(exerciseId)) {
+      group.exerciseIds = group.exerciseIds.filter(id => id !== exerciseId);
+    } else {
+      group.exerciseIds = [...group.exerciseIds, exerciseId];
+    }
+    
+    setLocalExerciseGroups(updated);
+  };
+
+  const getTotalExercises = () => {
+    return localExerciseGroups.reduce((sum, group) => sum + group.exerciseIds.length, 0);
   };
 
   return (
@@ -905,7 +978,7 @@ function DayItem({ day, availableExercises, onUpdate, onDelete, isEditing, onEdi
           <div>
             <div style={{ fontWeight: '600', fontSize: '16px' }}>День {day.dayNumber}</div>
             <div style={{ fontSize: '13px', color: '#6B7280', marginTop: '2px' }}>
-              {day.dayType === 'learning' ? '📚 Обучение' : '🏋️ Практика'} • {day.exercises.length} упражнений
+              {day.dayType === 'learning' ? '📚 Обучение' : '🏋️ Практика'} • {getTotalExercises()} упражнений
             </div>
           </div>
         </div>
@@ -965,60 +1038,145 @@ function DayItem({ day, availableExercises, onUpdate, onDelete, isEditing, onEdi
             </select>
           </div>
 
-          <div style={{ marginBottom: '16px' }}>
+          <div style={{ marginBottom: '20px' }}>
             <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', fontSize: '14px' }}>
-              Описание дня
+              Описание дня (План дня)
             </label>
-            <textarea
-              value={localDescription}
-              onChange={(e) => setLocalDescription(e.target.value)}
-              placeholder="Краткое описание дня..."
-              rows={3}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: '1px solid #D1D5DB',
-                borderRadius: '6px',
-                fontSize: '14px',
-                resize: 'vertical'
-              }}
+            <TipTapEditor
+              content={localDescription}
+              onChange={setLocalDescription}
             />
           </div>
 
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', fontSize: '14px' }}>
-              Упражнения ({localExercises.length} выбрано)
-            </label>
-            <div style={{
-              maxHeight: '300px',
-              overflowY: 'auto',
-              border: '1px solid #D1D5DB',
-              borderRadius: '6px',
-              padding: '8px'
-            }}>
-              {availableExercises.map(exercise => (
-                <label
-                  key={exercise._id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '8px',
-                    cursor: 'pointer',
-                    borderRadius: '4px',
-                    background: localExercises.includes(exercise._id) ? '#EEF2FF' : 'transparent'
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={localExercises.includes(exercise._id)}
-                    onChange={() => toggleExercise(exercise._id)}
-                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                  />
-                  <span style={{ fontSize: '14px' }}>{exercise.title}</span>
-                </label>
-              ))}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <label style={{ fontWeight: '500', fontSize: '14px' }}>
+                Упражнения по категориям ({getTotalExercises()} упражнений)
+              </label>
+              <button
+                onClick={addExerciseGroup}
+                style={{
+                  padding: '6px 12px',
+                  background: '#10B981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: '500'
+                }}
+              >
+                + Добавить категорию
+              </button>
             </div>
+
+            {localExerciseGroups.length === 0 ? (
+              <div style={{
+                padding: '20px',
+                border: '2px dashed #D1D5DB',
+                borderRadius: '8px',
+                textAlign: 'center',
+                color: '#6B7280'
+              }}>
+                Нет категорий упражнений. Нажмите "+ Добавить категорию"
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {localExerciseGroups.map((group, groupIndex) => {
+                  const category = exerciseCategories.find(c => c._id === group.categoryId);
+                  return (
+                    <div
+                      key={groupIndex}
+                      style={{
+                        border: '1px solid #E5E7EB',
+                        borderRadius: '8px',
+                        padding: '16px',
+                        background: '#F9FAFB'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                          <span style={{ fontSize: '24px' }}>{category?.icon || '💪'}</span>
+                          <select
+                            value={group.categoryId}
+                            onChange={(e) => updateGroupCategory(groupIndex, e.target.value)}
+                            style={{
+                              flex: 1,
+                              padding: '8px 12px',
+                              border: '1px solid #D1D5DB',
+                              borderRadius: '6px',
+                              fontSize: '14px',
+                              fontWeight: '500'
+                            }}
+                          >
+                            {exerciseCategories.map(cat => (
+                              <option key={cat._id} value={cat._id}>
+                                {cat.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <button
+                          onClick={() => removeExerciseGroup(groupIndex)}
+                          style={{
+                            padding: '6px 12px',
+                            background: '#FEE2E2',
+                            color: '#DC2626',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                            marginLeft: '12px'
+                          }}
+                        >
+                          Удалить
+                        </button>
+                      </div>
+
+                      <div style={{
+                        maxHeight: '200px',
+                        overflowY: 'auto',
+                        background: 'white',
+                        borderRadius: '6px',
+                        padding: '8px'
+                      }}>
+                        {availableExercises.length === 0 ? (
+                          <div style={{ padding: '12px', textAlign: 'center', color: '#6B7280' }}>
+                            Нет доступных упражнений
+                          </div>
+                        ) : (
+                          availableExercises.map(exercise => (
+                            <label
+                              key={exercise._id}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                padding: '8px',
+                                cursor: 'pointer',
+                                borderRadius: '4px',
+                                background: group.exerciseIds.includes(exercise._id) ? '#EEF2FF' : 'transparent'
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={group.exerciseIds.includes(exercise._id)}
+                                onChange={() => toggleExerciseInGroup(groupIndex, exercise._id)}
+                                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                              />
+                              <span style={{ fontSize: '14px' }}>{exercise.title}</span>
+                            </label>
+                          ))
+                        )}
+                      </div>
+                      <div style={{ marginTop: '8px', fontSize: '13px', color: '#6B7280' }}>
+                        Выбрано: {group.exerciseIds.length} упражнений
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <button
