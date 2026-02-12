@@ -155,13 +155,6 @@ export default function MarathonEditor() {
     try {
       const response = await api.get(`/marathons/${id}/days`);
       const days = response.data.days || response.data || [];
-      console.log('📦 Loaded days from API:', days);
-      days.forEach((day: any, i: number) => {
-        console.log(`  Day ${day.dayNumber}:`, {
-          exerciseGroups: day.exerciseGroups,
-          groupCount: day.exerciseGroups?.length || 0
-        });
-      });
       setMarathonDays(days.sort((a: MarathonDay, b: MarathonDay) => a.dayNumber - b.dayNumber));
     } catch (error) {
       console.error('Failed to load marathon days:', error);
@@ -997,15 +990,6 @@ function DayItem({ day, availableExercises, exerciseCategories, onUpdate, onDele
 
   // Синхронизируем локальный state с props при изменении дня
   useEffect(() => {
-    console.log(`🔄 Day ${day.dayNumber} - updating local state:`, {
-      exerciseGroups: day.exerciseGroups,
-      groupCount: day.exerciseGroups?.length || 0,
-      groups: day.exerciseGroups?.map(g => ({
-        categoryId: g.categoryId,
-        exerciseCount: g.exerciseIds.length
-      }))
-    });
-    
     // Нормализуем exerciseGroups (MongoDB может вернуть populated объекты)
     const normalizedGroups = (day.exerciseGroups || []).map(group => ({
       categoryId: typeof group.categoryId === 'string' 
@@ -1016,8 +1000,6 @@ function DayItem({ day, availableExercises, exerciseCategories, onUpdate, onDele
         typeof id === 'string' ? id : (id as any)._id
       )
     }));
-    
-    console.log('✅ Normalized groups:', normalizedGroups);
     
     setLocalDescription(day.description);
     setLocalDayType(day.dayType);
@@ -1349,13 +1331,6 @@ function DayItem({ day, availableExercises, exerciseCategories, onUpdate, onDele
                   const exerciseIdsArray = group.exerciseIds.map(id => 
                     typeof id === 'string' ? id : (id as any)._id
                   );
-                  
-                  console.log(`📋 Rendering group ${groupIndex}:`, {
-                    categoryId: categoryIdStr,
-                    categoryName: category?.name || 'NOT FOUND',
-                    exerciseIds: exerciseIdsArray,
-                    exerciseCount: exerciseIdsArray.length
-                  });
                   
                   // Нормализуем group для использования в компоненте
                   const normalizedGroup = {

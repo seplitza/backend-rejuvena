@@ -613,19 +613,11 @@ router.post('/admin/:id/days', authMiddleware, async (req: AuthRequest, res: Res
     let finalExerciseGroups = dayData.exerciseGroups || [];
     let newExerciseIds: any[] = [];
 
-    console.log('📝 Creating day', dayData.dayNumber);
-    console.log('📦 Received exerciseGroups:', dayData.exerciseGroups);
-
     if (dayData.dayNumber && dayData.dayNumber > 1) {
       const previousDay = await MarathonDay.findOne({
         marathonId: id,
         dayNumber: dayData.dayNumber - 1
       });
-
-      console.log('🔍 Previous day found:', previousDay ? 'YES' : 'NO');
-      if (previousDay) {
-        console.log('📋 Previous exerciseGroups:', previousDay.exerciseGroups);
-      }
 
       if (previousDay) {
         // Если exerciseGroups пустой в запросе - копируем из предыдущего дня
@@ -634,8 +626,6 @@ router.post('/admin/:id/days', authMiddleware, async (req: AuthRequest, res: Res
             categoryId: group.categoryId,
             exerciseIds: [...group.exerciseIds]
           }));
-          
-          console.log('✅ Copied exerciseGroups from previous day:', finalExerciseGroups);
           
           // При первом копировании новых упражнений нет (все скопированы)
           newExerciseIds = [];
