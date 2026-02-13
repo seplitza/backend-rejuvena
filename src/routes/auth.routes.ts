@@ -322,4 +322,28 @@ router.post('/register-and-pay', async (req: Request, res: Response) => {
   }
 });
 
+// Guest login endpoint (for old app compatibility - no auth needed)
+// GET /token/GuestUserLogin?deviceId=...
+router.get('/GuestUserLogin', async (req: Request, res: Response) => {
+  try {
+    const { deviceId } = req.query;
+    
+    // Generate guest token (optional - for compatibility)
+    const guestToken = jwt.sign(
+      { guest: true, deviceId },
+      process.env.JWT_SECRET || 'secret',
+      { expiresIn: '30d' }
+    );
+
+    res.json({
+      token: guestToken,
+      isGuest: true,
+      deviceId
+    });
+  } catch (error) {
+    console.error('Guest login error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 export default router;

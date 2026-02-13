@@ -49,6 +49,7 @@ app.get('/admin/*', (req, res) => {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/user', authRoutes); // Legacy alias for frontend compatibility
+app.use('/token', authRoutes); // Old Azure API compatibility (guest login)
 app.use('/api/exercises', exerciseRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/tags', tagRoutes);
