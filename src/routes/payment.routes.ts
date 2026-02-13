@@ -508,7 +508,7 @@ router.get('/status-public/:orderId', async (req: Request, res: Response) => {
           
           // Если платеж успешен, активируем соответствующий доступ
           if (newStatus === 'succeeded') {
-            if (payment.metadata?.type === 'exercise' && payment.metadata.exerciseId) {
+            if (payment.metadata?.type === 'exercise' && payment.metadata.exerciseId && payment.metadata.exerciseName) {
               await activateExercise(
                 payment.userId.toString(),
                 payment.metadata.exerciseId,
@@ -1053,11 +1053,11 @@ router.patch('/admin/:paymentId/status', authMiddleware, async (req: AuthRequest
         : payment.userId.toString();
       
       // Активация упражнения
-      if (payment.metadata?.type === 'exercise' && payment.metadata.exerciseId) {
+      if (payment.metadata?.type === 'exercise' && payment.metadata.exerciseId && payment.metadata.exerciseName) {
         await activateExercise(
           userId,
           payment.metadata.exerciseId,
-          payment.metadata.exerciseName || 'Упражнение',
+          payment.metadata.exerciseName,
           payment.amount / 100
         );
       }
