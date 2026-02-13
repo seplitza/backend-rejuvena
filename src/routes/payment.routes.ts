@@ -473,6 +473,94 @@ router.get('/status/:paymentId', authMiddleware, async (req: AuthRequest, res: R
 });
 
 /**
+ * Публичная проверка статуса платежа (без авторизации)
+ * GET /api/payment/status-public/:orderId
+ * Используется на странице success после редиректа с Альфабанка
+ */
+router.get('/status-public/:orderId', async (req: Request, res: Response) => {
+  try {
+    const { orderId } = req.params;
+
+    // Ищем платеж по orderId (alfaBankOrderId)
+    let payment = await Payment.findOne({ alfaBankOrderId: orderId });
+
+    // Если не нашли, пробуем найти по orderNumber (может быть передан вместо orderId)
+    if (!payment) {
+      payment = await Payment.findById(orderId).catch(() => null);
+    }
+
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        error: 'Payment not found'
+      });
+    }
+
+    // Проверяем актуальный статус в Альфа-Банке
+    if (payment.alfaBankOrderId) {
+      try {
+        const alfaStatus = await alfabankService.getOrderStatus(payment.alfaBankOrderId);
+        const newStatus = alfabankService.getOrderStatusString(alfaStatus.orderStatus);
+        
+        // Обновляем статус если изменился
+        if (payment.status !== newStatus) {
+          payment.status = newStatus as any;
+          
+          // Если платеж успешен, активируем соответствующий доступ
+          if (newStatus === 'succeeded') {
+            if (payment.metadata?.type === 'exercise' && payment.metadata.exerciseId) {
+              await activateExercise(
+                payment.userId.toString(),
+                payment.metadata.exerciseId,
+                payment.metadata.exerciseName,
+                payment.amount / 100
+              );
+            } else if ((payment.metadata?.type === 'marathon' || payment.metadata?.planType === 'marathon') && payment.metadata.marathonId) {
+              await activateMarathon(
+                payment.userId.toString(),
+                payment.metadata.marathonId,
+                payment._id.toString()
+              );
+            } else {
+              await activatePremium(
+                payment.userId.toString(),
+                payment.metadata?.planType,
+                payment.metadata?.duration
+              );
+            }
+          }
+          
+          await payment.save();
+        }
+      } catch (alfaError) {
+        console.error('Error checking AlfaBank status (public):', alfaError);
+      }
+    }
+
+    // Возвращаем только публичную информацию (без userId)
+    return res.status(200).json({
+      success: true,
+      payment: {
+        id: payment._id,
+        orderNumber: payment.orderNumber,
+        amount: payment.amount / 100,
+        status: payment.status,
+        description: payment.description,
+        createdAt: payment.createdAt,
+        metadata: payment.metadata
+      }
+    });
+  } catch (error: any) {
+    console.error('Get payment status (public) error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+/**
  * Получение истории платежей пользователя
  * GET /api/payment/history
  */
