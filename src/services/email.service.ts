@@ -97,25 +97,25 @@ class EmailService {
       const result = await this.resend.emails.send({
         from: this.fromEmail,
         to: email,
-        subject: 'Password Reset - Rejuvena',
+        subject: 'Восстановление пароля - Rejuvena',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #333;">Password Reset</h2>
+            <h2 style="color: #333;">Восстановление пароля</h2>
             
-            <p>Your new temporary password:</p>
+            <p>Ваш новый временный пароль:</p>
             
             <div style="margin: 30px 0; padding: 20px; background-color: #f5f5f5; border-radius: 8px; text-align: center;">
               <h1 style="color: #7c3aed; font-size: 36px; margin: 0; letter-spacing: 4px;">${newPassword}</h1>
             </div>
             
-            <p>Use this password to log in to your account.</p>
+            <p>Используйте этот пароль для входа в Ваш аккаунт.</p>
             
             <p style="color: #e53e3e; font-weight: bold;">
-              Please change this password in your profile settings after logging in!
+              Пожалуйста, измените этот пароль в настройках профиля после входа!
             </p>
             
             <p style="color: #666; font-size: 14px;">
-              If you did not request a password re et, please contact us immediately.
+              Если Вы не запрашивали восстановление пароля, пожалуйста, свяжитесь с нами немедленно.
             </p>
           </div>
         `,
