@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import Marathon from '../models/Marathon.model';
 import MarathonDay from '../models/MarathonDay.model';
 import MarathonEnrollment from '../models/MarathonEnrollment.model';
+import MarathonExerciseProgress from '../models/MarathonExerciseProgress.model';
 import Payment from '../models/Payment.model';
 import { authMiddleware, AuthRequest } from '../middleware/auth.middleware';
 import emailService from '../services/email.service';
@@ -232,11 +233,22 @@ router.get('/:id/day/:dayNumber', authMiddleware, async (req: AuthRequest, res: 
       return res.status(404).json({ error: 'Day not found' });
     }
 
+    // Get completed exercises for this day
+    const completedExercises = await MarathonExerciseProgress.find({
+      userId,
+      marathonId: id,
+      dayNumber: Number(dayNumber),
+      isCompleted: true
+    }).select('exerciseId');
+
+    const completedExerciseIds = completedExercises.map(e => e.exerciseId.toString());
+
     return res.status(200).json({
       success: true,
       day,
       isCompleted: enrollment.completedDays.includes(Number(dayNumber)),
-      currentAvailableDay
+      currentAvailableDay,
+      completedExerciseIds
     });
   } catch (error: any) {
     console.error('Get marathon day error:', error);
@@ -364,6 +376,38 @@ router.get('/:id/progress', authMiddleware, async (req: AuthRequest, res: Respon
       return res.status(404).json({ error: 'Enrollment not found' });
     }
 
+    // Get all days for this marathon
+    const allDays = await MarathonDay.find({ marathonId: id })
+      .populate('exerciseGroups.exerciseIds', '_id')
+      .sort({ dayNumber: 1 });
+
+    // Calculate progress for each day
+    const dayProgressMap: Record<number, number> = {};
+    
+    for (const day of allDays) {
+      // Count total exercises in this day
+      let totalExercises = 0;
+      for (const group of day.exerciseGroups || []) {
+        totalExercises += (group.exerciseIds || []).length;
+      }
+
+      if (totalExercises === 0) {
+        dayProgressMap[day.dayNumber] = 0;
+        continue;
+      }
+
+      // Count completed exercises
+      const completedExercises = await MarathonExerciseProgress.countDocuments({
+        userId,
+        marathonId: id,
+        dayNumber: day.dayNumber,
+        isCompleted: true
+      });
+
+      // Calculate progress percentage
+      dayProgressMap[day.dayNumber] = Math.round((completedExercises / totalExercises) * 100);
+    }
+
     return res.status(200).json({
       success: true,
       progress: {
@@ -372,11 +416,64 @@ router.get('/:id/progress', authMiddleware, async (req: AuthRequest, res: Respon
         completedDays: enrollment.completedDays,
         completedCount: enrollment.completedDays.length,
         status: enrollment.status,
-        expiresAt: enrollment.expiresAt
+        expiresAt: enrollment.expiresAt,
+        dayProgress: dayProgressMap
       }
     });
   } catch (error: any) {
     console.error('Get marathon progress error:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * PROTECTED: Update exercise status
+ * POST /api/marathons/:id/day/:dayNumber/exercise/:exerciseId/status
+ */
+router.post('/:id/day/:dayNumber/exercise/:exerciseId/status', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id, dayNumber, exerciseId } = req.params;
+    const { isCompleted } = req.body;
+    const userId = req.userId;
+
+    // Verify enrollment
+    const enrollment = await MarathonEnrollment.findOne({
+      userId,
+      marathonId: id,
+      status: { $in: ['active', 'completed'] }
+    });
+
+    if (!enrollment) {
+      return res.status(403).json({ error: 'Not enrolled in this marathon' });
+    }
+
+    // Update or create exercise progress
+    const progress = await MarathonExerciseProgress.findOneAndUpdate(
+      {
+        userId,
+        marathonId: id,
+        exerciseId
+      },
+      {
+        dayNumber: Number(dayNumber),
+        isCompleted: Boolean(isCompleted),
+        completedAt: isCompleted ? new Date() : null
+      },
+      {
+        upsert: true,
+        new: true
+      }
+    );
+
+    return res.status(200).json({
+      success: true,
+      progress
+    });
+  } catch (error: any) {
+    console.error('Update exercise status error:', error);
     return res.status(500).json({
       error: 'Internal server error',
       message: error.message
