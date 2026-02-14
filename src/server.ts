@@ -71,41 +71,6 @@ const startServer = async () => {
     await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/rejuvena');
     console.log('✅ Connected to MongoDB');
 
-    // Fix marathon progress index if needed
-    try {
-      const db = mongoose.connection.db;
-      if (db) {
-        const collection = db.collection('marathonexerciseprogresses');
-        const indexes = await collection.indexes();
-        const oldIndexName = 'userId_1_marathonId_1_exerciseId_1';
-        const newIndexName = 'userId_1_marathonId_1_dayNumber_1_exerciseId_1';
-        
-        const hasOldIndex = indexes.some(idx => idx.name === oldIndexName);
-        const hasNewIndex = indexes.some(idx => idx.name === newIndexName);
-        
-        if (hasOldIndex) {
-          console.log('🔧 Fixing marathon progress index...');
-          await collection.dropIndex(oldIndexName);
-          console.log('  ✓ Dropped old index');
-        }
-        
-        if (!hasNewIndex) {
-          await collection.createIndex(
-            { userId: 1, marathonId: 1, dayNumber: 1, exerciseId: 1 },
-            { unique: true, name: newIndexName }
-          );
-          console.log('  ✓ Created new index with dayNumber');
-        }
-        
-        if (hasOldIndex || !hasNewIndex) {
-          console.log('✅ Marathon progress index fixed');
-        }
-      }
-    } catch (indexError) {
-      console.warn('⚠️  Index migration warning:', indexError);
-      // Don't fail startup if index fix fails
-    }
-
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📍 API: http://localhost:${PORT}`);
