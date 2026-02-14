@@ -166,9 +166,9 @@ router.get('/:id/days', async (req: Request, res: Response) => {
     }
 
     const days = await MarathonDay.find({ marathonId: id })
-      .populate('exercises', 'title description isPremium carouselMedia')
+      .populate('exercises', 'title description content isPremium carouselMedia')
       .populate('exerciseGroups.categoryId', 'name slug icon order')
-      .populate('exerciseGroups.exerciseIds', 'title description isPremium carouselMedia')
+      .populate('exerciseGroups.exerciseIds', 'title description content isPremium carouselMedia')
       .sort({ order: 1 });
 
     return res.status(200).json({
@@ -227,7 +227,7 @@ router.get('/:id/day/:dayNumber', authMiddleware, async (req: AuthRequest, res: 
     })
       .populate('exercises')
       .populate('exerciseGroups.categoryId', 'name slug icon order')
-      .populate('exerciseGroups.exerciseIds', 'title description isPremium carouselMedia');
+      .populate('exerciseGroups.exerciseIds', 'title description content isPremium carouselMedia');
 
     if (!day) {
       return res.status(404).json({ error: 'Day not found' });
@@ -243,23 +243,9 @@ router.get('/:id/day/:dayNumber', authMiddleware, async (req: AuthRequest, res: 
 
     const completedExerciseIds = completedExercises.map(e => e.exerciseId.toString());
 
-    // Get new exercise IDs from day for "NEW" badge
-    const newExerciseIds = (day.newExerciseIds || []).map((id: any) => id.toString());
-    
-    const dayWithNewFlags = day.toObject();
-    if (dayWithNewFlags.exerciseGroups) {
-      dayWithNewFlags.exerciseGroups = dayWithNewFlags.exerciseGroups.map((group: any) => ({
-        ...group,
-        exerciseIds: group.exerciseIds.map((exercise: any) => ({
-          ...exercise,
-          isNew: newExerciseIds.includes(exercise._id.toString())
-        }))
-      }));
-    }
-
     return res.status(200).json({
       success: true,
-      day: dayWithNewFlags,
+      day,
       isCompleted: enrollment.completedDays.includes(Number(dayNumber)),
       currentAvailableDay,
       completedExerciseIds
