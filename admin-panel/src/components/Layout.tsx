@@ -128,6 +128,22 @@ export default function Layout({ onLogout }: LayoutProps) {
           </Link>
 
           <Link
+            to="/themes"
+            style={{
+              display: 'block',
+              padding: '12px 16px',
+              marginBottom: '8px',
+              borderRadius: '8px',
+              textDecoration: 'none',
+              color: 'white',
+              background: isActive('/themes') ? '#4F46E5' : 'transparent',
+              transition: 'background 0.2s'
+            }}
+          >
+            🎨 Темы оформления
+          </Link>
+
+          <Link
             to="/comments"
             style={{
               display: 'block',

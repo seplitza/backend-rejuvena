@@ -18,6 +18,7 @@ import exercisePurchaseRoutes from './routes/exercise-purchase.routes';
 import marathonRoutes from './routes/marathon.routes';
 import landingRoutes from './routes/landing.routes';
 import exerciseCategoryRoutes from './routes/exerciseCategory.routes';
+import themeRoutes from './routes/theme.routes';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -59,6 +60,7 @@ app.use('/api/exercise-purchase', exercisePurchaseRoutes);
 app.use('/api/marathons', marathonRoutes);
 app.use('/api/landings', landingRoutes);
 app.use('/api/exercise-categories', exerciseCategoryRoutes);
+app.use('/api/themes', themeRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

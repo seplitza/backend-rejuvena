@@ -15,6 +15,7 @@ import MarathonEditor from './pages/MarathonEditor';
 import MediaLibrary from './pages/MediaLibrary';
 import LandingList from './pages/LandingList';
 import LandingEditor from './pages/LandingEditor';
+import ThemeManagement from './pages/ThemeManagement';
 import Layout from './components/Layout';
 import { getAuthToken } from './utils/auth';
 
@@ -58,6 +59,7 @@ function App() {
           <Route path="landings/new" element={<LandingEditor />} />
           <Route path="landings/:id" element={<LandingEditor />} />
           <Route path="media" element={<MediaLibrary />} />
+          <Route path="themes" element={<ThemeManagement />} />
         </Route>
       </Routes>
     </Router>
