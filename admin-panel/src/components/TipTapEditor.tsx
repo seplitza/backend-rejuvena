@@ -6,6 +6,112 @@ import Typography from '@tiptap/extension-typography';
 import { useState, useRef } from 'react';
 import { Node } from '@tiptap/core';
 
+// Функция для парсинга video URL и получения embed кода
+const getVideoEmbedUrl = (url: string): { embedUrl: string; type: string } | null => {
+  // YouTube
+  const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+  const youtubeMatch = url.match(youtubeRegex);
+  if (youtubeMatch) {
+    return {
+      embedUrl: `https://www.youtube.com/embed/${youtubeMatch[1]}`,
+      type: 'youtube'
+    };
+  }
+
+  // Vimeo
+  const vimeoRegex = /vimeo\.com\/(?:video\/)?(\d+)/;
+  const vimeoMatch = url.match(vimeoRegex);
+  if (vimeoMatch) {
+    return {
+      embedUrl: `https://player.vimeo.com/video/${vimeoMatch[1]}`,
+      type: 'vimeo'
+    };
+  }
+
+  // Rutube
+  const rutubeRegex = /rutube\.ru\/video\/([a-zA-Z0-9]+)/;
+  const rutubeMatch = url.match(rutubeRegex);
+  if (rutubeMatch) {
+    return {
+      embedUrl: `https://rutube.ru/play/embed/${rutubeMatch[1]}`,
+      type: 'rutube'
+    };
+  }
+
+  // VK Video
+  const vkRegex = /vk\.com\/video(-?\d+_\d+)/;
+  const vkMatch = url.match(vkRegex);
+  if (vkMatch) {
+    return {
+      embedUrl: `https://vk.com/video_ext.php?oid=${vkMatch[1].split('_')[0]}&id=${vkMatch[1].split('_')[1]}`,
+      type: 'vk'
+    };
+  }
+
+  // OK.ru (Одноклассники)
+  const okRegex = /ok\.ru\/video\/(\d+)/;
+  const okMatch = url.match(okRegex);
+  if (okMatch) {
+    return {
+      embedUrl: `https://ok.ru/videoembed/${okMatch[1]}`,
+      type: 'ok'
+    };
+  }
+
+  return null;
+};
+
+// Кастомное расширение для встраивания видео через iframe
+const VideoEmbed = Node.create({
+  name: 'videoEmbed',
+  group: 'block',
+  atom: true,
+
+  addAttributes() {
+    return {
+      src: {
+        default: null,
+      },
+      width: {
+        default: '100%',
+      },
+      height: {
+        default: '400px',
+      },
+    };
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: 'iframe[src]',
+        getAttrs: (node) => {
+          if (typeof node === 'string') return null;
+          const element = node as HTMLElement;
+          return {
+            src: element.getAttribute('src'),
+            width: element.getAttribute('width') || '100%',
+            height: element.getAttribute('height') || '400px',
+          };
+        },
+      },
+    ];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return [
+      'iframe',
+      {
+        ...HTMLAttributes,
+        frameborder: '0',
+        allowfullscreen: 'true',
+        allow: 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture',
+        style: `width: ${HTMLAttributes.width}; height: ${HTMLAttributes.height}; border-radius: 8px; margin: 16px 0;`
+      },
+    ];
+  },
+});
+
 // Кастомное расширение для поддержки <div> с атрибутами (для якорей)
 const DivWithAttributes = Node.create({
   name: 'divWithAttributes',
@@ -110,6 +216,7 @@ export default function TipTapEditor({ content, onChange }: TipTapEditorProps) {
         }
       }),
       DivWithAttributes, // Добавляем поддержку <div> с атрибутами
+      VideoEmbed, // Добавляем поддержку видео
       Typography,
       Image.configure({
         inline: false,
@@ -231,6 +338,30 @@ export default function TipTapEditor({ content, onChange }: TipTapEditorProps) {
           .run();
       }
     }
+  };
+
+  const addVideo = () => {
+    const url = prompt('Введите URL видео (YouTube, Vimeo, Rutube, VK, OK.ru):');
+    if (!url) return;
+
+    const videoData = getVideoEmbedUrl(url);
+    if (!videoData) {
+      alert('Не удалось распознать URL видео. Поддерживаются: YouTube, Vimeo, Rutube, VK, OK.ru');
+      return;
+    }
+
+    editor
+      .chain()
+      .focus()
+      .insertContent({
+        type: 'videoEmbed',
+        attrs: {
+          src: videoData.embedUrl,
+          width: '100%',
+          height: '400px',
+        },
+      })
+      .run();
   };
 
   return (
@@ -388,6 +519,22 @@ export default function TipTapEditor({ content, onChange }: TipTapEditorProps) {
           🔗 Link
         </button>
         
+        {/* Video Embed Button */}
+        <button
+          onClick={addVideo}
+          style={{
+            padding: '6px 12px',
+            border: '1px solid #D1D5DB',
+            background: 'white',
+            color: '#374151',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '14px'
+          }}
+        >
+          🎥 Видео
+        </button>
+        
         {/* HTML Mode Toggle Button */}
         <button
           onClick={() => {
@@ -419,7 +566,7 @@ export default function TipTapEditor({ content, onChange }: TipTapEditorProps) {
         </button>
       </div>
 
-      {/* Подсказка о Markdown */}
+      {/* Подсказка о Markdown и видео */}
       <div style={{
         padding: '8px 12px',
         background: '#EEF2FF',
@@ -429,6 +576,8 @@ export default function TipTapEditor({ content, onChange }: TipTapEditorProps) {
         marginBottom: '8px'
       }}>
         💡 <strong>Markdown shortcuts:</strong> **жирный**, *курсив*, ## заголовок, * список, [текст](ссылка)
+        <br />
+        🎥 <strong>Видео:</strong> Поддерживаются YouTube, Vimeo, Rutube, VK, OK.ru - просто вставьте ссылку через кнопку "🎥 Видео"
       </div>
 
       {/* Editor */}
@@ -501,6 +650,20 @@ export default function TipTapEditor({ content, onChange }: TipTapEditorProps) {
         }
         
         .ProseMirror img.ProseMirror-selectednode {
+          outline: 3px solid #4F46E5;
+        }
+        
+        .ProseMirror iframe {
+          max-width: 100%;
+          width: 100%;
+          height: 400px;
+          border-radius: 8px;
+          margin: 16px 0;
+          display: block;
+          border: none;
+        }
+        
+        .ProseMirror iframe.ProseMirror-selectednode {
           outline: 3px solid #4F46E5;
         }
         
