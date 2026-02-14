@@ -243,9 +243,23 @@ router.get('/:id/day/:dayNumber', authMiddleware, async (req: AuthRequest, res: 
 
     const completedExerciseIds = completedExercises.map(e => e.exerciseId.toString());
 
+    // Get new exercise IDs from day for "NEW" badge
+    const newExerciseIds = (day.newExerciseIds || []).map((id: any) => id.toString());
+    
+    const dayWithNewFlags = day.toObject();
+    if (dayWithNewFlags.exerciseGroups) {
+      dayWithNewFlags.exerciseGroups = dayWithNewFlags.exerciseGroups.map((group: any) => ({
+        ...group,
+        exerciseIds: group.exerciseIds.map((exercise: any) => ({
+          ...exercise,
+          isNew: newExerciseIds.includes(exercise._id.toString())
+        }))
+      }));
+    }
+
     return res.status(200).json({
       success: true,
-      day,
+      day: dayWithNewFlags,
       isCompleted: enrollment.completedDays.includes(Number(dayNumber)),
       currentAvailableDay,
       completedExerciseIds
