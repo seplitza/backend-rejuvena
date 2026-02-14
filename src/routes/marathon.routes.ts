@@ -243,6 +243,13 @@ router.get('/:id/day/:dayNumber', authMiddleware, async (req: AuthRequest, res: 
 
     const completedExerciseIds = completedExercises.map(e => e.exerciseId.toString());
 
+    // Update lastAccessedDay when user views a day
+    if (enrollment.lastAccessedDay < Number(dayNumber)) {
+      enrollment.lastAccessedDay = Number(dayNumber);
+      await enrollment.save();
+      console.log(`✅ Updated lastAccessedDay to ${dayNumber} for user ${userId} in marathon ${id}`);
+    }
+
     return res.status(200).json({
       success: true,
       day,
