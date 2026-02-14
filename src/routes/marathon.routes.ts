@@ -455,10 +455,10 @@ router.post('/:id/day/:dayNumber/exercise/:exerciseId/status', authMiddleware, a
       {
         userId,
         marathonId: id,
+        dayNumber: Number(dayNumber),
         exerciseId
       },
       {
-        dayNumber: Number(dayNumber),
         isCompleted: Boolean(isCompleted),
         completedAt: isCompleted ? new Date() : null
       },

@@ -50,7 +50,7 @@ const MarathonExerciseProgressSchema = new Schema<IMarathonExerciseProgress>(
 
 // Составные индексы для быстрого поиска
 MarathonExerciseProgressSchema.index({ userId: 1, marathonId: 1, dayNumber: 1 });
-MarathonExerciseProgressSchema.index({ userId: 1, marathonId: 1, exerciseId: 1 }, { unique: true });
+MarathonExerciseProgressSchema.index({ userId: 1, marathonId: 1, dayNumber: 1, exerciseId: 1 }, { unique: true });
 
 const MarathonExerciseProgress = mongoose.model<IMarathonExerciseProgress>(
   'MarathonExerciseProgress',
