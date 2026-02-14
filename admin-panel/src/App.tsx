@@ -16,6 +16,8 @@ import MediaLibrary from './pages/MediaLibrary';
 import LandingList from './pages/LandingList';
 import LandingEditor from './pages/LandingEditor';
 import ThemeManagement from './pages/ThemeManagement';
+import OfferManagement from './pages/OfferManagement';
+import OfferEditor from './pages/OfferEditor';
 import Layout from './components/Layout';
 import { getAuthToken } from './utils/auth';
 
@@ -60,6 +62,9 @@ function App() {
           <Route path="landings/:id" element={<LandingEditor />} />
           <Route path="media" element={<MediaLibrary />} />
           <Route path="themes" element={<ThemeManagement />} />
+          <Route path="offers" element={<OfferManagement />} />
+          <Route path="offers/new" element={<OfferEditor />} />
+          <Route path="offers/edit/:id" element={<OfferEditor />} />
         </Route>
       </Routes>
     </Router>
