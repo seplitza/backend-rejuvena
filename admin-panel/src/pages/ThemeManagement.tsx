@@ -158,6 +158,44 @@ export default function ThemeManagement() {
 
     try {
       const token = localStorage.getItem('authToken');
+      
+      // Check if slug already exists when creating
+      if (isCreating) {
+        const existingTheme = themes.find(t => t.slug === editingTheme.slug);
+        if (existingTheme) {
+          const confirm = window.confirm(
+            `Тема с названием "${editingTheme.name}" уже существует.\n\nХотите обновить существующую тему?`
+          );
+          
+          if (confirm) {
+            // Update existing theme instead
+            const response = await fetch(`${API_URL}/api/themes/${existingTheme._id}`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ ...editingTheme, _id: existingTheme._id }),
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+              alert('Существующая тема обновлена!');
+              setEditingTheme(null);
+              setIsCreating(false);
+              loadThemes();
+            } else {
+              alert(data.error || 'Ошибка обновления темы');
+            }
+            return;
+          } else {
+            // User cancelled, suggest changing name
+            alert('Пожалуйста, измените название темы для создания новой.');
+            return;
+          }
+        }
+      }
+      
       const url = isCreating
         ? `${API_URL}/api/themes`
         : `${API_URL}/api/themes/${editingTheme._id}`;
@@ -360,25 +398,62 @@ export default function ThemeManagement() {
             Градиенты (Tailwind классы):
           </h3>
 
-          {Object.entries(editingTheme.gradients).map(([key, value]) => (
-            <div key={key} style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', fontWeight: '500', marginBottom: '5px', textTransform: 'capitalize' }}>
-                {key}:
-              </label>
-              <input
-                type="text"
-                value={value}
-                placeholder="from-purple-600 to-pink-600"
-                onChange={(e) =>
-                  setEditingTheme({
-                    ...editingTheme,
-                    gradients: { ...editingTheme.gradients, [key]: e.target.value },
-                  })
-                }
-                style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
-              />
-            </div>
-          ))}
+          {Object.entries(editingTheme.gradients).map(([key, value]) => {
+            // Generate gradient suggestions based on theme colors
+            const suggestions = [
+              `from-[${editingTheme.colors.primary}] to-[${editingTheme.colors.secondary}]`,
+              `from-[${editingTheme.colors.accent}] to-[${editingTheme.colors.primary}]`,
+              `from-[${editingTheme.colors.accent}] to-[${editingTheme.colors.secondary}]`,
+              `from-[${editingTheme.colors.primary}] to-[${editingTheme.colors.accent}]`,
+            ];
+
+            return (
+              <div key={key} style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', fontWeight: '500', marginBottom: '5px', textTransform: 'capitalize' }}>
+                  {key}:
+                </label>
+                <input
+                  type="text"
+                  value={value}
+                  placeholder="from-purple-600 to-pink-600"
+                  onChange={(e) =>
+                    setEditingTheme({
+                      ...editingTheme,
+                      gradients: { ...editingTheme.gradients, [key]: e.target.value },
+                    })
+                  }
+                  style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px', marginBottom: '8px' }}
+                />
+                <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                  {suggestions.map((suggestion, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setEditingTheme({
+                          ...editingTheme,
+                          gradients: { ...editingTheme.gradients, [key]: suggestion },
+                        });
+                      }}
+                      style={{
+                        padding: '4px 8px',
+                        fontSize: '12px',
+                        background: '#f3f4f6',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {idx === 0 && 'Primary→Secondary'}
+                      {idx === 1 && 'Accent→Primary'}
+                      {idx === 2 && 'Accent→Secondary'}
+                      {idx === 3 && 'Primary→Accent'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
 
           {/* Actions */}
           <div style={{ display: 'flex', gap: '10px', marginTop: '30px' }}>
