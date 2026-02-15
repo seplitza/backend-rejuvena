@@ -26,5 +26,18 @@
     "error_file": "./logs/notifier-err.log",
     "out_file": "./logs/notifier-out.log",
     "log_date_format": "YYYY-MM-DD HH:mm:ss Z"
+  },
+  {
+    "name": "campaign-executor",
+    "script": "npm",
+    "args": "run execute-campaigns",
+    "cron_restart": "0 * * * *",
+    "autorestart": false,
+    "env": {
+      "NODE_ENV": "production"
+    },
+    "error_file": "./logs/campaign-err.log",
+    "out_file": "./logs/campaign-out.log",
+    "log_date_format": "YYYY-MM-DD HH:mm:ss Z"
   }]
 }

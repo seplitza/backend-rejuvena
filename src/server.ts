@@ -25,6 +25,7 @@ import commentRoutes from './routes/comment.routes';
 import commentAdminRoutes from './routes/comment-admin.routes';
 import emailTemplateRoutes from './routes/email-template.routes';
 import emailCampaignRoutes from './routes/email-campaign.routes';
+import webhookRoutes from './routes/webhook.routes';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -54,6 +55,9 @@ app.use('/admin', express.static(path.join(__dirname, '../admin-panel/dist')));
 app.get('/admin/*', (req, res) => {
   res.sendFile(path.join(__dirname, '../admin-panel/dist/index.html'));
 });
+
+// Webhook routes (must be before other routes - no auth required)
+app.use('/webhooks', webhookRoutes);
 
 // Routes
 app.use('/api/auth', authRoutes);
