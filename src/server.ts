@@ -20,6 +20,7 @@ import landingRoutes from './routes/landing.routes';
 import exerciseCategoryRoutes from './routes/exerciseCategory.routes';
 import themeRoutes from './routes/theme.routes';
 import offerRoutes from './routes/offer.routes';
+import adminRoutes from './routes/admin.routes';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -64,6 +65,7 @@ app.use('/api/landings', landingRoutes);
 app.use('/api/exercise-categories', exerciseCategoryRoutes);
 app.use('/api/themes', themeRoutes);
 app.use('/api/offers', offerRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
