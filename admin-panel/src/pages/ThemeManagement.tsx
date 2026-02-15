@@ -5,6 +5,73 @@
 
 import { useState, useEffect } from 'react';
 
+// Helper function to convert hex to HSL
+function hexToHSL(hex: string): { h: number; s: number; l: number } {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) return { h: 0, s: 0, l: 0 };
+
+  let r = parseInt(result[1], 16) / 255;
+  let g = parseInt(result[2], 16) / 255;
+  let b = parseInt(result[3], 16) / 255;
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  let s = 0;
+  let l = (max + min) / 2;
+
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+      case g: h = ((b - r) / d + 2) / 6; break;
+      case b: h = ((r - g) / d + 4) / 6; break;
+    }
+  }
+
+  return { h: h * 360, s: s * 100, l: l * 100 };
+}
+
+// Helper function to convert HSL to hex
+function hslToHex(h: number, s: number, l: number): string {
+  s /= 100;
+  l /= 100;
+
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+  let r = 0, g = 0, b = 0;
+
+  if (0 <= h && h < 60) { r = c; g = x; b = 0; }
+  else if (60 <= h && h < 120) { r = x; g = c; b = 0; }
+  else if (120 <= h && h < 180) { r = 0; g = c; b = x; }
+  else if (180 <= h && h < 240) { r = 0; g = x; b = c; }
+  else if (240 <= h && h < 300) { r = x; g = 0; b = c; }
+  else if (300 <= h && h < 360) { r = c; g = 0; b = x; }
+
+  const rHex = Math.round((r + m) * 255).toString(16).padStart(2, '0');
+  const gHex = Math.round((g + m) * 255).toString(16).padStart(2, '0');
+  const bHex = Math.round((b + m) * 255).toString(16).padStart(2, '0');
+
+  return `#${rHex}${gHex}${bHex}`;
+}
+
+// Generate complementary colors based on primary color
+function generateComplementaryColors(primaryColor: string) {
+  const hsl = hexToHSL(primaryColor);
+  
+  // Secondary: shift hue by ~30-60 degrees (analogous/triadic)
+  const secondaryHue = (hsl.h + 50) % 360;
+  const secondary = hslToHex(secondaryHue, hsl.s, Math.max(hsl.l - 5, 40));
+  
+  // Accent: shift hue by ~150 degrees (complementary direction)
+  const accentHue = (hsl.h + 150) % 360;
+  const accent = hslToHex(accentHue, Math.min(hsl.s + 10, 90), Math.max(hsl.l, 50));
+  
+  return { secondary, accent };
+}
+
 interface Theme {
   _id: string;
   name: string;
@@ -97,13 +164,19 @@ export default function ThemeManagement() {
       
       const method = isCreating ? 'POST' : 'PUT';
 
+      // Remove _id for new themes
+      const themeData = isCreating ? {
+        ...editingTheme,
+        _id: undefined
+      } : editingTheme;
+
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(editingTheme),
+        body: JSON.stringify(themeData),
       });
 
       const data = await response.json();
@@ -226,28 +299,55 @@ export default function ThemeManagement() {
               <div key={key}>
                 <label style={{ display: 'block', fontWeight: '500', marginBottom: '5px', textTransform: 'capitalize' }}>
                   {key}:
+                  {key === 'primary' && <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 'normal', marginLeft: '8px' }}>(Авто-подбор secondary/accent)</span>}
                 </label>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                   <input
                     type="color"
                     value={value}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const newColor = e.target.value;
+                      let updatedColors = { ...editingTheme.colors, [key]: newColor };
+                      
+                      // Auto-generate complementary colors when primary changes
+                      if (key === 'primary') {
+                        const complementary = generateComplementaryColors(newColor);
+                        updatedColors = {
+                          ...updatedColors,
+                          secondary: complementary.secondary,
+                          accent: complementary.accent,
+                        };
+                      }
+                      
                       setEditingTheme({
                         ...editingTheme,
-                        colors: { ...editingTheme.colors, [key]: e.target.value },
-                      })
-                    }
+                        colors: updatedColors,
+                      });
+                    }}
                     style={{ width: '50px', height: '40px', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer' }}
                   />
                   <input
                     type="text"
                     value={value}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const newColor = e.target.value;
+                      let updatedColors = { ...editingTheme.colors, [key]: newColor };
+                      
+                      // Auto-generate complementary colors when primary changes
+                      if (key === 'primary' && /^#[0-9A-F]{6}$/i.test(newColor)) {
+                        const complementary = generateComplementaryColors(newColor);
+                        updatedColors = {
+                          ...updatedColors,
+                          secondary: complementary.secondary,
+                          accent: complementary.accent,
+                        };
+                      }
+                      
                       setEditingTheme({
                         ...editingTheme,
-                        colors: { ...editingTheme.colors, [key]: e.target.value },
-                      })
-                    }
+                        colors: updatedColors,
+                      });
+                    }}
                     style={{ flex: 1, padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
                   />
                 </div>
