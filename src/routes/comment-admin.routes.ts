@@ -8,7 +8,7 @@ import Marathon from '../models/Marathon.model';
 const router = Router();
 
 // Get all comments with filters (admin moderation)
-router.get('/comments', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.get('/', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const {
       status,
@@ -91,7 +91,7 @@ router.get('/comments', authMiddleware, async (req: AuthRequest, res: Response) 
 });
 
 // Get comment thread (parent + all replies)
-router.get('/comments/:id/thread', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.get('/:id/thread', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -136,7 +136,7 @@ router.get('/comments/:id/thread', authMiddleware, async (req: AuthRequest, res:
 });
 
 // Respond to comment
-router.post('/comments/:id/respond', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post('/:id/respond', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { content, isPrivate = false } = req.body;
@@ -178,7 +178,7 @@ router.post('/comments/:id/respond', authMiddleware, async (req: AuthRequest, re
 });
 
 // Update comment status
-router.put('/comments/:id/status', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.put('/:id/status', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
@@ -205,7 +205,7 @@ router.put('/comments/:id/status', authMiddleware, async (req: AuthRequest, res:
 });
 
 // Update comment priority
-router.put('/comments/:id/priority', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.put('/:id/priority', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { priority } = req.body;
@@ -232,7 +232,7 @@ router.put('/comments/:id/priority', authMiddleware, async (req: AuthRequest, re
 });
 
 // Delete comment
-router.delete('/comments/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.delete('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -252,7 +252,7 @@ router.delete('/comments/:id', authMiddleware, async (req: AuthRequest, res: Res
 });
 
 // Get AI response suggestions (placeholder for future)
-router.post('/comments/:id/ai-suggest', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post('/:id/ai-suggest', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
