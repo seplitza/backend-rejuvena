@@ -63,6 +63,9 @@ export default function Users() {
   
   const [noteContent, setNoteContent] = useState('');
   const [noteType, setNoteType] = useState<'note' | 'email' | 'telegram'>('note');
+  
+  // Multi-select state
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
 
   useEffect(() => {
     loadUsers();
@@ -172,6 +175,78 @@ export default function Users() {
     setNoteContent('');
   };
 
+  // Multi-select handlers
+  const toggleUserSelection = (userId: string) => {
+    setSelectedUserIds(prev => 
+      prev.includes(userId) 
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
+  const toggleAllUsers = () => {
+    if (selectedUserIds.length === users.length) {
+      setSelectedUserIds([]);
+    } else {
+      setSelectedUserIds(users.map(u => u._id));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedUserIds([]);
+  };
+
+  // Bulk actions
+  const exportSelectedToCSV = () => {
+    const selectedUsers = users.filter(u => selectedUserIds.includes(u._id));
+    const csv = [
+      ['Email', 'Имя', 'Telegram', 'Премиум', 'Контакты', 'Марафоны', 'Покупок', 'Сумма'].join(','),
+      ...selectedUsers.map(u => [
+        u.email,
+        `${u.firstName || ''} ${u.lastName || ''}`.trim(),
+        u.telegramUsername || '',
+        u.isPremium ? 'Да' : 'Нет',
+        u.contactsEnabled ? 'Да' : 'Нет',
+        u.stats.totalMarathons,
+        u.stats.totalPayments,
+        (u.stats.totalSpent / 100).toFixed(2)
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `users_export_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  };
+
+  const addSelectedToMailingList = () => {
+    const selectedUsers = users.filter(u => selectedUserIds.includes(u._id));
+    const emails = selectedUsers
+      .filter(u => u.contactsEnabled)
+      .map(u => u.email)
+      .join(', ');
+    
+    if (emails) {
+      navigator.clipboard.writeText(emails);
+      alert(`${selectedUsers.filter(u => u.contactsEnabled).length} email-адресов скопированы в буфер обмена!`);
+    } else {
+      alert('Среди выбранных пользователей нет тех, кто разрешил контакты.');
+    }
+  };
+
+  const sendBulkMessage = () => {
+    const selectedUsers = users.filter(u => selectedUserIds.includes(u._id));
+    const message = prompt(
+      `Отправить сообщение ${selectedUsers.length} пользователям?\n\nВведите текст сообщения:`
+    );
+    
+    if (message) {
+      // TODO: Implement bulk messaging via API
+      alert(`Функция массовой рассылки будет реализована в следующей версии.\n\nСообщение готово для отправки ${selectedUsers.length} пользователям.`);
+    }
+  };
+
   const formatDate = (date?: Date) => {
     if (!date) return '—';
     return new Date(date).toLocaleDateString('ru-RU', {
@@ -194,6 +269,96 @@ export default function Users() {
       <h1 style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '24px' }}>
         CRM - Управление пользователями
       </h1>
+
+      {/* Bulk Actions Bar */}
+      {selectedUserIds.length > 0 && (
+        <div style={{
+          background: '#EEF2FF',
+          border: '2px solid #6366F1',
+          padding: '16px 24px',
+          borderRadius: '12px',
+          marginBottom: '16px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <div style={{ fontSize: '15px', fontWeight: '600', color: '#1F2937' }}>
+              Выбрано: <span style={{ color: '#6366F1' }}>{selectedUserIds.length}</span> пользователей
+            </div>
+            <button
+              onClick={clearSelection}
+              style={{
+                padding: '6px 12px',
+                background: 'transparent',
+                color: '#6B7280',
+                border: '1px solid #D1D5DB',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '13px'
+              }}
+            >
+              ✕ Снять выбор
+            </button>
+          </div>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button
+              onClick={addSelectedToMailingList}
+              style={{
+                padding: '10px 20px',
+                background: '#10B981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              ✉️ Скопировать email-ы
+            </button>
+            <button
+              onClick={sendBulkMessage}
+              style={{
+                padding: '10px 20px',
+                background: '#6366F1',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              💬 Отправить сообщение
+            </button>
+            <button
+              onClick={exportSelectedToCSV}
+              style={{
+                padding: '10px 20px',
+                background: '#8B5CF6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              📥 Экспорт CSV
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div style={{ 
@@ -343,6 +508,19 @@ export default function Users() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead style={{ background: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
                 <tr>
+                  <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '13px', fontWeight: '600', color: '#6B7280', width: '50px' }}>
+                    <input
+                      type="checkbox"
+                      checked={users.length > 0 && selectedUserIds.length === users.length}
+                      onChange={toggleAllUsers}
+                      style={{
+                        width: '18px',
+                        height: '18px',
+                        cursor: 'pointer',
+                        accentColor: '#3B82F6'
+                      }}
+                    />
+                  </th>
                   <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', fontWeight: '600', color: '#6B7280' }}>
                     Пользователь
                   </th>
@@ -374,7 +552,26 @@ export default function Users() {
               </thead>
               <tbody>
                 {users.map((user) => (
-                  <tr key={user._id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                  <tr 
+                    key={user._id} 
+                    style={{ 
+                      borderBottom: '1px solid #F3F4F6',
+                      background: selectedUserIds.includes(user._id) ? '#F0F9FF' : 'transparent'
+                    }}
+                  >
+                    <td style={{ padding: '16px', textAlign: 'center' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedUserIds.includes(user._id)}
+                        onChange={() => toggleUserSelection(user._id)}
+                        style={{
+                          width: '18px',
+                          height: '18px',
+                          cursor: 'pointer',
+                          accentColor: '#3B82F6'
+                        }}
+                      />
+                    </td>
                     <td style={{ padding: '16px' }}>
                       <div>
                         <div style={{ fontWeight: '600', color: '#1F2937', marginBottom: '4px' }}>
