@@ -21,6 +21,8 @@ import exerciseCategoryRoutes from './routes/exerciseCategory.routes';
 import themeRoutes from './routes/theme.routes';
 import offerRoutes from './routes/offer.routes';
 import adminRoutes from './routes/admin.routes';
+import commentRoutes from './routes/comment.routes';
+import commentAdminRoutes from './routes/comment-admin.routes';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -66,6 +68,8 @@ app.use('/api/exercise-categories', exerciseCategoryRoutes);
 app.use('/api/themes', themeRoutes);
 app.use('/api/offers', offerRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/comments', commentRoutes);
+app.use('/api/admin/comments', commentAdminRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
