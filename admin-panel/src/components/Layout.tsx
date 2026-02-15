@@ -176,6 +176,22 @@ export default function Layout({ onLogout }: LayoutProps) {
           </Link>
 
           <Link
+            to="/email-templates"
+            style={{
+              display: 'block',
+              padding: '12px 16px',
+              marginBottom: '8px',
+              borderRadius: '8px',
+              textDecoration: 'none',
+              color: 'white',
+              background: isActive('/email-templates') ? '#4F46E5' : 'transparent',
+              transition: 'background 0.2s'
+            }}
+          >
+            📧 Email-шаблоны
+          </Link>
+
+          <Link
             to="/users"
             style={{
               display: 'block',

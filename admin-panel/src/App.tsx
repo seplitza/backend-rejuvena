@@ -6,6 +6,7 @@ import ExerciseList from './pages/ExerciseList';
 import ExerciseEditor from './pages/ExerciseEditor';
 import ExerciseCategoriesPage from './pages/ExerciseCategoriesPage';
 import Comments from './pages/Comments';
+import EmailTemplates from './pages/EmailTemplates';
 import Users from './pages/Users';
 import Notifications from './pages/Notifications';
 import Orders from './pages/Orders';
@@ -50,6 +51,7 @@ function App() {
           <Route path="exercises/:id" element={<ExerciseEditor />} />
           <Route path="exercise-categories" element={<ExerciseCategoriesPage />} />
           <Route path="comments" element={<Comments />} />
+          <Route path="email-templates" element={<EmailTemplates />} />
           <Route path="users" element={<Users />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="orders" element={<Orders />} />

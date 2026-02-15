@@ -23,6 +23,7 @@ import offerRoutes from './routes/offer.routes';
 import adminRoutes from './routes/admin.routes';
 import commentRoutes from './routes/comment.routes';
 import commentAdminRoutes from './routes/comment-admin.routes';
+import emailTemplateRoutes from './routes/email-template.routes';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -71,6 +72,7 @@ app.use('/api/offers', offerRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/admin/comments', commentAdminRoutes);
+app.use('/api/admin/email-templates', emailTemplateRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

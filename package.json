@@ -11,13 +11,15 @@
     "seed-categories": "ts-node src/scripts/seed-categories.ts",
     "seed-themes": "ts-node src/scripts/seed-themes.ts",
     "seed-offers": "ts-node src/scripts/seed-offers.ts",
+    "seed-email-templates": "ts-node src/scripts/seed-email-templates.ts",
     "create-editor": "ts-node src/scripts/create-editor.ts",
     "test-landings": "ts-node src/scripts/test-landings.ts",
     "import-exercises": "ts-node src/scripts/import-exercises.ts",
     "update-exercises": "ts-node src/scripts/update-exercises-from-api.ts",
     "import-forehead-eyes-pro": "ts-node src/scripts/import-forehead-eyes-pro.ts",
     "send-notifications": "ts-node src/scripts/send-marathon-notifications.ts",
-    "fix-index": "ts-node src/scripts/fix-marathon-progress-index.ts"
+    "fix-index": "ts-node src/scripts/fix-marathon-progress-index.ts",
+    "test-email": "ts-node src/scripts/test-email.ts"
   },
   "keywords": [],
   "author": "",
