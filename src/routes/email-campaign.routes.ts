@@ -206,8 +206,12 @@ router.post('/:id/duplicate', authMiddleware, async (req: AuthRequest, res: Resp
       description: original.description,
       trigger: original.trigger,
       steps: original.steps.map(step => ({
-        ...step.toObject(),
-        id: `step_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        id: `step_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        templateId: step.templateId,
+        delay: step.delay,
+        delayUnit: step.delayUnit,
+        condition: step.condition,
+        position: step.position
       })),
       isActive: false,
       stats: {

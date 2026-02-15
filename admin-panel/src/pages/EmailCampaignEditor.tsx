@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -64,7 +64,6 @@ const EmailCampaignEditor: React.FC = () => {
   const [saving, setSaving] = useState(false);
   
   const [selectedStep, setSelectedStep] = useState<string | null>(null);
-  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const [showStepEditor, setShowStepEditor] = useState(false);
 
   useEffect(() => {
@@ -185,9 +184,16 @@ const EmailCampaignEditor: React.FC = () => {
     return template ? template.name : 'Не выбран';
   };
 
-  const getTriggerInfo = () => {
+  const getTriggerInfo = (): Trigger => {
     const trigger = triggers.find(t => t.type === campaign.trigger.type);
-    return trigger || { label: campaign.trigger.type, description: '' };
+    return trigger || { 
+      type: campaign.trigger.type,
+      label: campaign.trigger.type, 
+      description: '',
+      needsMarathon: false,
+      needsDayNumber: false,
+      marathons: []
+    };
   };
 
   const currentStep = campaign.steps.find(s => s.id === selectedStep);
