@@ -24,6 +24,7 @@ import adminRoutes from './routes/admin.routes';
 import commentRoutes from './routes/comment.routes';
 import commentAdminRoutes from './routes/comment-admin.routes';
 import emailTemplateRoutes from './routes/email-template.routes';
+import emailCampaignRoutes from './routes/email-campaign.routes';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -73,6 +74,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/admin/comments', commentAdminRoutes);
 app.use('/api/admin/email-templates', emailTemplateRoutes);
+app.use('/api/admin/email-campaigns', emailCampaignRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

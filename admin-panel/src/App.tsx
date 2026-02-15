@@ -7,6 +7,8 @@ import ExerciseEditor from './pages/ExerciseEditor';
 import ExerciseCategoriesPage from './pages/ExerciseCategoriesPage';
 import Comments from './pages/Comments';
 import EmailTemplates from './pages/EmailTemplates';
+import EmailCampaigns from './pages/EmailCampaigns';
+import EmailCampaignEditor from './pages/EmailCampaignEditor';
 import Users from './pages/Users';
 import Notifications from './pages/Notifications';
 import Orders from './pages/Orders';
@@ -52,6 +54,8 @@ function App() {
           <Route path="exercise-categories" element={<ExerciseCategoriesPage />} />
           <Route path="comments" element={<Comments />} />
           <Route path="email-templates" element={<EmailTemplates />} />
+          <Route path="email-campaigns" element={<EmailCampaigns />} />
+          <Route path="email-campaigns/:id" element={<EmailCampaignEditor />} />
           <Route path="users" element={<Users />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="orders" element={<Orders />} />
