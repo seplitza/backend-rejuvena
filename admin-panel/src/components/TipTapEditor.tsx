@@ -38,8 +38,8 @@ const getVideoEmbedUrl = (url: string): { embedUrl: string; type: string } | nul
     };
   }
 
-  // VK Video
-  const vkRegex = /vk\.com\/video(-?\d+_\d+)/;
+  // VK Video (оба формата: vk.com и vkvideo.ru)
+  const vkRegex = /(?:vk\.com\/video|vkvideo\.ru\/video)(-?\d+_\d+)/;
   const vkMatch = url.match(vkRegex);
   if (vkMatch) {
     return {
