@@ -7,7 +7,7 @@ import { useState, useRef } from 'react';
 import { Node } from '@tiptap/core';
 
 // Функция для парсинга video URL и получения embed кода
-const getVideoEmbedUrl = (url: string): { embedUrl: string; type: string } | null => {
+const getVideoEmbedUrl = (url: string): { embedUrl: string; type: string; isPrivate?: boolean } | null => {
   // YouTube
   const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
   const youtubeMatch = url.match(youtubeRegex);
@@ -39,13 +39,29 @@ const getVideoEmbedUrl = (url: string): { embedUrl: string; type: string } | nul
   }
 
   // VK Video (оба формата: vk.com и vkvideo.ru)
-  const vkRegex = /(?:vk\.com\/video|vkvideo\.ru\/video)(-?\d+_\d+)/;
+  // Поддержка приватных видео с токенами доступа (sh, list)
+  const vkRegex = /(?:vk\.com\/video|vkvideo\.ru\/video)(-?\d+_\d+)(?:\?.*)?/;
   const vkMatch = url.match(vkRegex);
   if (vkMatch) {
-    return {
-      embedUrl: `https://vk.com/video_ext.php?oid=${vkMatch[1].split('_')[0]}&id=${vkMatch[1].split('_')[1]}`,
-      type: 'vk'
-    };
+    // Проверяем, есть ли параметры доступа (приватное видео)
+    const hasAccessParams = /[?&](sh|list)=/.test(url);
+    
+    if (hasAccessParams) {
+      // Приватное видео - сохраняем полный URL
+      // Будет показываться кнопка "Открыть в VK" вместо embed
+      return {
+        embedUrl: url,
+        type: 'vk',
+        isPrivate: true
+      };
+    } else {
+      // Публичное видео - используем стандартный embed
+      return {
+        embedUrl: `https://vk.com/video_ext.php?oid=${vkMatch[1].split('_')[0]}&id=${vkMatch[1].split('_')[1]}`,
+        type: 'vk',
+        isPrivate: false
+      };
+    }
   }
 
   // OK.ru (Одноклассники)
