@@ -17,9 +17,14 @@ router.get('/', authMiddleware, async (req: AuthRequest, res: Response) => {
     } = req.query;
 
     const query: any = {
-      status: 'approved', // Only approved comments visible on frontend
       parentCommentId: { $exists: false } // Only top-level comments (not replies)
     };
+
+    // Show approved comments for everyone + user's own pending comments
+    query.$or = [
+      { status: 'approved' },
+      { userId: req.userId, status: 'pending' } // User sees own pending comments
+    ];
 
     // Context-based filtering
     if (exerciseId) query.exerciseId = exerciseId;
@@ -62,7 +67,10 @@ router.get('/', authMiddleware, async (req: AuthRequest, res: Response) => {
       comments.map(async (comment) => {
         const replies = await Comment.find({
           parentCommentId: comment._id,
-          status: 'approved'
+          $or: [
+            { status: 'approved' },
+            { userId: req.userId, status: 'pending' } // User sees own pending replies
+          ]
         })
           .populate('userId', 'firstName lastName')
           .sort({ createdAt: 1 })
@@ -121,7 +129,7 @@ router.post('/', authMiddleware, async (req: AuthRequest, res: Response) => {
       content: content.trim(),
       isPrivate,
       parentCommentId,
-      status: 'pending', // Требует модерации
+      status: isPrivate ? 'approved' : 'pending', // Auto-approve private messages
       priority: 'normal'
     });
 
