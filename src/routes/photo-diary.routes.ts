@@ -106,9 +106,9 @@ router.get('/photos', authMiddleware, async (req: AuthRequest, res: Response) =>
     }
 
     // Конвертируем в нужный формат
-    const result = {
-      before: {} as any,
-      after: {} as any
+    const result: Record<string, any> = {
+      before: {},
+      after: {}
     };
 
     for (const period of ['before', 'after']) {
