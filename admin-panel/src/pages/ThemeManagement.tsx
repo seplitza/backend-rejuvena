@@ -111,16 +111,34 @@ export default function ThemeManagement() {
   const loadThemes = async () => {
     try {
       const token = localStorage.getItem('authToken');
+      console.log('🔍 Loading themes with token:', token ? 'present' : 'missing');
+      
       const response = await fetch(`${API_URL}/api/themes/admin/all`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      
+      console.log('📡 Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Response error:', errorText);
+        alert(`Ошибка загрузки тем: ${response.status} ${response.statusText}`);
+        return;
+      }
+      
       const data = await response.json();
+      console.log('📦 Response data:', data);
+      
       if (data.success) {
         setThemes(data.themes);
+        console.log('✅ Loaded themes:', data.themes.length);
+      } else {
+        console.error('❌ API returned success=false:', data);
+        alert('Ошибка загрузки тем: ' + (data.error || 'Unknown error'));
       }
     } catch (error) {
-      console.error('Error loading themes:', error);
-      alert('Ошибка загрузки тем');
+      console.error('❌ Error loading themes:', error);
+      alert('Ошибка загрузки тем: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setLoading(false);
     }
