@@ -82,8 +82,8 @@ router.post('/save-photo', authMiddleware, async (req: AuthRequest, res: Respons
       fileName: filename,
       fileSize: buffer.length,
       mimeType: 'image/jpeg',
-      isPremiumAtUpload: user.isPremium || false,
-      marathonId: user.marathons?.[0] // Если есть марафоны, берем первый
+      isPremiumAtUpload: user.isPremium || false
+      // TODO: Add marathonId lookup from MarathonEnrollment collection
     });
 
     await photoDiary.save();

@@ -23,7 +23,8 @@
     "execute-campaigns": "ts-node src/scripts/execute-campaigns.ts",
     "create-omoloddis-campaign": "ts-node src/scripts/create-omoloddis-campaign.ts",
     "cleanup-photos": "ts-node src/scripts/cleanup-expired-photos.ts",
-    "send-photo-warnings": "ts-node src/scripts/send-photo-deletion-warnings.ts"
+    "send-photo-warnings": "ts-node src/scripts/send-photo-deletion-warnings.ts",
+    "test-photo-storage": "ts-node src/scripts/test-photo-storage.ts"
   },
   "keywords": [],
   "author": "",

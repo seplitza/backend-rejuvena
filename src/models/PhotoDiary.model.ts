@@ -77,8 +77,7 @@ const PhotoDiarySchema = new Schema<IPhotoDiary>(
     },
     expiryDate: {
       type: Date,
-      required: true,
-      index: true, // For cleanup queries
+      index: true, // For cleanup queries (auto-calculated in pre-save hook)
     },
     isPremiumAtUpload: {
       type: Boolean,
@@ -121,6 +120,25 @@ const PhotoDiarySchema = new Schema<IPhotoDiary>(
 PhotoDiarySchema.index({ userId: 1, period: 1, photoType: 1, storageType: 1 });
 PhotoDiarySchema.index({ expiryDate: 1 }); // For cleanup cron job
 PhotoDiarySchema.index({ expiryDate: 1, notificationsSent: 1 }); // For notifications
+
+// Pre-save hook: автоматически рассчитываем expiryDate
+PhotoDiarySchema.pre('save', function(next) {
+  if (!this.expiryDate) {
+    const now = new Date();
+    
+    if (this.storageType === 'original') {
+      // Originals: 1 day only (for recrop)
+      this.expiryDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    } else if (this.isPremiumAtUpload) {
+      // Premium cropped: 60 days
+      this.expiryDate = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
+    } else {
+      // Free cropped: 30 days
+      this.expiryDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    }
+  }
+  next();
+});
 
 // Static methods
 PhotoDiarySchema.statics.calculateExpiryDate = function(
