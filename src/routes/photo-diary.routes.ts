@@ -47,7 +47,7 @@ router.post('/mark-first-upload', authMiddleware, async (req: AuthRequest, res: 
   }
 });
 
-// Save photo (cropped, for display) - 30 days retention
+// Save photo (cropped, for display) - хранение до user.photoDiaryEndDate
 router.post('/save-photo', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const { image, photoType, isBeforePhoto } = req.body;
@@ -66,13 +66,7 @@ router.post('/save-photo', authMiddleware, async (req: AuthRequest, res: Respons
     const buffer = Buffer.from(base64Data, 'base64');
     await fs.writeFile(filepath, buffer);
 
-    // Получаем пользователя для проверки премиума
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    // Создаем запись в БД с автоматическим расчетом срока хранения
+    // Создаем запись в БД (expiryDate определяется через user.photoDiaryEndDate)
     const photoDiary = new PhotoDiary({
       userId,
       photoType,
@@ -81,19 +75,16 @@ router.post('/save-photo', authMiddleware, async (req: AuthRequest, res: Respons
       filePath: `/uploads/photo-diary/cropped/${filename}`,
       fileName: filename,
       fileSize: buffer.length,
-      mimeType: 'image/jpeg',
-      isPremiumAtUpload: user.isPremium || false
-      // TODO: Add marathonId lookup from MarathonEnrollment collection
+      mimeType: 'image/jpeg'
     });
 
     await photoDiary.save();
 
-    console.log(`✅ Photo saved: ${photoDiary.filePath} (expires: ${photoDiary.expiryDate})`);
+    console.log(`✅ Photo saved: ${photoDiary.filePath}`);
 
     res.json({
       success: true,
-      photoUrl: photoDiary.filePath,
-      expiryDate: photoDiary.expiryDate
+      photoUrl: photoDiary.filePath
     });
   } catch (error) {
     console.error('Save photo error:', error);
@@ -101,17 +92,32 @@ router.post('/save-photo', authMiddleware, async (req: AuthRequest, res: Respons
   }
 });
 
-// Get all user photos (только непросроченные)
+// Get all user photos (проверяем user.photoDiaryEndDate)
 router.get('/photos', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId;
     const now = new Date();
 
-    // Получаем все непросроченные фото пользователя из БД
+    // Проверяем срок действия фотодневника пользователя
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Если фотодневник истек, возвращаем пустой результат
+    if (user.photoDiaryEndDate && user.photoDiaryEndDate < now) {
+      return res.json({
+        success: true,
+        photos: { before: {}, after: {} },
+        expired: true,
+        photoDiaryEndDate: user.photoDiaryEndDate
+      });
+    }
+
+    // Получаем все фото пользователя из БД
     const photoRecords = await PhotoDiary.find({
       userId,
-      expiryDate: { $gt: now },  // Только непросроченные
-      storageType: 'cropped'    // Только финальные, не оригиналы
+      storageType: 'cropped' // Только финальные, не оригиналы
     }).sort({ uploadDate: -1 });
 
     // Группируем по period и photoType, берем самые свежие
@@ -128,8 +134,7 @@ router.get('/photos', authMiddleware, async (req: AuthRequest, res: Response) =>
       if (!photos[period][photoType] || record.uploadDate > photos[period][photoType].uploadDate) {
         photos[period][photoType] = {
           url: record.filePath,
-          uploadDate: record.uploadDate,
-          expiryDate: record.expiryDate
+          uploadDate: record.uploadDate
         };
       }
     }
@@ -148,7 +153,8 @@ router.get('/photos', authMiddleware, async (req: AuthRequest, res: Response) =>
 
     res.json({
       success: true,
-      photos: result
+      photos: result,
+      photoDiaryEndDate: user.photoDiaryEndDate
     });
   } catch (error) {
     console.error('Get photos error:', error);

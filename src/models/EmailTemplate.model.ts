@@ -6,7 +6,8 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IEmailTemplate extends Document {
-  type: 'enrollment' | 'pre_start_reminder' | 'start' | 'daily_reminder' | 'completion';
+  type: 'enrollment' | 'pre_start_reminder' | 'start' | 'daily_reminder' | 'completion' | 'photo_diary_7days' | 'photo_diary_3days' | 'photo_diary_1day';
+  slug?: string; // Для удобного поиска шаблонов
   name: string;
   subject: string;
   htmlTemplate: string;
@@ -14,6 +15,7 @@ export interface IEmailTemplate extends Document {
   description: string;
   isActive: boolean;
   language: 'ru' | 'en';
+  category?: string; // Для группировки шаблонов
   createdAt: Date;
   updatedAt: Date;
 }
@@ -21,9 +23,13 @@ export interface IEmailTemplate extends Document {
 const EmailTemplateSchema = new Schema<IEmailTemplate>({
   type: {
     type: String,
-    enum: ['enrollment', 'pre_start_reminder', 'start', 'daily_reminder', 'completion'],
-    required: true,
-    unique: true
+    enum: ['enrollment', 'pre_start_reminder', 'start', 'daily_reminder', 'completion', 'photo_diary_7days', 'photo_diary_3days', 'photo_diary_1day'],
+    required: true
+  },
+  slug: {
+    type: String,
+    unique: true,
+    sparse: true // Позволяет иметь null/undefined значения без нарушения unique constraint
   },
   name: {
     type: String,
@@ -52,6 +58,10 @@ const EmailTemplateSchema = new Schema<IEmailTemplate>({
     type: String,
     enum: ['ru', 'en'],
     default: 'ru'
+  },
+  category: {
+    type: String,
+    default: 'marathon'
   }
 }, {
   timestamps: true

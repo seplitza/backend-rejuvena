@@ -12,6 +12,7 @@
     "seed-themes": "ts-node src/scripts/seed-themes.ts",
     "seed-offers": "ts-node src/scripts/seed-offers.ts",
     "seed-email-templates": "ts-node src/scripts/seed-email-templates.ts",
+    "seed-photo-diary-templates": "ts-node src/scripts/seed-photo-diary-templates.ts",
     "create-editor": "ts-node src/scripts/create-editor.ts",
     "test-landings": "ts-node src/scripts/test-landings.ts",
     "import-exercises": "ts-node src/scripts/import-exercises.ts",

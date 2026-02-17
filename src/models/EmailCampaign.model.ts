@@ -21,7 +21,7 @@ export interface IEmailCampaign extends Document {
   name: string;
   description: string;
   trigger: {
-    type: 'marathon_enrollment' | 'marathon_start' | 'marathon_day' | 'marathon_completion' | 'premium_purchased' | 'manual';
+    type: 'marathon_enrollment' | 'marathon_start' | 'marathon_day' | 'marathon_completion' | 'premium_purchased' | 'photo_diary_expiry_7days' | 'photo_diary_expiry_3days' | 'photo_diary_expiry_1day' | 'manual';
     marathonId?: mongoose.Types.ObjectId;
     dayNumber?: number;
   };
@@ -51,7 +51,7 @@ const EmailCampaignSchema = new Schema<IEmailCampaign>({
   trigger: {
     type: {
       type: String,
-      enum: ['marathon_enrollment', 'marathon_start', 'marathon_day', 'marathon_completion', 'premium_purchased', 'manual'],
+      enum: ['marathon_enrollment', 'marathon_start', 'marathon_day', 'marathon_completion', 'premium_purchased', 'photo_diary_expiry_7days', 'photo_diary_expiry_3days', 'photo_diary_expiry_1day', 'manual'],
       required: true
     },
     marathonId: {
