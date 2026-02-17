@@ -250,9 +250,25 @@ router.get('/:id/day/:dayNumber', authMiddleware, async (req: AuthRequest, res: 
       console.log(`✅ Updated lastAccessedDay to ${dayNumber} for user ${userId} in marathon ${id}`);
     }
 
+    // Add isNew flag to exercises based on newExerciseIds
+    const dayObject = day.toObject();
+    const newExerciseIdsSet = new Set(
+      (day.newExerciseIds || []).map((id: any) => id.toString())
+    );
+
+    if (dayObject.exerciseGroups) {
+      dayObject.exerciseGroups = dayObject.exerciseGroups.map((group: any) => ({
+        ...group,
+        exerciseIds: group.exerciseIds.map((exercise: any) => ({
+          ...exercise,
+          isNew: newExerciseIdsSet.has(exercise._id.toString())
+        }))
+      }));
+    }
+
     return res.status(200).json({
       success: true,
-      day,
+      day: dayObject,
       isCompleted: enrollment.completedDays.includes(Number(dayNumber)),
       currentAvailableDay,
       completedExerciseIds
