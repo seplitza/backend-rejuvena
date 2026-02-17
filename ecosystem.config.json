@@ -39,5 +39,31 @@
     "error_file": "./logs/campaign-err.log",
     "out_file": "./logs/campaign-out.log",
     "log_date_format": "YYYY-MM-DD HH:mm:ss Z"
+  },
+  {
+    "name": "photo-cleanup",
+    "script": "npm",
+    "args": "run cleanup-photos",
+    "cron_restart": "0 3 * * *",
+    "autorestart": false,
+    "env": {
+      "NODE_ENV": "production"
+    },
+    "error_file": "./logs/photo-cleanup-err.log",
+    "out_file": "./logs/photo-cleanup-out.log",
+    "log_date_format": "YYYY-MM-DD HH:mm:ss Z"
+  },
+  {
+    "name": "photo-warnings",
+    "script": "npm",
+    "args": "run send-photo-warnings",
+    "cron_restart": "0 10 * * *",
+    "autorestart": false,
+    "env": {
+      "NODE_ENV": "production"
+    },
+    "error_file": "./logs/photo-warnings-err.log",
+    "out_file": "./logs/photo-warnings-out.log",
+    "log_date_format": "YYYY-MM-DD HH:mm:ss Z"
   }]
 }

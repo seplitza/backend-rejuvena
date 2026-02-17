@@ -1,20 +1,24 @@
 import { Router, Response } from 'express';
 import { authMiddleware, AuthRequest } from '../middleware/auth.middleware';
 import User from '../models/User.model';
+import PhotoDiary from '../models/PhotoDiary.model';
 import fs from 'fs/promises';
 import path from 'path';
 
 const router = Router();
 
-// Путь для хранения фото дневника
+// Пути для хранения фото дневника
 const PHOTO_DIARY_DIR = path.join(__dirname, '../../uploads/photo-diary');
+const ORIGINALS_DIR = path.join(PHOTO_DIARY_DIR, 'originals'); // 1 день
+const CROPPED_DIR =path.join(PHOTO_DIARY_DIR, 'cropped');   // 30 дней бесплатно
 
-// Убедимся что директория существует
+// Убедимся что директории существуют
 (async () => {
   try {
-    await fs.mkdir(PHOTO_DIARY_DIR, { recursive: true });
+    await fs.mkdir(ORIGINALS_DIR, { recursive: true });
+    await fs.mkdir(CROPPED_DIR, { recursive: true });
   } catch (error) {
-    console.error('Failed to create photo-diary directory:', error);
+    console.error('Failed to create photo-diary directories:', error);
   }
 })();
 
@@ -43,7 +47,7 @@ router.post('/mark-first-upload', authMiddleware, async (req: AuthRequest, res: 
   }
 });
 
-// Save photo (cropped, for display)
+// Save photo (cropped, for display) - 30 days retention
 router.post('/save-photo', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const { image, photoType, isBeforePhoto } = req.body;
@@ -54,19 +58,42 @@ router.post('/save-photo', authMiddleware, async (req: AuthRequest, res: Respons
 
     const userId = req.userId;
     const period = isBeforePhoto ? 'before' : 'after';
-    const filename = `${userId}_${period}_${photoType}_${Date.now()}.jpg`;
-    const filepath = path.join(PHOTO_DIARY_DIR, filename);
+    const filename = `${userId}_cropped_${period}_${photoType}_${Date.now()}.jpg`;
+    const filepath = path.join(CROPPED_DIR, filename);
 
-    // Декодируем base64 и сохраняем
+    // Декодируем base64 и сохраняем в cropped директорию
     const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
-    await fs.writeFile(filepath, Buffer.from(base64Data, 'base64'));
+    const buffer = Buffer.from(base64Data, 'base64');
+    await fs.writeFile(filepath, buffer);
 
-    const photoUrl = `/uploads/photo-diary/${filename}`;
-    console.log(`✅ Photo saved: ${photoUrl}`);
+    // Получаем пользователя для проверки премиума
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Создаем запись в БД с автоматическим расчетом срока хранения
+    const photoDiary = new PhotoDiary({
+      userId,
+      photoType,
+      period,
+      storageType: 'cropped',
+      filePath: `/uploads/photo-diary/cropped/${filename}`,
+      fileName: filename,
+      fileSize: buffer.length,
+      mimeType: 'image/jpeg',
+      isPremiumAtUpload: user.isPremium || false,
+      marathonId: user.marathons?.[0] // Если есть марафоны, берем первый
+    });
+
+    await photoDiary.save();
+
+    console.log(`✅ Photo saved: ${photoDiary.filePath} (expires: ${photoDiary.expiryDate})`);
 
     res.json({
       success: true,
-      photoUrl
+      photoUrl: photoDiary.filePath,
+      expiryDate: photoDiary.expiryDate
     });
   } catch (error) {
     console.error('Save photo error:', error);
@@ -74,38 +101,40 @@ router.post('/save-photo', authMiddleware, async (req: AuthRequest, res: Respons
   }
 });
 
-// Get all user photos
+// Get all user photos (только непросроченные)
 router.get('/photos', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId;
-    const files = await fs.readdir(PHOTO_DIARY_DIR);
-    
-    // Фильтруем файлы пользователя
-    const userFiles = files.filter(f => f.startsWith(`${userId}_`));
-    
-    // Парсим имена файлов
+    const now = new Date();
+
+    // Получаем все непросроченные фото пользователя из БД
+    const photoRecords = await PhotoDiary.find({
+      userId,
+      expiryDate: { $gt: now },  // Только непросроченные
+      storageType: 'cropped'    // Только финальные, не оригиналы
+    }).sort({ uploadDate: -1 });
+
+    // Группируем по period и photoType, берем самые свежие
     const photos: any = {
       before: {},
       after: {}
     };
 
-    for (const filename of userFiles) {
-      const match = filename.match(/^[^_]+_(before|after)_([^_]+)_(\d+)\.jpg$/);
-      if (match) {
-        const [, period, photoType, timestamp] = match;
-        const url = `/uploads/photo-diary/${filename}`;
-        
-        // Сохраняем только самое свежее фото для каждого типа
-        if (!photos[period][photoType] || parseInt(timestamp) > parseInt(photos[period][photoType].timestamp)) {
-          photos[period][photoType] = {
-            url,
-            timestamp: parseInt(timestamp)
-          };
-        }
+    for (const record of photoRecords) {
+      const period = record.period.toString();
+      const photoType = record.photoType;
+      
+      // Сохраняем только самое свежее фото для каждого типа
+      if (!photos[period][photoType] || record.uploadDate > photos[period][photoType].uploadDate) {
+        photos[period][photoType] = {
+          url: record.filePath,
+          uploadDate: record.uploadDate,
+          expiryDate: record.expiryDate
+        };
       }
     }
 
-    // Конвертируем в нужный формат
+    // Конвертируем в формат для фронтенда
     const result: Record<string, any> = {
       before: {},
       after: {}

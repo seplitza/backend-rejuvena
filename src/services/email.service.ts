@@ -512,6 +512,36 @@ class EmailService {
       return false;
     }
   }
+
+  /**
+   * Generic email sending method
+   */
+  async sendEmail(params: { to: string; subject: string; html: string }): Promise<boolean> {
+    if (!this.resend) {
+      console.warn('⚠️ Email service not configured');
+      return false;
+    }
+
+    try {
+      const result = await this.resend.emails.send({
+        from: this.fromEmail,
+        to: params.to,
+        subject: params.subject,
+        html: params.html,
+      });
+
+      if (result.error) {
+        console.error(`❌ Resend API error for ${params.to}:`, result.error);
+        return false;
+      }
+
+      console.log(`✅ Email sent to ${params.to}: ${params.subject}`);
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to send email:', error);
+      return false;
+    }
+  }
 }
 
 export default new EmailService();
