@@ -57,6 +57,58 @@ function hslToHex(h: number, s: number, l: number): string {
   return `#${rHex}${gHex}${bHex}`;
 }
 
+// Helper function to generate slug from name
+function generateSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-zа-яё0-9\s-]/g, '') // Remove special chars
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with single
+    .trim();
+}
+
+// Helper function to convert Tailwind gradient classes to CSS gradient
+function tailwindGradientToCSS(tailwindClass: string): string {
+  // Tailwind color mappings (simplified - common colors)
+  const colorMap: Record<string, string> = {
+    'purple-600': '#9333ea',
+    'purple-500': '#a855f7',
+    'purple-50': '#faf5ff',
+    'pink-600': '#db2777',
+    'pink-500': '#ec4899',
+    'pink-50': '#fdf2f8',
+    'orange-500': '#f97316',
+    'orange-600': '#ea580c',
+    'blue-600': '#2563eb',
+    'blue-500': '#3b82f6',
+    'green-600': '#16a34a',
+    'green-500': '#22c55e',
+    'red-600': '#dc2626',
+    'red-500': '#ef4444',
+    'yellow-500': '#eab308',
+    'indigo-600': '#4f46e5',
+  };
+
+  // First, try to extract arbitrary values (e.g., "from-[#7c3aed] to-[#ec4899]")
+  const fromArbitraryMatch = tailwindClass.match(/from-\[(#[a-fA-F0-9]{6}|#[a-fA-F0-9]{3})\]/);
+  const toArbitraryMatch = tailwindClass.match(/to-\[(#[a-fA-F0-9]{6}|#[a-fA-F0-9]{3})\]/);
+
+  if (fromArbitraryMatch && toArbitraryMatch) {
+    return `linear-gradient(to right, ${fromArbitraryMatch[1]}, ${toArbitraryMatch[1]})`;
+  }
+
+  // Fall back to named Tailwind classes (e.g., "from-purple-600 to-pink-600")
+  const fromMatch = tailwindClass.match(/from-([\w-]+)/);
+  const toMatch = tailwindClass.match(/to-([\w-]+)/);
+
+  if (!fromMatch || !toMatch) return 'linear-gradient(to right, #9333ea, #db2777)';
+
+  const fromColor = colorMap[fromMatch[1]] || '#9333ea';
+  const toColor = colorMap[toMatch[1]] || '#db2777';
+
+  return `linear-gradient(to right, ${fromColor}, ${toColor})`;
+}
+
 // Generate complementary colors based on primary color
 function generateComplementaryColors(primaryColor: string) {
   const hsl = hexToHSL(primaryColor);
@@ -146,10 +198,12 @@ export default function ThemeManagement() {
 
   const createTheme = () => {
     setIsCreating(true);
+    const timestamp = Date.now();
+    const defaultName = 'Новая тема';
     setEditingTheme({
       _id: '',
-      name: 'Новая тема',
-      slug: 'new-theme',
+      name: defaultName,
+      slug: `${generateSlug(defaultName)}-${timestamp}`, // Unique slug with timestamp
       isDark: false,
       colors: {
         primary: '#7c3aed',
@@ -177,9 +231,11 @@ export default function ThemeManagement() {
     try {
       const token = localStorage.getItem('authToken');
       
-      // Check if slug already exists when creating
+      // Check if slug already exists (but exclude current theme if editing)
       if (isCreating) {
-        const existingTheme = themes.find(t => t.slug === editingTheme.slug);
+        const existingTheme = themes.find(t => 
+          t.slug === editingTheme.slug && t._id !== editingTheme._id
+        );
         if (existingTheme) {
           const confirm = window.confirm(
             `Тема с названием "${editingTheme.name}" уже существует.\n\nХотите обновить существующую тему?`
@@ -318,7 +374,14 @@ export default function ThemeManagement() {
             <input
               type="text"
               value={editingTheme.name}
-              onChange={(e) => setEditingTheme({ ...editingTheme, name: e.target.value })}
+              onChange={(e) => {
+                const newName = e.target.value;
+                setEditingTheme({ 
+                  ...editingTheme, 
+                  name: newName,
+                  slug: isCreating ? `${generateSlug(newName)}-${Date.now()}` : editingTheme.slug
+                });
+              }}
               style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
             />
           </div>
@@ -430,6 +493,21 @@ export default function ThemeManagement() {
                 <label style={{ display: 'block', fontWeight: '500', marginBottom: '5px', textTransform: 'capitalize' }}>
                   {key}:
                 </label>
+                
+                {/* Visual gradient preview */}
+                <div 
+                  style={{ 
+                    height: '60px', 
+                    width: '100%', 
+                    borderRadius: '8px',
+                    marginBottom: '10px',
+                    background: tailwindGradientToCSS(value),
+                    border: '2px solid #e5e7eb',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                  }}
+                  title={value}
+                />
+                
                 <input
                   type="text"
                   value={value}
