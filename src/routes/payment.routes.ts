@@ -825,6 +825,10 @@ async function activateExercise(userId: string, exerciseId: string, exerciseName
  */
 async function activateMarathon(userId: string, marathonId: string, paymentId: string) {
   try {
+    // Marathon IDs
+    const BASIC_MARATHON_ID = '697dde2ce5bf02ef8d04876d'; // Омолодись (3000₽)
+    const ADVANCED_MARATHON_ID = '69733e78f22ce2297694b8ad'; // +на губы и челюсть". Продвинутый "Омолодись (6000₽)
+
     // Находим существующую запись или создаем новую
     let enrollment = await MarathonEnrollment.findOne({ userId, marathonId });
 
@@ -864,6 +868,68 @@ async function activateMarathon(userId: string, marathonId: string, paymentId: s
 
     await enrollment.save();
     console.log('✅ Marathon activated for user:', userId, { marathonId, paymentId });
+
+    // BONUS: If user purchased Advanced marathon, also activate Basic marathon
+    if (marathonId === ADVANCED_MARATHON_ID) {
+      console.log('🎁 User purchased Advanced marathon - also activating Basic marathon');
+      
+      // Check if user already enrolled in basic marathon
+      let basicEnrollment = await MarathonEnrollment.findOne({ 
+        userId, 
+        marathonId: BASIC_MARATHON_ID 
+      });
+
+      const basicMarathon = await Marathon.findById(BASIC_MARATHON_ID);
+      if (!basicMarathon) {
+        console.error('❌ Basic marathon not found:', BASIC_MARATHON_ID);
+      } else {
+        if (basicEnrollment) {
+          // Update existing enrollment
+          basicEnrollment.status = 'active';
+          basicEnrollment.isPaid = true;
+          basicEnrollment.paymentId = paymentObjectId;
+          basicEnrollment.enrolledAt = new Date();
+          await basicEnrollment.save();
+          console.log('✅ Basic marathon enrollment updated for user:', userId);
+        } else {
+          // Create new enrollment for basic marathon
+          const basicExpiresAt = new Date(basicMarathon.startDate);
+          basicExpiresAt.setDate(basicExpiresAt.getDate() + basicMarathon.tenure);
+          
+          basicEnrollment = new MarathonEnrollment({
+            userId,
+            marathonId: BASIC_MARATHON_ID,
+            status: 'active',
+            isPaid: true,
+            paymentId: paymentObjectId,
+            currentDay: 1,
+            lastAccessedDay: 0,
+            completedDays: [],
+            enrolledAt: new Date(),
+            expiresAt: basicExpiresAt
+          });
+          await basicEnrollment.save();
+          console.log('✅ Basic marathon activated as bonus for user:', userId);
+        }
+
+        // Send enrollment email for basic marathon
+        const user = await User.findById(userId);
+        if (user?.email) {
+          try {
+            await emailService.sendMarathonEnrollmentEmail(
+              user.email,
+              basicMarathon.title,
+              basicMarathon.startDate,
+              true, // paid as part of advanced purchase
+              basicMarathon.telegramGroupUrl
+            );
+            console.log('📧 Basic marathon enrollment email sent');
+          } catch (emailError) {
+            console.error('Failed to send basic marathon enrollment email:', emailError);
+          }
+        }
+      }
+    }
 
     // Extend photo diary by 90 days
     const user = await User.findById(userId);
