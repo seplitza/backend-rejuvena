@@ -797,10 +797,19 @@ router.put('/admin/:id/days/:dayId', authMiddleware, async (req: AuthRequest, re
     const { dayId } = req.params;
     const updateData = req.body;
 
+    // Детальное логирование для отладки
+    console.log('🔄 Updating marathon day:', dayId);
+    console.log('📝 Update data:', JSON.stringify(updateData, null, 2));
+    console.log('📝 Description length:', updateData.description?.length || 0);
+    console.log('📝 Description preview:', updateData.description?.substring(0, 100) || '(empty)');
+
     const currentDay = await MarathonDay.findById(dayId);
     if (!currentDay) {
       return res.status(404).json({ error: 'Day not found' });
     }
+
+    console.log('📅 Current day number:', currentDay.dayNumber);
+    console.log('📅 Current description length:', currentDay.description?.length || 0);
 
     // Пересчитываем новые упражнения при обновлении (только для дней > 1)
     if (currentDay.dayNumber > 1 && updateData.exerciseGroups) {
@@ -826,6 +835,9 @@ router.put('/admin/:id/days/:dayId', authMiddleware, async (req: AuthRequest, re
     }
 
     const day = await MarathonDay.findByIdAndUpdate(dayId, updateData, { new: true });
+
+    console.log('✅ Day updated successfully');
+    console.log('✅ New description length:', day?.description?.length || 0);
 
     return res.status(200).json({
       success: true,

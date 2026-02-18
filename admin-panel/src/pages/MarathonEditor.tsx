@@ -1141,7 +1141,7 @@ function DayItem({ day, availableExercises, exerciseCategories, onUpdate, onDele
 
         <div style={{ display: 'flex', gap: '8px' }}>
           <button
-            onClick={onEditToggle}
+            onClick={handleSave}
             style={{
               padding: '6px 12px',
               background: isEditing ? '#4F46E5' : '#EEF2FF',
@@ -1153,7 +1153,7 @@ function DayItem({ day, availableExercises, exerciseCategories, onUpdate, onDele
               fontWeight: '500'
             }}
           >
-            {isEditing ? 'Закрыть' : 'Редактировать'}
+            {isEditing ? 'Сохранить' : 'Редактировать'}
           </button>
           <button
             onClick={() => day._id && onDelete(day._id)}
