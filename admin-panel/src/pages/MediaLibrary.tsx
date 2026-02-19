@@ -12,6 +12,40 @@ interface MediaFile {
 
 const API_URL = window.location.origin;
 
+// Функция транслитерации кириллицы в латиницу
+const transliterate = (text: string): string => {
+  const cyrillicToLatin: { [key: string]: string } = {
+    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo',
+    'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
+    'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+    'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch', 'ъ': '',
+    'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya',
+    'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D', 'Е': 'E', 'Ё': 'Yo',
+    'Ж': 'Zh', 'З': 'Z', 'И': 'I', 'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M',
+    'Н': 'N', 'О': 'O', 'П': 'P', 'Р': 'R', 'С': 'S', 'Т': 'T', 'У': 'U',
+    'Ф': 'F', 'Х': 'H', 'Ц': 'Ts', 'Ч': 'Ch', 'Ш': 'Sh', 'Щ': 'Sch', 'Ъ': '',
+    'Ы': 'Y', 'Ь': '', 'Э': 'E', 'Ю': 'Yu', 'Я': 'Ya',
+    ' ': '-', '_': '-'
+  };
+
+  return text.split('').map(char => cyrillicToLatin[char] || char).join('')
+    .replace(/[^a-zA-Z0-9.-]/g, '-') // Заменяем все небезопасные символы на дефис
+    .replace(/-+/g, '-') // Убираем множественные дефисы
+    .replace(/^-|-$/g, ''); // Убираем дефисы в начале и конце
+};
+
+// Функция переименования файла с транслитерацией
+const renameFile = (file: File): File => {
+  const lastDotIndex = file.name.lastIndexOf('.');
+  const name = lastDotIndex !== -1 ? file.name.substring(0, lastDotIndex) : file.name;
+  const extension = lastDotIndex !== -1 ? file.name.substring(lastDotIndex) : '';
+  
+  const transliteratedName = transliterate(name);
+  const newFileName = `${transliteratedName}${extension}`;
+  
+  return new File([file], newFileName, { type: file.type });
+};
+
 export default function MediaLibrary() {
   const [files, setFiles] = useState<MediaFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,8 +116,11 @@ export default function MediaLibrary() {
       // Загружаем файлы последовательно (можно распараллелить при необходимости)
       for (const file of validFiles) {
         try {
+          // Транслитерируем имя файла
+          const renamedFile = renameFile(file);
+          
           const formData = new FormData();
-          formData.append('file', file);
+          formData.append('file', renamedFile);
 
           const token = getAuthToken();
           const response = await fetch(`${API_URL}/api/media/upload`, {
@@ -98,7 +135,7 @@ export default function MediaLibrary() {
             successCount++;
           } else {
             errorCount++;
-            console.error(`Ошибка загрузки ${file.name}:`, await response.text());
+            console.error(`Ошибка загрузки ${renamedFile.name}:`, await response.text());
           }
         } catch (error) {
           errorCount++;
@@ -321,7 +358,7 @@ export default function MediaLibrary() {
                   marginBottom: '8px',
                   wordBreak: 'break-word'
                 }}>
-                  {file.filename}
+                  {decodeURIComponent(file.filename)}
                 </div>
 
                 <div style={{
