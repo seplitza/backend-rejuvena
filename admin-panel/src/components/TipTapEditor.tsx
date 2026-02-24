@@ -6,6 +6,12 @@ import Typography from '@tiptap/extension-typography';
 import { useState, useRef } from 'react';
 import { Node } from '@tiptap/core';
 
+// Функция для извлечения src из iframe кода
+const extractIframeSrc = (iframeCode: string): string | null => {
+  const srcMatch = iframeCode.match(/src=["']([^"']+)["']/);
+  return srcMatch ? srcMatch[1] : null;
+};
+
 // Функция для парсинга video URL и получения embed кода
 const getVideoEmbedUrl = (url: string): { embedUrl: string; type: string; isPrivate?: boolean } | null => {
   // YouTube
@@ -35,6 +41,19 @@ const getVideoEmbedUrl = (url: string): { embedUrl: string; type: string; isPriv
     return {
       embedUrl: `https://rutube.ru/play/embed/${rutubeMatch[1]}`,
       type: 'rutube'
+    };
+  }
+
+  // VK Video - video_ext.php (embed URL с параметрами)
+  // Поддержка приватных видео через video_ext.php
+  const vkExtRegex = /vkvideo\.ru\/video_ext\.php\?([^"'\s]+)/;
+  const vkExtMatch = url.match(vkExtRegex);
+  if (vkExtMatch) {
+    // Это уже готовый embed URL из iframe
+    return {
+      embedUrl: url,
+      type: 'vk',
+      isPrivate: false
     };
   }
 
@@ -357,10 +376,23 @@ export default function TipTapEditor({ content, onChange }: TipTapEditorProps) {
   };
 
   const addVideo = () => {
-    const url = prompt('Введите URL видео (YouTube, Vimeo, Rutube, VK, OK.ru):');
-    if (!url) return;
+    const input = prompt('Введите URL видео или iframe код (YouTube, Vimeo, Rutube, VK, OK.ru):');
+    if (!input) return;
 
-    const videoData = getVideoEmbedUrl(url);
+    let videoUrl = input.trim();
+    
+    // Проверяем, не является ли это iframe кодом
+    if (videoUrl.includes('<iframe') && videoUrl.includes('</iframe>')) {
+      const src = extractIframeSrc(videoUrl);
+      if (src) {
+        videoUrl = src;
+      } else {
+        alert('Не удалось извлечь src из iframe кода. Проверьте формат.');
+        return;
+      }
+    }
+
+    const videoData = getVideoEmbedUrl(videoUrl);
     if (!videoData) {
       alert('Не удалось распознать URL видео. Поддерживаются: YouTube, Vimeo, Rutube, VK, OK.ru');
       return;
@@ -593,7 +625,7 @@ export default function TipTapEditor({ content, onChange }: TipTapEditorProps) {
       }}>
         💡 <strong>Markdown shortcuts:</strong> **жирный**, *курсив*, ## заголовок, * список, [текст](ссылка)
         <br />
-        🎥 <strong>Видео:</strong> Поддерживаются YouTube, Vimeo, Rutube, VK, OK.ru - просто вставьте ссылку через кнопку "🎥 Видео"
+        🎥 <strong>Видео:</strong> Поддерживаются YouTube, Vimeo, Rutube, VK, OK.ru - можно вставить ссылку или iframe код через кнопку "🎥 Видео"
       </div>
 
       {/* Editor */}
