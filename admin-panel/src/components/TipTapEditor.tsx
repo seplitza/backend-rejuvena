@@ -107,27 +107,26 @@ const VideoEmbed = Node.create({
       src: {
         default: null,
       },
-      width: {
-        default: '100%',
-      },
-      height: {
-        default: '400px',
-      },
     };
   },
 
   parseHTML() {
     return [
       {
+        tag: 'div.video-embed-wrapper',
+        getAttrs: (node) => {
+          if (typeof node === 'string') return null;
+          const element = node as HTMLElement;
+          const iframe = element.querySelector('iframe');
+          return iframe ? { src: iframe.getAttribute('src') } : null;
+        },
+      },
+      {
         tag: 'iframe[src]',
         getAttrs: (node) => {
           if (typeof node === 'string') return null;
           const element = node as HTMLElement;
-          return {
-            src: element.getAttribute('src'),
-            width: element.getAttribute('width') || '100%',
-            height: element.getAttribute('height') || '400px',
-          };
+          return { src: element.getAttribute('src') };
         },
       },
     ];
@@ -135,14 +134,17 @@ const VideoEmbed = Node.create({
 
   renderHTML({ HTMLAttributes }) {
     return [
-      'iframe',
-      {
-        ...HTMLAttributes,
-        frameborder: '0',
-        allowfullscreen: 'true',
-        allow: 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture',
-        style: `width: ${HTMLAttributes.width}; height: ${HTMLAttributes.height}; border-radius: 8px; margin: 16px 0;`
-      },
+      'div',
+      { class: 'video-embed-wrapper' },
+      [
+        'iframe',
+        {
+          ...HTMLAttributes,
+          frameborder: '0',
+          allowfullscreen: 'true',
+          allow: 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture',
+        },
+      ],
     ];
   },
 });
@@ -405,8 +407,6 @@ export default function TipTapEditor({ content, onChange }: TipTapEditorProps) {
         type: 'videoEmbed',
         attrs: {
           src: videoData.embedUrl,
-          width: '100%',
-          height: '400px',
         },
       })
       .run();
@@ -701,18 +701,36 @@ export default function TipTapEditor({ content, onChange }: TipTapEditorProps) {
           outline: 3px solid #4F46E5;
         }
         
-        .ProseMirror iframe {
-          max-width: 100%;
+        .ProseMirror .video-embed-wrapper {
+          position: relative;
           width: 100%;
-          height: 400px;
-          border-radius: 8px;
           margin: 16px 0;
-          display: block;
-          border: none;
+          border-radius: 8px;
+          overflow: hidden;
+          aspect-ratio: 16 / 9;
+          background: #000;
         }
         
-        .ProseMirror iframe.ProseMirror-selectednode {
+        .ProseMirror .video-embed-wrapper iframe {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          border: none;
+          border-radius: 8px;
+        }
+        
+        .ProseMirror .video-embed-wrapper.ProseMirror-selectednode {
           outline: 3px solid #4F46E5;
+        }
+        
+        /* Для старых браузеров без поддержки aspect-ratio */
+        @supports not (aspect-ratio: 16 / 9) {
+          .ProseMirror .video-embed-wrapper {
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            height: 0;
+          }
         }
         
         .ProseMirror p {
