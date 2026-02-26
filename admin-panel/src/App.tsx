@@ -21,6 +21,13 @@ import LandingEditor from './pages/LandingEditor';
 import ThemeManagement from './pages/ThemeManagement';
 import OfferManagement from './pages/OfferManagement';
 import OfferEditor from './pages/OfferEditor';
+// Shop pages
+import Products from './pages/Products';
+import ProductEditor from './pages/ProductEditor';
+import ProductCategories from './pages/ProductCategories';
+import PromoCodes from './pages/PromoCodes';
+import FortuneWheel from './pages/FortuneWheel';
+import ShopOrders from './pages/ShopOrders';
 import Layout from './components/Layout';
 import { getAuthToken } from './utils/auth';
 
@@ -71,6 +78,14 @@ function App() {
           <Route path="offers" element={<OfferManagement />} />
           <Route path="offers/new" element={<OfferEditor />} />
           <Route path="offers/edit/:id" element={<OfferEditor />} />
+          {/* Shop routes */}
+          <Route path="products" element={<Products />} />
+          <Route path="products/new" element={<ProductEditor />} />
+          <Route path="products/:id" element={<ProductEditor />} />
+          <Route path="product-categories" element={<ProductCategories />} />
+          <Route path="promo-codes" element={<PromoCodes />} />
+          <Route path="fortune-wheel" element={<FortuneWheel />} />
+          <Route path="shop-orders" element={<ShopOrders />} />
         </Route>
       </Routes>
     </Router>

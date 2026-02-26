@@ -270,6 +270,104 @@ export default function Layout({ onLogout }: LayoutProps) {
           >
             💰 Доходы
           </Link>
+
+          {/* Shop Section */}
+          <div style={{
+            borderTop: '1px solid #374151',
+            margin: '16px 0',
+            paddingTop: '16px'
+          }}>
+            <div style={{
+              fontSize: '12px',
+              fontWeight: '600',
+              color: '#9CA3AF',
+              textTransform: 'uppercase',
+              marginBottom: '12px',
+              letterSpacing: '0.05em'
+            }}>
+              Магазин
+            </div>
+
+            <Link
+              to="/products"
+              style={{
+                display: 'block',
+                padding: '12px 16px',
+                marginBottom: '8px',
+                borderRadius: '8px',
+                textDecoration: 'none',
+                color: 'white',
+                background: isActive('/products') ? '#4F46E5' : 'transparent',
+                transition: 'background 0.2s'
+              }}
+            >
+              📦 Товары
+            </Link>
+
+            <Link
+              to="/product-categories"
+              style={{
+                display: 'block',
+                padding: '12px 16px',
+                marginBottom: '8px',
+                borderRadius: '8px',
+                textDecoration: 'none',
+                color: 'white',
+                background: isActive('/product-categories') ? '#4F46E5' : 'transparent',
+                transition: 'background 0.2s'
+              }}
+            >
+              📂 Категории товаров
+            </Link>
+
+            <Link
+              to="/shop-orders"
+              style={{
+                display: 'block',
+                padding: '12px 16px',
+                marginBottom: '8px',
+                borderRadius: '8px',
+                textDecoration: 'none',
+                color: 'white',
+                background: isActive('/shop-orders') ? '#4F46E5' : 'transparent',
+                transition: 'background 0.2s'
+              }}
+            >
+              🛍️ Заказы магазина
+            </Link>
+
+            <Link
+              to="/promo-codes"
+              style={{
+                display: 'block',
+                padding: '12px 16px',
+                marginBottom: '8px',
+                borderRadius: '8px',
+                textDecoration: 'none',
+                color: 'white',
+                background: isActive('/promo-codes') ? '#4F46E5' : 'transparent',
+                transition: 'background 0.2s'
+              }}
+            >
+              🎟️ Промокоды
+            </Link>
+
+            <Link
+              to="/fortune-wheel"
+              style={{
+                display: 'block',
+                padding: '12px 16px',
+                marginBottom: '8px',
+                borderRadius: '8px',
+                textDecoration: 'none',
+                color: 'white',
+                background: isActive('/fortune-wheel') ? '#4F46E5' : 'transparent',
+                transition: 'background 0.2s'
+              }}
+            >
+              🎡 Колесо Фортуны
+            </Link>
+          </div>
         </nav>
 
         <button
