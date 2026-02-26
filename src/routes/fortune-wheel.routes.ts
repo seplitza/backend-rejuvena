@@ -44,7 +44,7 @@ router.get('/prizes', async (req, res) => {
  */
 router.get('/available-spins', authMiddleware, async (req, res) => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Требуется авторизация' });
     }
@@ -69,7 +69,7 @@ router.get('/available-spins', authMiddleware, async (req, res) => {
  */
 router.post('/spin', authMiddleware, async (req, res) => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Требуется авторизация' });
     }
@@ -141,6 +141,12 @@ router.post('/spin', authMiddleware, async (req, res) => {
     // Decrease available spins
     user.fortuneWheelSpins -= 1;
 
+    // Increase prize win count
+    if (!selectedPrize.timesWon) {
+      selectedPrize.timesWon = 0;
+    }
+    selectedPrize.timesWon += 1;
+
     await user.save();
 
     // Save spin history
@@ -182,7 +188,7 @@ router.post('/spin', authMiddleware, async (req, res) => {
  */
 router.get('/my-gifts', authMiddleware, async (req, res) => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Требуется авторизация' });
     }
@@ -218,7 +224,7 @@ router.get('/my-gifts', authMiddleware, async (req, res) => {
  */
 router.get('/my-history', authMiddleware, async (req, res) => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Требуется авторизация' });
     }

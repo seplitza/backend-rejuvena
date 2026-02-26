@@ -5,8 +5,15 @@ export interface IProductCategory extends Document {
   slug: string;
   description?: string;
   image?: string;
+  imageUrl?: string; // Alias for image
   parentCategory?: mongoose.Types.ObjectId;
   order: number;
+  sortOrder: number; // Alias for order
+  seo?: {
+    metaTitle?: string;
+    metaDescription?: string;
+    metaKeywords?: string;
+  };
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -40,15 +47,35 @@ const ProductCategorySchema = new Schema<IProductCategory>(
       type: Number,
       default: 0
     },
+    seo: {
+      metaTitle: String,
+      metaDescription: String,
+      metaKeywords: String
+    },
     isActive: {
       type: Boolean,
       default: true
     }
   },
   {
-    timestamps: true
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
   }
 );
+
+// Virtual fields as aliases
+ProductCategorySchema.virtual('imageUrl').get(function() {
+  return this.image;
+}).set(function(value: string) {
+  this.image = value;
+});
+
+ProductCategorySchema.virtual('sortOrder').get(function() {
+  return this.order;
+}).set(function(value: number) {
+  this.order = value;
+});
 
 // Индексы
 ProductCategorySchema.index({ slug: 1 });

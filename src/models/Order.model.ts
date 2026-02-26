@@ -2,23 +2,36 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 interface IOrderItem {
   productId: mongoose.Types.ObjectId;
+  product: mongoose.Types.ObjectId; // Alias for productId
   productName: string;
   quantity: number;
   price: number;
+  total?: number;
 }
 
 interface IShippingAddress {
   fullName: string;
+  name?: string; // Alias for fullName
   phone: string;
   address: string;
+  street?: string;
+  house?: string;
+  flat?: string;
   city: string;
   postalCode: string;
   country: string;
 }
 
+interface IStatusHistoryItem {
+  status: string;
+  timestamp: Date;
+  notes?: string;
+}
+
 export interface IOrder extends Document {
   orderNumber: string;
   userId: mongoose.Types.ObjectId;
+  user: mongoose.Types.ObjectId; // Alias for userId
   items: IOrderItem[];
   
   // Адрес доставки
@@ -32,15 +45,24 @@ export interface IOrder extends Document {
   promoDiscount?: number;
   personalDiscount?: number;
   wheelGiftId?: string;
+  fortuneWheelGifts?: Array<{
+    giftId: mongoose.Types.ObjectId;
+    description: string;
+    discount?: number;
+  }>;
   total: number;
+  totalAmount: number; // Alias for total
   
   // Статус
-  status: 'pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
-  paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
+  status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
+  statusHistory: IStatusHistoryItem[];
+  paymentStatus: 'awaiting_payment' | 'pending' | 'completed' | 'paid' | 'failed' | 'refunded';
+  paymentMethod?: 'online' | 'cash' | 'card';
   paymentId?: mongoose.Types.ObjectId;
   
   // Доставка СДЭК
-  shippingMethod: 'cdek_courier' | 'cdek_pickup' | 'cdek_postamat';
+  shippingMethod: 'cdek_courier' | 'cdek_pickup' | 'cdek_postamat' | 'courier' | 'pickup' | 'cdek';
+  deliveryMethod?: string; // Alias for shippingMethod
   cdekOrderId?: string;
   cdekTrackingNumber?: string;
   cdekBarcode?: string;
@@ -48,6 +70,10 @@ export interface IOrder extends Document {
   cdekOfficeName?: string;
   cdekOfficeAddress?: string;
   estimatedDeliveryDate?: Date;
+  
+  // Additional
+  notes?: string;
+  contactMethod?: 'phone' | 'telegram' | 'whatsapp' | 'viber' | 'vk';
   
   // Даты
   createdAt: Date;
@@ -142,13 +168,22 @@ const OrderSchema = new Schema<IOrder>(
     },
     status: {
       type: String,
-      enum: ['pending', 'paid', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'],
+      enum: ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'],
       default: 'pending'
     },
+    statusHistory: [{
+      status: String,
+      timestamp: { type: Date, default: Date.now },
+      notes: String
+    }],
     paymentStatus: {
       type: String,
-      enum: ['pending', 'paid', 'failed', 'refunded'],
+      enum: ['awaiting_payment', 'pending', 'completed', 'paid', 'failed', 'refunded'],
       default: 'pending'
+    },
+    paymentMethod: {
+      type: String,
+      enum: ['online', 'cash', 'card']
     },
     paymentId: {
       type: Schema.Types.ObjectId,
@@ -156,8 +191,18 @@ const OrderSchema = new Schema<IOrder>(
     },
     shippingMethod: {
       type: String,
-      enum: ['cdek_courier', 'cdek_pickup', 'cdek_postamat'],
+      enum: ['cdek_courier', 'cdek_pickup', 'cdek_postamat', 'courier', 'pickup', 'cdek'],
       required: true
+    },
+    fortuneWheelGifts: [{
+      giftId: Schema.Types.ObjectId,
+      description: String,
+      discount: Number
+    }],
+    notes: String,
+    contactMethod: {
+      type: String,
+      enum: ['phone', 'telegram', 'whatsapp', 'viber', 'vk']
     },
     cdekOrderId: String,
     cdekTrackingNumber: String,
@@ -172,9 +217,30 @@ const OrderSchema = new Schema<IOrder>(
     cancelledAt: Date
   },
   {
-    timestamps: true
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
   }
 );
+
+// Virtual fields as aliases
+OrderSchema.virtual('user').get(function() {
+  return this.userId;
+}).set(function(value: mongoose.Types.ObjectId) {
+  this.userId = value;
+});
+
+OrderSchema.virtual('totalAmount').get(function() {
+  return this.total;
+}).set(function(value: number) {
+  this.total = value;
+});
+
+OrderSchema.virtual('deliveryMethod').get(function() {
+  return this.shippingMethod;
+}).set(function(value: string) {
+  this.shippingMethod = value as any;
+});
 
 // Индексы
 OrderSchema.index({ orderNumber: 1 });

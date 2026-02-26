@@ -176,9 +176,9 @@ async function seedShop() {
     const creamProduct = createdProducts[1];
     const bundleProduct = createdProducts[2];
     
-    bundleProduct.bundleItems = [
-      { product: serumProduct._id, quantity: 1 },
-      { product: creamProduct._id, quantity: 1 }
+    (bundleProduct as any).bundleItems = [
+      { productId: serumProduct._id, quantity: 1 },
+      { productId: creamProduct._id, quantity: 1 }
     ];
     await bundleProduct.save();
 

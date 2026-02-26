@@ -2,10 +2,13 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IPromoCode extends Document {
   code: string;
+  description?: string;
   discountType: 'percentage' | 'fixed' | 'freeShipping';
   discountValue: number;
+  freeShipping?: boolean;
   minOrderAmount?: number;
   maxUses?: number;
+  usageLimit?: number; // Alias for maxUses
   usedCount: number;
   validFrom: Date;
   validUntil: Date;
@@ -26,6 +29,7 @@ const PromoCodeSchema = new Schema<IPromoCode>(
       uppercase: true,
       trim: true
     },
+    description: String,
     discountType: {
       type: String,
       enum: ['percentage', 'fixed', 'freeShipping'],
@@ -35,6 +39,10 @@ const PromoCodeSchema = new Schema<IPromoCode>(
       type: Number,
       required: true,
       min: 0
+    },
+    freeShipping: {
+      type: Boolean,
+      default: false
     },
     minOrderAmount: {
       type: Number,
@@ -76,9 +84,18 @@ const PromoCodeSchema = new Schema<IPromoCode>(
     }
   },
   {
-    timestamps: true
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
   }
 );
+
+// Virtual field - usageLimit as alias for maxUses
+PromoCodeSchema.virtual('usageLimit').get(function() {
+  return this.maxUses;
+}).set(function(value: number | undefined) {
+  this.maxUses = value;
+});
 
 // Индексы
 PromoCodeSchema.index({ code: 1 });

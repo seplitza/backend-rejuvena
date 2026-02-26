@@ -292,9 +292,9 @@ router.post('/validate-promo', async (req, res) => {
     }
 
     // Check product/category restrictions
-    if (promo.applicableProducts.length > 0) {
+    if (promo.applicableProducts && promo.applicableProducts.length > 0) {
       const hasApplicableProducts = productIds.some((id: string) => 
-        promo.applicableProducts.some(p => p.toString() === id)
+        promo.applicableProducts?.some(p => p.toString() === id)
       );
       if (!hasApplicableProducts) {
         return res.status(400).json({ error: 'Промокод не применим к товарам в корзине' });
@@ -333,7 +333,7 @@ router.post('/validate-promo', async (req, res) => {
  */
 router.post('/checkout', authMiddleware, async (req, res) => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Требуется авторизация' });
     }
@@ -423,8 +423,8 @@ router.post('/checkout', authMiddleware, async (req, res) => {
     if (fortuneWheelGiftIds && fortuneWheelGiftIds.length > 0) {
       const gifts = user.fortuneWheelGifts?.filter(g => 
         fortuneWheelGiftIds.includes(g._id.toString()) &&
-        (!g.expiry || new Date(g.expiry) > new Date()) &&
-        !g.used
+        (!g.expiryDate || new Date(g.expiryDate) > new Date()) &&
+        !g.isUsed
       ) || [];
 
       for (const gift of gifts) {
@@ -434,7 +434,7 @@ router.post('/checkout', authMiddleware, async (req, res) => {
           discount: gift.discountPercent || 0
         });
         // Mark gift as used
-        gift.used = true;
+        gift.isUsed = true;
       }
     }
 
@@ -519,7 +519,7 @@ router.post('/checkout', authMiddleware, async (req, res) => {
  */
 router.get('/orders', authMiddleware, async (req, res) => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Требуется авторизация' });
     }
@@ -558,7 +558,7 @@ router.get('/orders', authMiddleware, async (req, res) => {
  */
 router.get('/orders/:id', authMiddleware, async (req, res) => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Требуется авторизация' });
     }

@@ -20,6 +20,7 @@ export interface IProduct extends Document {
   shortDescription: string;
   price: number;
   compareAtPrice?: number;
+  oldPrice?: number; // Alias for compareAtPrice
   sku: string;
   images: string[];
   category: mongoose.Types.ObjectId;
@@ -30,7 +31,13 @@ export interface IProduct extends Document {
   isBundle: boolean;
   bundleItems?: IBundleItem[];
   
-  // Маркетплейсы
+  // Маркетплейсы - direct fields
+  articleWB?: string;
+  skuOzon?: string;
+  lastPrice?: number;
+  lastChecked?: Date;
+  
+  // Маркетплейсы - nested (legacy)
   marketplaces?: {
     wildberries?: IMarketplaceInfo;
     ozon?: IMarketplaceInfo;
@@ -42,11 +49,17 @@ export interface IProduct extends Document {
     width: number;
     height: number;
   };
+  manufacturer?: string;
+  countryOfOrigin?: string;
   metadata?: {
     seoTitle?: string;
     seoDescription?: string;
     ingredients?: string;
     usage?: string;
+  };
+  seo?: {
+    metaTitle?: string;
+    metaDescription?: string;
   };
   createdAt: Date;
   updatedAt: Date;
@@ -127,6 +140,12 @@ const ProductSchema = new Schema<IProduct>(
         min: 1
       }
     }],
+    // Direct marketplace fields
+    articleWB: String,
+    skuOzon: String,
+    lastPrice: Number,
+    lastChecked: Date,
+    // Legacy nested format
     marketplaces: {
       wildberries: {
         url: String,
@@ -149,17 +168,32 @@ const ProductSchema = new Schema<IProduct>(
       width: Number,
       height: Number
     },
+    manufacturer: String,
+    countryOfOrigin: String,
     metadata: {
       seoTitle: String,
       seoDescription: String,
       ingredients: String,
       usage: String
+    },
+    seo: {
+      metaTitle: String,
+      metaDescription: String
     }
   },
   {
-    timestamps: true
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
   }
 );
+
+// Virtual field - oldPrice as alias for compareAtPrice
+ProductSchema.virtual('oldPrice').get(function() {
+  return this.compareAtPrice;
+}).set(function(value: number | undefined) {
+  this.compareAtPrice = value;
+});
 
 // Индексы
 ProductSchema.index({ slug: 1 });

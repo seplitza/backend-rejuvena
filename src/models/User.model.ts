@@ -17,9 +17,12 @@ interface IWheelGift {
   value: any;
   description: string;
   expiryDate?: Date;
+  expiry?: Date; // Alias for expiryDate
   isUsed: boolean;
+  used?: boolean; // Alias for isUsed
   usedAt?: Date;
   orderId?: string;
+  discountPercent?: number; // For discount type gifts
 }
 
 export interface IUser extends Document {

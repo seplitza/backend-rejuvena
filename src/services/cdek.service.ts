@@ -68,6 +68,10 @@ export class CDEKService {
       this.tokenExpiry = new Date();
       this.tokenExpiry.setSeconds(this.tokenExpiry.getSeconds() + response.data.expires_in - 300);
 
+      if (!this.accessToken) {
+        throw new Error('CDEK returned empty access token');
+      }
+
       return this.accessToken;
     } catch (error) {
       console.error('Error getting CDEK access token:', error);
