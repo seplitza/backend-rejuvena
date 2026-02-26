@@ -35,6 +35,9 @@ import orderAdminRoutes from './routes/admin/order-admin.routes';
 import promoCodeAdminRoutes from './routes/admin/promo-code-admin.routes';
 import categoryAdminRoutes from './routes/admin/category-admin.routes';
 
+// Cron jobs
+import { initCronJobs } from './cron-jobs';
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -110,6 +113,9 @@ const startServer = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/rejuvena');
     console.log('✅ Connected to MongoDB');
+
+    // Initialize cron jobs for shop
+    initCronJobs();
 
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
