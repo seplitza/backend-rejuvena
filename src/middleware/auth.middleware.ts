@@ -4,6 +4,10 @@ import jwt from 'jsonwebtoken';
 export interface AuthRequest extends Request {
   userId?: string;
   userRole?: string;
+  user?: {
+    userId: string;
+    role: string;
+  };
 }
 
 export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -18,10 +22,28 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
     req.userId = decoded.userId;
     req.userRole = decoded.role;
     
+    // Also set req.user for compatibility with shop routes
+    req.user = {
+      userId: decoded.userId,
+      role: decoded.role
+    };
+    
     next();
   } catch (error) {
     return res.status(401).json({ message: 'Invalid or expired token' });
   }
+};
+
+export const adminMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (!req.userRole) {
+    return res.status(401).json({ message: 'Authentication required' });
+  }
+  
+  if (req.userRole !== 'admin' && req.userRole !== 'superadmin') {
+    return res.status(403).json({ message: 'Access denied. Admin rights required.' });
+  }
+  
+  next();
 };
 
 export const superAdminOnly = (req: AuthRequest, res: Response, next: NextFunction) => {

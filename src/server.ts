@@ -27,6 +27,14 @@ import emailTemplateRoutes from './routes/email-template.routes';
 import emailCampaignRoutes from './routes/email-campaign.routes';
 import webhookRoutes from './routes/webhook.routes';
 
+// Shop routes
+import shopRoutes from './routes/shop.routes';
+import fortuneWheelRoutes from './routes/fortune-wheel.routes';
+import productAdminRoutes from './routes/admin/product-admin.routes';
+import orderAdminRoutes from './routes/admin/order-admin.routes';
+import promoCodeAdminRoutes from './routes/admin/promo-code-admin.routes';
+import categoryAdminRoutes from './routes/admin/category-admin.routes';
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -81,6 +89,16 @@ app.use('/api/comments', commentRoutes);
 app.use('/api/admin/comments', commentAdminRoutes);
 app.use('/api/admin/email-templates', emailTemplateRoutes);
 app.use('/api/admin/email-campaigns', emailCampaignRoutes);
+
+// Shop routes (public)
+app.use('/api/shop', shopRoutes);
+app.use('/api/fortune-wheel', fortuneWheelRoutes);
+
+// Shop admin routes
+app.use('/api/admin/products', productAdminRoutes);
+app.use('/api/admin/orders', orderAdminRoutes);
+app.use('/api/admin/promo-codes', promoCodeAdminRoutes);
+app.use('/api/admin/categories', categoryAdminRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
