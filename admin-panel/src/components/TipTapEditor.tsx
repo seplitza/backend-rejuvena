@@ -3,8 +3,11 @@ import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
 import Typography from '@tiptap/extension-typography';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Node } from '@tiptap/core';
+import data from '@emoji-mart/data';
+import Picker from '@emoji-mart/react';
+
 
 // Функция для извлечения src из iframe кода
 const extractIframeSrc = (iframeCode: string): string | null => {
@@ -189,6 +192,7 @@ const DivWithAttributes = Node.create({
 interface TipTapEditorProps {
   content: string;
   onChange: (content: string) => void;
+  placeholder?: string;
 }
 
 // В продакшене админка на /admin/, API на том же домене
@@ -230,7 +234,9 @@ export default function TipTapEditor({ content, onChange }: TipTapEditorProps) {
   const [uploading, setUploading] = useState(false);
   const [showHTML, setShowHTML] = useState(false);
   const [htmlContent, setHtmlContent] = useState('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
 
   const editor = useEditor({
     extensions: [
@@ -293,6 +299,23 @@ export default function TipTapEditor({ content, onChange }: TipTapEditorProps) {
   if (!editor) {
     return null;
   }
+
+  // Close emoji picker on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as HTMLElement)) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    if (showEmojiPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showEmojiPicker]);
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -582,6 +605,50 @@ export default function TipTapEditor({ content, onChange }: TipTapEditorProps) {
         >
           🎥 Видео
         </button>
+        
+        {/* Emoji Picker Button */}
+        <div style={{ position: 'relative', display: 'inline-block' }}>
+          <button
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            style={{
+              padding: '6px 12px',
+              border: '1px solid #D1D5DB',
+              background: showEmojiPicker ? '#4F46E5' : 'white',
+              color: showEmojiPicker ? 'white' : '#374151',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            😀 Emoji
+          </button>
+          
+          {showEmojiPicker && (
+            <div
+              ref={emojiPickerRef}
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                marginTop: '8px',
+                zIndex: 1000,
+                boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
+              }}
+            >
+              <Picker
+                data={data}
+                onEmojiSelect={(emoji: any) => {
+                  editor.chain().focus().insertContent(emoji.native).run();
+                  setShowEmojiPicker(false);
+                }}
+                theme="light"
+                locale="ru"
+                previewPosition="none"
+                skinTonePosition="search"
+              />
+            </div>
+          )}
+        </div>
         
         {/* HTML Mode Toggle Button */}
         <button

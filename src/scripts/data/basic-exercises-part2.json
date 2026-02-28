@@ -1,0 +1,31 @@
+,
+    {
+      "id": "69b07b3f-1fe8-4c67-822c-59cf5cc52c1f",
+      "categoryName": "Posture",
+      "order": 1,
+      "exercises": []
+    },
+    {
+      "id": "42a40d13-0e16-4d0f-94cf-a4d74349bvf3",
+      "categoryName": "Basic massages",
+      "order": 2,
+      "exercises": []
+    },
+    {
+      "id": "7f99d50e-b97a-44a2-b5ce-c2c8743933f0",
+      "categoryName": "Sculpting massage",
+      "order": 5,
+      "exercises": []
+    },
+    {
+      "id": "0c5fc3b3-19a2-4b76-b6bc-5a59627d7bf2",
+      "categoryName": "Vacuum massage",
+      "order": 6,
+      "exercises": []
+    },
+    {
+      "id": "40d3daf1-58d3-4b73-984b-e3e67b6d2222",
+      "categoryName": "Better in the evening",
+      "order": 7,
+      "exercises": []
+    }

@@ -34,6 +34,7 @@ import productAdminRoutes from './routes/admin/product-admin.routes';
 import orderAdminRoutes from './routes/admin/order-admin.routes';
 import promoCodeAdminRoutes from './routes/admin/promo-code-admin.routes';
 import categoryAdminRoutes from './routes/admin/category-admin.routes';
+import wildberriesAdminRoutes from './routes/admin/wildberries-admin.routes';
 
 // Cron jobs
 import { initCronJobs } from './cron-jobs';
@@ -102,6 +103,7 @@ app.use('/api/admin/products', productAdminRoutes);
 app.use('/api/admin/orders', orderAdminRoutes);
 app.use('/api/admin/promo-codes', promoCodeAdminRoutes);
 app.use('/api/admin/categories', categoryAdminRoutes);
+app.use('/api/admin/wildberries', wildberriesAdminRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

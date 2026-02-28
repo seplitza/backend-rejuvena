@@ -17,6 +17,10 @@ interface User {
     totalSpent: number;
     lastPaymentDate?: Date;
     lastPaymentAmount?: number;
+    totalOrders: number;
+    totalOrdersAmount: number;
+    paidOrders: number;
+    lastOrderDate?: Date;
     activeMarathons: number;
     completedMarathons: number;
     totalMarathons: number;
@@ -31,12 +35,16 @@ interface User {
 }
 
 interface UserDetails {
-  user: User;
+  user: User & {
+    personalDiscount?: number;
+    personalDiscountExpiry?: Date;
+  };
   payments: any[];
   marathons: any[];
   exercisePurchases: any[];
   notes: any[];
   badges: any[];
+  orders: any[];
   summary: {
     totalSpent: number;
     totalPayments: number;
@@ -45,8 +53,20 @@ interface UserDetails {
     completedMarathons: number;
     totalExercises: number;
     completedExercises: number;
+    totalOrders: number;
+    totalOrdersAmount: number;
+    paidOrders: number;
   };
 }
+
+// Helper functions
+const formatMoney = (amount: number): string => {
+  return new Intl.NumberFormat('ru-RU', {
+    style: 'decimal',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(amount) + ' ₽';
+};
 
 export default function Users() {
   const [users, setUsers] = useState<User[]>([]);
@@ -63,6 +83,12 @@ export default function Users() {
   
   const [noteContent, setNoteContent] = useState('');
   const [noteType, setNoteType] = useState<'note' | 'email' | 'telegram'>('note');
+  const [activeTab, setActiveTab] = useState<'purchases' | 'marathons' | 'notes' | 'badges' | 'orders'>('orders');
+  
+  // Personal discount state
+  const [editingDiscount, setEditingDiscount] = useState(false);
+  const [discountValue, setDiscountValue] = useState<number>(0);
+  const [discountExpiry, setDiscountExpiry] = useState<string>('');
   
   // Multi-select state
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
@@ -164,6 +190,46 @@ export default function Users() {
     }
   };
 
+  const updatePersonalDiscount = async () => {
+    if (!selectedUser) return;
+
+    try {
+      const response = await fetch(`${API_URL}/api/admin/users/${selectedUser._id}/discount`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          personalDiscount: discountValue > 0 ? discountValue : null,
+          personalDiscountExpiry: discountExpiry ? new Date(discountExpiry).toISOString() : null
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setEditingDiscount(false);
+        loadUserDetails(selectedUser._id);
+        loadUsers();
+        alert('Скидка обновлена успешно!');
+      }
+    } catch (error) {
+      console.error('Error updating discount:', error);
+      alert('Ошибка обновления скидки');
+    }
+  };
+
+  const startEditingDiscount = () => {
+    if (userDetails?.user) {
+      setDiscountValue(userDetails.user.personalDiscount || 0);
+      const expiry = userDetails.user.personalDiscountExpiry;
+      if (expiry) {
+        const date = new Date(expiry);
+        setDiscountExpiry(date.toISOString().split('T')[0]);
+      } else {
+        setDiscountExpiry('');
+      }
+      setEditingDiscount(true);
+    }
+  };
+
   const openUserModal = (user: User) => {
     setSelectedUser(user);
     loadUserDetails(user._id);
@@ -254,14 +320,6 @@ export default function Users() {
       month: 'short',
       day: 'numeric'
     });
-  };
-
-  const formatMoney = (amount: number) => {
-    return new Intl.NumberFormat('ru-RU', {
-      style: 'currency',
-      currency: 'RUB',
-      minimumFractionDigits: 0
-    }).format(amount / 100);
   };
 
   return (
@@ -488,7 +546,7 @@ export default function Users() {
         <div style={{ background: 'white', padding: '20px', borderRadius: '12px' }}>
           <div style={{ fontSize: '13px', color: '#6B7280', marginBottom: '8px' }}>Общая выручка</div>
           <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#8B5CF6' }}>
-            {formatMoney(users.reduce((sum, u) => sum + u.stats.totalSpent, 0))}
+            {formatMoney(users.reduce((sum, u) => sum + u.stats.totalSpent + u.stats.totalOrdersAmount, 0))}
           </div>
         </div>
       </div>
@@ -663,17 +721,22 @@ export default function Users() {
                       ) : '—'}
                     </td>
                     <td style={{ padding: '16px' }}>
-                      {user.stats.totalPayments > 0 ? (
+                      {user.stats.totalPayments > 0 || user.stats.totalOrders > 0 ? (
                         <div>
                           <div style={{ fontSize: '14px', fontWeight: '600', color: '#1F2937' }}>
-                            {formatMoney(user.stats.totalSpent)}
+                            {formatMoney(user.stats.totalSpent + user.stats.totalOrdersAmount)}
                           </div>
                           <div style={{ fontSize: '12px', color: '#6B7280' }}>
-                            {user.stats.totalPayments} платежей
+                            {user.stats.totalPayments + user.stats.totalOrders} покупок
                           </div>
-                          {user.stats.lastPaymentDate && (
+                          {(user.stats.lastPaymentDate || user.stats.lastOrderDate) && (
                             <div style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '2px' }}>
-                              {formatDate(user.stats.lastPaymentDate)}
+                              {formatDate(user.stats.lastPaymentDate && user.stats.lastOrderDate 
+                                ? (new Date(user.stats.lastPaymentDate) > new Date(user.stats.lastOrderDate) 
+                                  ? user.stats.lastPaymentDate 
+                                  : user.stats.lastOrderDate)
+                                : (user.stats.lastPaymentDate || user.stats.lastOrderDate)
+                              )}
                             </div>
                           )}
                         </div>
@@ -829,28 +892,168 @@ export default function Users() {
                   <div style={{ background: '#F9FAFB', padding: '16px', borderRadius: '12px' }}>
                     <div style={{ fontSize: '12px', color: '#6B7280', marginBottom: '6px' }}>Всего потрачено</div>
                     <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#1F2937' }}>
-                      {formatMoney(userDetails.summary.totalSpent)}
+                      {formatMoney(userDetails.summary?.totalSpent || 0)}
+                    </div>
+                  </div>
+                  <div style={{ background: '#F9FAFB', padding: '16px', borderRadius: '12px' }}>
+                    <div style={{ fontSize: '12px', color: '#6B7280', marginBottom: '6px' }}>Заказов</div>
+                    <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#1F2937' }}>
+                      {userDetails.summary?.paidOrders || 0} / {userDetails.summary?.totalOrders || 0}
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '4px' }}>
+                      {formatMoney(userDetails.summary?.totalOrdersAmount || 0)}
                     </div>
                   </div>
                   <div style={{ background: '#F9FAFB', padding: '16px', borderRadius: '12px' }}>
                     <div style={{ fontSize: '12px', color: '#6B7280', marginBottom: '6px' }}>Платежей</div>
                     <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#1F2937' }}>
-                      {userDetails.summary.successfulPayments} / {userDetails.summary.totalPayments}
+                      {userDetails.summary?.successfulPayments || 0} / {userDetails.summary?.totalPayments || 0}
                     </div>
                   </div>
                   <div style={{ background: '#F9FAFB', padding: '16px', borderRadius: '12px' }}>
                     <div style={{ fontSize: '12px', color: '#6B7280', marginBottom: '6px' }}>Марафоны</div>
                     <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#1F2937' }}>
-                      {userDetails.summary.activeMarathons} / {userDetails.marathons.length}
+                      {userDetails.summary?.activeMarathons || 0} / {userDetails.marathons?.length || 0}
                     </div>
                   </div>
                   <div style={{ background: '#F9FAFB', padding: '16px', borderRadius: '12px' }}>
                     <div style={{ fontSize: '12px', color: '#6B7280', marginBottom: '6px' }}>Упражнения</div>
                     <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#1F2937' }}>
-                      {userDetails.summary.completedExercises} / {userDetails.summary.totalExercises}
+                      {userDetails.summary?.completedExercises || 0} / {userDetails.summary?.totalExercises || 0}
                     </div>
                   </div>
+                  <div style={{ 
+                    background: userDetails.user?.personalDiscount ? '#FEF3C7' : '#F9FAFB', 
+                    padding: '16px', 
+                    borderRadius: '12px',
+                    border: userDetails.user?.personalDiscount ? '2px solid #F59E0B' : 'none'
+                  }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      marginBottom: '6px'
+                    }}>
+                      <div style={{ fontSize: '12px', color: '#6B7280' }}>Личная скидка 🎁</div>
+                      <button
+                        onClick={startEditingDiscount}
+                        style={{
+                          padding: '4px 8px',
+                          background: 'white',
+                          border: '1px solid #D1D5DB',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '11px'
+                        }}
+                      >
+                        ✏️ Изменить
+                      </button>
+                    </div>
+                    <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#1F2937' }}>
+                      {userDetails.user?.personalDiscount || 0}%
+                    </div>
+                    {userDetails.user?.personalDiscountExpiry && (
+                      <div style={{ fontSize: '11px', color: '#92400E', marginTop: '4px' }}>
+                        До {new Date(userDetails.user.personalDiscountExpiry).toLocaleDateString('ru-RU')}
+                      </div>
+                    )}
+                  </div>
                 </div>
+
+                {/* Personal Discount Editor */}
+                {editingDiscount && (
+                  <div style={{
+                    background: '#FEF3C7',
+                    border: '2px solid #F59E0B',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    marginBottom: '24px'
+                  }}>
+                    <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: '#78350F' }}>
+                      🎁 Редактирование личной скидки
+                    </h3>
+                    <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ display: 'block', fontSize: '13px', color: '#6B7280', marginBottom: '8px' }}>
+                          Размер скидки (%)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={discountValue}
+                          onChange={(e) => setDiscountValue(Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+                          style={{
+                            width: '100%',
+                            padding: '10px',
+                            border: '1px solid #D1D5DB',
+                            borderRadius: '8px',
+                            fontSize: '14px'
+                          }}
+                        />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ display: 'block', fontSize: '13px', color: '#6B7280', marginBottom: '8px' }}>
+                          Действует до (опционально)
+                        </label>
+                        <input
+                          type="date"
+                          value={discountExpiry}
+                          onChange={(e) => setDiscountExpiry(e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '10px',
+                            border: '1px solid #D1D5DB',
+                            borderRadius: '8px',
+                            fontSize: '14px'
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div style={{ 
+                      background: '#FEF9C3', 
+                      padding: '12px', 
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      color: '#713F12',
+                      marginBottom: '16px'
+                    }}>
+                      ℹ️ Личная скидка применяется автоматически при оформлении заказа. 
+                      Может быть начислена из колеса фортуны, промокода или вручную администратором.
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      <button
+                        onClick={updatePersonalDiscount}
+                        style={{
+                          padding: '10px 20px',
+                          background: '#F59E0B',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          fontWeight: '600'
+                        }}
+                      >
+                        💾 Сохранить
+                      </button>
+                      <button
+                        onClick={() => setEditingDiscount(false)}
+                        style={{
+                          padding: '10px 20px',
+                          background: 'white',
+                          color: '#6B7280',
+                          border: '1px solid #D1D5DB',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontSize: '14px'
+                        }}
+                      >
+                        Отмена
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Tabs */}
                 <div style={{ marginBottom: '24px' }}>
@@ -860,32 +1063,374 @@ export default function Users() {
                     borderBottom: '1px solid #E5E7EB',
                     marginBottom: '24px'
                   }}>
-                    {['Покупки', 'Марафоны', 'Заметки', 'Бейджи'].map((tab) => (
+                    {(() => {
+                      // Фильтруем заказы: курсы vs товары
+                      const courseKeywords = [
+                        'курс', 'консультац', 'индивидуальная', 'индивидуальный',
+                        'марафон', 'тренинг', 'вебинар', 'обучение',
+                        'доступ', 'подписка', 'premium', 'омолодись',
+                        'заняти', 'тренер', 'коуч', 'сеанс'
+                      ];
+                      const orders = userDetails.orders || [];
+                      const courseOrders = orders.filter((order: any) => 
+                        order.items?.some((item: any) => {
+                          const productName = (item.productName || '').toLowerCase();
+                          return courseKeywords.some(keyword => productName.includes(keyword));
+                        })
+                      );
+                      const productOrders = orders.filter((order: any) => 
+                        !courseOrders.some((co: any) => co._id === order._id)
+                      );
+                      const totalCoursePurchases = (userDetails.summary?.totalPayments || 0) + courseOrders.length;
+                      
+                      return [
+                        { key: 'orders', label: 'Заказы товаров', count: productOrders.length },
+                        { key: 'purchases', label: 'Покупки курсов', count: totalCoursePurchases },
+                        { key: 'marathons', label: 'Марафоны', count: userDetails.marathons?.length || 0 },
+                        { key: 'notes', label: 'Заметки', count: userDetails.notes?.length || 0 },
+                        { key: 'badges', label: 'Бейджи', count: userDetails.badges?.length || 0 }
+                      ];
+                    })().map((tab) => (
                       <div
-                        key={tab}
+                        key={tab.key}
+                        onClick={() => setActiveTab(tab.key as any)}
                         style={{
                           padding: '12px 20px',
                           cursor: 'pointer',
                           fontWeight: '500',
-                          borderBottom: '2px solid #3B82F6',
-                          color: '#3B82F6'
+                          borderBottom: activeTab === tab.key ? '2px solid #3B82F6' : '2px solid transparent',
+                          color: activeTab === tab.key ? '#3B82F6' : '#6B7280',
+                          transition: 'all 0.2s'
                         }}
                       >
-                        {tab}
+                        {tab.label}
+                        {tab.count > 0 && (
+                          <span style={{
+                            marginLeft: '6px',
+                            padding: '2px 6px',
+                            background: activeTab === tab.key ? '#DBEAFE' : '#F3F4F6',
+                            borderRadius: '10px',
+                            fontSize: '11px',
+                            fontWeight: '600'
+                          }}>
+                            {tab.count}
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>
 
-                  {/* Add Note Section */}
-                  <div style={{
-                    background: '#F9FAFB',
-                    padding: '20px',
-                    borderRadius: '12px',
-                    marginBottom: '24px'
-                  }}>
-                    <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px' }}>
-                      Добавить заметку
-                    </h3>
+                  {/* Tab Content */}
+                  {activeTab === 'orders' && (() => {
+                    // Фильтруем только заказы товаров (не курсов)
+                    const courseKeywords = ['курс', 'консультац', 'марафон', 'тренинг', 'вебинар', 'обучение', 'доступ', 'подписка', 'premium', 'омолодись'];
+                    const orders = userDetails.orders || [];
+                    const productOrders = orders.filter((order: any) => 
+                      !order.items?.some((item: any) => 
+                        courseKeywords.some(keyword => item.productName?.toLowerCase().includes(keyword))
+                      )
+                    );
+                    
+                    return (
+                    <div>
+                      <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>
+                        Заказы товаров ({productOrders.length})
+                      </h3>
+                      {productOrders.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                          {productOrders.map((order: any) => (
+                            <div
+                              key={order._id}
+                              style={{
+                                background: 'white',
+                                border: '2px solid #E5E7EB',
+                                padding: '20px',
+                                borderRadius: '12px'
+                              }}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
+                                <div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                                    <div style={{ fontSize: '16px', fontWeight: '700' }}>
+                                      Заказ #{order.orderNumber}
+                                    </div>
+                                    {order.orderNumber.startsWith('CRM-') && (
+                                      <span style={{
+                                        padding: '3px 10px',
+                                        borderRadius: '6px',
+                                        fontSize: '11px',
+                                        fontWeight: '600',
+                                        background: '#FEF3C7',
+                                        color: '#92400E'
+                                      }}>
+                                        📦 Из старой CRM
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div style={{ fontSize: '13px', color: '#6B7280' }}>
+                                    {new Date(order.createdAt).toLocaleString('ru-RU', {
+                                      day: '2-digit',
+                                      month: '2-digit',
+                                      year: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })}
+                                  </div>
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                  <div style={{
+                                    padding: '4px 12px',
+                                    background: order.paymentStatus === 'paid' || order.paymentStatus === 'completed' ? '#D1FAE5' : 
+                                               order.paymentStatus === 'awaiting_payment' ? '#FEF3C7' : '#FEE2E2',
+                                    color: order.paymentStatus === 'paid' || order.paymentStatus === 'completed' ? '#065F46' :
+                                           order.paymentStatus === 'awaiting_payment' ? '#92400E' : '#991B1B',
+                                    borderRadius: '12px',
+                                    fontSize: '12px',
+                                    fontWeight: '600',
+                                    display: 'inline-block',
+                                    marginBottom: '6px'
+                                  }}>
+                                    {order.paymentStatus === 'paid' || order.paymentStatus === 'completed' ? '✅ Оплачен' :
+                                     order.paymentStatus === 'awaiting_payment' ? '⏳ Ожидает оплаты' : '❌ Не оплачен'}
+                                  </div>
+                                  <div style={{
+                                    padding: '4px 12px',
+                                    background: order.status === 'delivered' ? '#DBEAFE' :
+                                               order.status === 'shipped' ? '#E0E7FF' :
+                                               order.status === 'processing' ? '#FEF3C7' : '#F3F4F6',
+                                    color: order.status === 'delivered' ? '#1E40AF' :
+                                           order.status === 'shipped' ? '#4338CA' :
+                                           order.status === 'processing' ? '#92400E' : '#6B7280',
+                                    borderRadius: '12px',
+                                    fontSize: '12px',
+                                    fontWeight: '600',
+                                    display: 'inline-block'
+                                  }}>
+                                    {order.status === 'delivered' ? '📦 Доставлен' :
+                                     order.status === 'shipped' ? '🚚 Отправлен' :
+                                     order.status === 'processing' ? '⏱️ В обработке' : 'Ожидает'}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Order Items */}
+                              <div style={{ marginBottom: '12px', paddingTop: '12px', borderTop: '1px solid #E5E7EB' }}>
+                                {order.items && order.items.map((item: any, idx: number) => (
+                                  <div key={idx} style={{ fontSize: '14px', color: '#374151', marginBottom: '6px' }}>
+                                    • {item.productName} × {item.quantity} — {formatMoney(item.price * item.quantity)}
+                                  </div>
+                                ))}
+                              </div>
+
+                              {/* Order Total */}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '12px', borderTop: '2px solid #E5E7EB' }}>
+                                <div>
+                                  {order.discount > 0 && (
+                                    <div style={{ fontSize: '13px', color: '#DC2626', marginBottom: '4px' }}>
+                                      Скидка: -{formatMoney(order.discount)}
+                                    </div>
+                                  )}
+                                  {order.shippingCost > 0 && (
+                                    <div style={{ fontSize: '13px', color: '#6B7280' }}>
+                                      Доставка: +{formatMoney(order.shippingCost)}
+                                    </div>
+                                  )}
+                                </div>
+                                <div style={{ fontSize: '18px', fontWeight: '700', color: '#1F2937' }}>
+                                  Итого: {formatMoney(order.total)}
+                                </div>
+                              </div>
+
+                              {/* Notes for CRM orders */}
+                              {order.notes && (
+                                <div style={{
+                                  marginTop: '12px',
+                                  padding: '12px',
+                                  background: '#FEF3C7',
+                                  borderLeft: '4px solid #F59E0B',
+                                  borderRadius: '6px',
+                                  fontSize: '13px',
+                                  color: '#78350F'
+                                }}>
+                                  📝 {order.notes}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{
+                          padding: '40px',
+                          textAlign: 'center',
+                          color: '#9CA3AF',
+                          background: '#F9FAFB',
+                          borderRadius: '12px'
+                        }}>
+                          Заказов товаров пока нет
+                        </div>
+                      )}
+                    </div>
+                    );
+                  })()}
+                  
+                  {activeTab === 'purchases' && (() => {
+                    // Собираем все покупки курсов: payments + заказы с курсами
+                    const courseKeywords = [
+                      'курс', 'консультац', 'индивидуальная', 'индивидуальный',
+                      'марафон', 'тренинг', 'вебинар', 'обучение', 
+                      'доступ', 'подписка', 'premium', 'омолодись',
+                      'заняти', 'тренер', 'коуч', 'сеанс'
+                    ];
+                    const orders = userDetails.orders || [];
+                    const payments = userDetails.payments || [];
+                    
+                    // Для отладки
+                    console.log('DEBUG: Total orders:', orders.length);
+                    orders.forEach((order: any) => {
+                      console.log('Order:', order.orderNumber, 'Items:', order.items?.map((i: any) => i.productName));
+                    });
+                    
+                    const courseOrders = orders.filter((order: any) => {
+                      const hasCourseItem = order.items?.some((item: any) => {
+                        const productName = (item.productName || '').toLowerCase();
+                        const matches = courseKeywords.some(keyword => productName.includes(keyword));
+                        console.log('  Item:', item.productName, '-> Match:', matches);
+                        return matches;
+                      });
+                      console.log('Order', order.orderNumber, 'is course:', hasCourseItem);
+                      return hasCourseItem;
+                    });
+                    
+                    console.log('DEBUG: Course orders found:', courseOrders.length);
+                    const totalPurchases = payments.length + courseOrders.length;
+                    
+                    return (
+                    <div>
+                      <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>
+                        Покупки курсов и услуг ({totalPurchases})
+                      </h3>
+                      {totalPurchases > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                          {/* Заказы с курсами из CRM */}
+                          {courseOrders.map((order: any) => (
+                            <div
+                              key={`order-${order._id}`}
+                              style={{
+                                background: 'white',
+                                border: '2px solid #E5E7EB',
+                                padding: '20px',
+                                borderRadius: '12px'
+                              }}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
+                                <div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                                    <div style={{ fontSize: '16px', fontWeight: '700' }}>
+                                      {order.items[0]?.productName || 'Курс'}
+                                    </div>
+                                    <span style={{
+                                      padding: '3px 10px',
+                                      borderRadius: '6px',
+                                      fontSize: '11px',
+                                      fontWeight: '600',
+                                      background: '#FEF3C7',
+                                      color: '#92400E'
+                                    }}>
+                                      📦 Из старой CRM
+                                    </span>
+                                  </div>
+                                  <div style={{ fontSize: '13px', color: '#6B7280' }}>
+                                    Заказ #{order.orderNumber} • {new Date(order.createdAt).toLocaleDateString('ru-RU')}
+                                  </div>
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                  <div style={{ fontSize: '18px', fontWeight: '700', color: '#1F2937', marginBottom: '6px' }}>
+                                    {formatMoney(order.total)}
+                                  </div>
+                                  <div style={{
+                                    padding: '4px 12px',
+                                    background: order.paymentStatus === 'paid' || order.paymentStatus === 'completed' ? '#D1FAE5' : '#FEE2E2',
+                                    color: order.paymentStatus === 'paid' || order.paymentStatus === 'completed' ? '#065F46' : '#991B1B',
+                                    borderRadius: '12px',
+                                    fontSize: '12px',
+                                    fontWeight: '600',
+                                    display: 'inline-block'
+                                  }}>
+                                    {order.paymentStatus === 'paid' || order.paymentStatus === 'completed' ? '✅ Оплачен' : '❌ Не оплачен'}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          
+                          {/* Обычные платежи */}
+                          {payments.slice(0, 10).map((payment: any) => (
+                            <div
+                              key={`payment-${payment._id}`}
+                              style={{
+                                background: 'white',
+                                border: '1px solid #E5E7EB',
+                                padding: '16px',
+                                borderRadius: '8px',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center'
+                              }}
+                            >
+                              <div>
+                                <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '4px' }}>
+                                  {payment.description}
+                                </div>
+                                <div style={{ fontSize: '12px', color: '#6B7280' }}>
+                                  {formatDate(payment.createdAt)} • {payment.orderNumber}
+                                </div>
+                              </div>
+                              <div style={{ textAlign: 'right' }}>
+                                <div style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '4px' }}>
+                                  {formatMoney(payment.amount)}
+                                </div>
+                                <div style={{
+                                  padding: '2px 8px',
+                                  background: payment.status === 'succeeded' ? '#D1FAE5' : '#FEE2E2',
+                                  color: payment.status === 'succeeded' ? '#065F46' : '#991B1B',
+                                  borderRadius: '4px',
+                                  fontSize: '11px',
+                                  fontWeight: '600',
+                                  display: 'inline-block'
+                                }}>
+                                  {payment.status === 'succeeded' ? 'УСПЕШНО' : 'ОТКЛОНЕН'}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{
+                          padding: '40px',
+                          textAlign: 'center',
+                          color: '#9CA3AF',
+                          background: '#F9FAFB',
+                          borderRadius: '12px'
+                        }}>
+                          Покупок курсов пока нет
+                        </div>
+                      )}
+                    </div>
+                    );
+                  })()}
+
+                  {activeTab === 'notes' && (
+                    <div>
+                      {/* Add Note Section */}
+                      <div style={{
+                        background: '#F9FAFB',
+                        padding: '20px',
+                        borderRadius: '12px',
+                        marginBottom: '24px'
+                      }}>
+                        <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px' }}>
+                          Добавить заметку
+                        </h3>
                     <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
                       {(['note', 'email', 'telegram'] as const).map((type) => (
                         <button
@@ -939,7 +1484,7 @@ export default function Users() {
                   </div>
 
                   {/* Notes List */}
-                  {userDetails.notes.length > 0 && (
+                  {userDetails.notes && userDetails.notes.length > 0 && (
                     <div style={{ marginBottom: '24px' }}>
                       <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px' }}>
                         История заметок ({userDetails.notes.length})
@@ -980,12 +1525,16 @@ export default function Users() {
                       </div>
                     </div>
                   )}
+                    </div>
+                  )}
 
+                  {activeTab === 'marathons' && (
+                    <div>
                   {/* Marathons */}
-                  {userDetails.marathons.length > 0 && (
+                  {userDetails.marathons && userDetails.marathons.length > 0 ? (
                     <div style={{ marginBottom: '24px' }}>
                       <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px' }}>
-                        Марафоны ({userDetails.marathons.length})
+                        Марафоны ({userDetails.marathons?.length || 0})
                       </h3>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         {userDetails.marathons.map((marathon: any) => (
@@ -1032,55 +1581,67 @@ export default function Users() {
                         ))}
                       </div>
                     </div>
+                  ) : (
+                    <div style={{
+                      padding: '40px',
+                      textAlign: 'center',
+                      color: '#9CA3AF',
+                      background: '#F9FAFB',
+                      borderRadius: '12px'
+                    }}>
+                      Марафонов пока нет
+                    </div>
+                  )}
+                    </div>
                   )}
 
-                  {/* Payments */}
-                  {userDetails.payments.length > 0 && (
+                  {activeTab === 'badges' && (
                     <div>
-                      <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px' }}>
-                        История платежей ({userDetails.payments.length})
+                      <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>
+                        Бейджи ({userDetails.badges?.length || 0})
                       </h3>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        {userDetails.payments.slice(0, 5).map((payment: any) => (
-                          <div
-                            key={payment._id}
-                            style={{
-                              background: 'white',
-                              border: '1px solid #E5E7EB',
-                              padding: '16px',
-                              borderRadius: '8px',
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center'
-                            }}
-                          >
-                            <div>
-                              <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '4px' }}>
-                                {payment.description}
+                      {userDetails.badges && userDetails.badges.length > 0 ? (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
+                          {userDetails.badges.map((badge: any) => (
+                            <div
+                              key={badge._id}
+                              style={{
+                                background: 'white',
+                                border: '2px solid #E5E7EB',
+                                padding: '20px',
+                                borderRadius: '12px',
+                                minWidth: '200px',
+                                textAlign: 'center'
+                              }}
+                            >
+                              <div style={{ fontSize: '48px', marginBottom: '12px' }}>
+                                {badge.icon || '🏆'}
                               </div>
-                              <div style={{ fontSize: '12px', color: '#6B7280' }}>
-                                {formatDate(payment.createdAt)} • {payment.orderNumber}
+                              <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '8px', color: '#1F2937' }}>
+                                {badge.name}
                               </div>
-                            </div>
-                            <div style={{ textAlign: 'right' }}>
-                              <div style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '4px' }}>
-                                {formatMoney(payment.amount)}
-                              </div>
-                              <div style={{
-                                padding: '2px 8px',
-                                background: payment.status === 'succeeded' ? '#D1FAE5' : '#FEE2E2',
-                                color: payment.status === 'succeeded' ? '#065F46' : '#991B1B',
-                                borderRadius: '4px',
-                                fontSize: '11px',
-                                fontWeight: '600',
-                                display: 'inline-block'
-                              }}>
-                                {payment.status === 'succeeded' ? 'УСПЕШНО' : 'ОТКЛОНЕН'}
+                              {badge.description && (
+                                <div style={{ fontSize: '13px', color: '#6B7280', marginBottom: '12px' }}>
+                                  {badge.description}
+                                </div>
+                              )}
+                              <div style={{ fontSize: '12px', color: '#9CA3AF' }}>
+                                Получен: {new Date(badge.earnedAt || badge.createdAt).toLocaleDateString('ru-RU')}
                               </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{
+                          padding: '40px',
+                          textAlign: 'center',
+                          color: '#9CA3AF',
+                          background: '#F9FAFB',
+                          borderRadius: '12px'
+                        }}>
+                          Бейджей пока нет
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

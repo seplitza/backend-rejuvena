@@ -72,6 +72,11 @@ ssh $SERVER_USER@$SERVER_IP << 'EOF'
 
   # Create logs directory
   mkdir -p logs
+  
+  # Create uploads directory for photo-diary
+  mkdir -p uploads/photo-diary/originals
+  mkdir -p uploads/photo-diary/cropped
+  echo "✅ Created uploads directories"
 
   # Start with PM2
   pm2 delete rejuvena-backend || true

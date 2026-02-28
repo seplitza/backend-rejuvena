@@ -30,6 +30,7 @@ interface Order {
     address: string;
     city: string;
   };
+  notes?: string;
   createdAt: string;
 }
 
@@ -45,8 +46,8 @@ export default function ShopOrders() {
 
   const loadOrders = async () => {
     try {
-      const response = await api.get('/shop/orders');
-      setOrders(response.data);
+      const response = await api.get('/admin/orders');
+      setOrders(response.data.orders || response.data);
     } catch (error) {
       console.error('Failed to load orders:', error);
     } finally {
@@ -235,8 +236,22 @@ export default function ShopOrders() {
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '16px' }}>
               <div>
-                <div style={{ fontSize: '18px', fontWeight: '700', color: '#1F2937', marginBottom: '4px' }}>
-                  Заказ #{order.orderNumber}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <div style={{ fontSize: '18px', fontWeight: '700', color: '#1F2937' }}>
+                    Заказ #{order.orderNumber}
+                  </div>
+                  {order.orderNumber.startsWith('CRM-') && (
+                    <span style={{
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      fontWeight: '600',
+                      background: '#FEF3C7',
+                      color: '#92400E'
+                    }}>
+                      Из старой CRM
+                    </span>
+                  )}
                 </div>
                 <div style={{ fontSize: '14px', color: '#6B7280' }}>
                   {formatDate(order.createdAt)}
@@ -268,6 +283,24 @@ export default function ShopOrders() {
                 <div>{order.shippingAddress.city}, {order.shippingAddress.address}</div>
               </div>
             </div>
+
+            {/* Notes for CRM orders */}
+            {order.notes && (
+              <div style={{
+                marginBottom: '16px',
+                padding: '12px',
+                background: '#FEF3C7',
+                borderLeft: '4px solid #F59E0B',
+                borderRadius: '8px'
+              }}>
+                <div style={{ fontSize: '12px', fontWeight: '600', color: '#92400E', marginBottom: '4px' }}>
+                  📝 Примечание:
+                </div>
+                <div style={{ fontSize: '13px', color: '#78350F' }}>
+                  {order.notes}
+                </div>
+              </div>
+            )}
 
             {/* Items */}
             <div style={{ marginBottom: '16px' }}>

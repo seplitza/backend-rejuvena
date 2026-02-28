@@ -1,11 +1,11 @@
 export const setAuthToken = (token: string) => {
-  localStorage.setItem('authToken', token);
+  localStorage.setItem('adminToken', token);
 };
 
 export const getAuthToken = () => {
-  return localStorage.getItem('authToken');
+  return localStorage.getItem('adminToken');
 };
 
 export const removeAuthToken = () => {
-  localStorage.removeItem('authToken');
+  localStorage.removeItem('adminToken');
 };

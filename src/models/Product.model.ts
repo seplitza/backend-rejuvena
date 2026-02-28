@@ -16,7 +16,7 @@ interface IMarketplaceInfo {
 export interface IProduct extends Document {
   name: string;
   slug: string;
-  description: string;
+  description: string; // Rich text (HTML from TipTap)
   shortDescription: string;
   price: number;
   compareAtPrice?: number;
@@ -31,7 +31,67 @@ export interface IProduct extends Document {
   isBundle: boolean;
   bundleItems?: IBundleItem[];
   
-  // Маркетплейсы - direct fields
+  // Общие характеристики для всех маркетплейсов
+  brand?: string; // Бренд
+  manufacturer?: string; // Производитель
+  countryOfOrigin?: string; // Страна происхождения
+  barcode?: string; // Штрихкод (EAN-13, UPC и т.д.)
+  vendorCode?: string; // Артикул производителя
+  
+  // Габариты и вес
+  weight?: number; // Вес в граммах
+  dimensions?: {
+    length: number; // Длина в см
+    width: number;  // Ширина в см
+    height: number; // Высота в см
+  };
+  
+  // Характеристики товара (массив ключ-значение)
+  characteristics?: Array<{
+    name: string;
+    value: string;
+  }>;
+  
+  // Wildberries
+  wildberries?: {
+    nmId?: string; // Артикул WB (номенклатура)
+    url?: string; // Ссылка на товар
+    price?: number; // Цена на WB
+    sizes?: Array<{ // Размерный ряд
+      techSize: string;
+      wbSize: string;
+    }>;
+  };
+  
+  // Ozon
+  ozon?: {
+    sku?: string; // SKU Ozon
+    fboSku?: string; // FBO SKU
+    fbsSku?: string; // FBS SKU
+    url?: string; // Ссылка на товар
+    price?: number; // Цена на Ozon
+    categoryId?: number; // ID категории Ozon
+  };
+  
+  // Yandex Market
+  yandexMarket?: {
+    sku?: string; // SKU Yandex Market
+    url?: string; // Ссылка на товар
+    price?: number; // Цена на YM
+    shopSku?: string; // SKU магазина
+    warranty?: string; // Гарантия
+  };
+  
+  // Avito
+  avito?: {
+    id?: string; // ID объявления Avito
+    url?: string; // Ссылка на объявление
+    price?: number; // Цена на Avito
+    condition?: 'new' | 'used'; // Состояние товара
+    address?: string; // Адрес продавца
+  };
+  
+  // Маркетплейсы - direct fields (legacy)
   articleWB?: string;
   skuOzon?: string;
   lastPrice?: number;
@@ -43,19 +103,14 @@ export interface IProduct extends Document {
     ozon?: IMarketplaceInfo;
   };
   
-  weight?: number;
-  dimensions?: {
-    length: number;
-    width: number;
-    height: number;
-  };
-  manufacturer?: string;
-  countryOfOrigin?: string;
+  // SEO и метаданные
   metadata?: {
     seoTitle?: string;
     seoDescription?: string;
-    ingredients?: string;
-    usage?: string;
+    ingredients?: string; // Состав (для косметики/БАДов)
+    usage?: string; // Инструкция по применению
+    contraindications?: string; // Противопоказания
+    certifications?: string[]; // Сертификаты
   };
   seo?: {
     metaTitle?: string;
@@ -140,7 +195,69 @@ const ProductSchema = new Schema<IProduct>(
         min: 1
       }
     }],
-    // Direct marketplace fields
+    
+    // Общие характеристики
+    brand: String,
+    manufacturer: String,
+    countryOfOrigin: String,
+    barcode: String,
+    vendorCode: String,
+    
+    weight: Number,
+    dimensions: {
+      length: Number,
+      width: Number,
+      height: Number
+    },
+    
+    characteristics: [{
+      name: String,
+      value: String
+    }],
+    
+    // Wildberries
+    wildberries: {
+      nmId: String,
+      url: String,
+      price: Number,
+      sizes: [{
+        techSize: String,
+        wbSize: String
+      }]
+    },
+    
+    // Ozon
+    ozon: {
+      sku: String,
+      fboSku: String,
+      fbsSku: String,
+      url: String,
+      price: Number,
+      categoryId: Number
+    },
+    
+    // Yandex Market
+    yandexMarket: {
+      sku: String,
+      url: String,
+      price: Number,
+      shopSku: String,
+      warranty: String
+    },
+    
+    // Avito
+    avito: {
+      id: String,
+      url: String,
+      price: Number,
+      condition: {
+        type: String,
+        enum: ['new', 'used']
+      },
+      address: String
+    },
+    
+    // Direct marketplace fields (legacy)
     articleWB: String,
     skuOzon: String,
     lastPrice: Number,
@@ -160,21 +277,13 @@ const ProductSchema = new Schema<IProduct>(
         lastChecked: Date
       }
     },
-    weight: {
-      type: Number
-    },
-    dimensions: {
-      length: Number,
-      width: Number,
-      height: Number
-    },
-    manufacturer: String,
-    countryOfOrigin: String,
     metadata: {
       seoTitle: String,
       seoDescription: String,
       ingredients: String,
-      usage: String
+      usage: String,
+      contraindications: String,
+      certifications: [String]
     },
     seo: {
       metaTitle: String,

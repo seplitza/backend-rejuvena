@@ -38,8 +38,8 @@ export default function Products() {
 
   const loadProducts = async () => {
     try {
-      const response = await api.get('/shop/products');
-      setProducts(response.data);
+      const response = await api.get('/admin/products');
+      setProducts(response.data.products || []);
     } catch (error) {
       console.error('Failed to load products:', error);
     } finally {
@@ -49,8 +49,8 @@ export default function Products() {
 
   const loadCategories = async () => {
     try {
-      const response = await api.get('/shop/categories');
-      setCategories(response.data);
+      const response = await api.get('/admin/categories');
+      setCategories(response.data || []);
     } catch (error) {
       console.error('Failed to load categories:', error);
     }
@@ -60,7 +60,7 @@ export default function Products() {
     if (!confirm('Удалить этот товар?')) return;
 
     try {
-      await api.delete(`/shop/products/${id}`);
+      await api.delete(`/admin/products/${id}`);
       setProducts(products.filter(p => p._id !== id));
     } catch (error) {
       console.error('Failed to delete product:', error);
@@ -70,7 +70,7 @@ export default function Products() {
 
   const handleToggleActive = async (product: Product) => {
     try {
-      const response = await api.put(`/shop/products/${product._id}`, {
+      const response = await api.put(`/admin/products/${product._id}`, {
         ...product,
         isActive: !product.isActive
       });

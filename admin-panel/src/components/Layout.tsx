@@ -367,6 +367,22 @@ export default function Layout({ onLogout }: LayoutProps) {
             >
               🎡 Колесо Фортуны
             </Link>
+
+            <Link
+              to="/wildberries"
+              style={{
+                display: 'block',
+                padding: '12px 16px',
+                marginBottom: '8px',
+                borderRadius: '8px',
+                textDecoration: 'none',
+                color: 'white',
+                background: isActive('/wildberries') ? '#4F46E5' : 'transparent',
+                transition: 'background 0.2s'
+              }}
+            >
+              🟣 Wildberries
+            </Link>
           </div>
         </nav>
 

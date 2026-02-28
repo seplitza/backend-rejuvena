@@ -7,6 +7,7 @@ import Payment from '../models/Payment.model';
 import MarathonEnrollment from '../models/MarathonEnrollment.model';
 import MarathonExerciseProgress from '../models/MarathonExerciseProgress.model';
 import ExercisePurchase from '../models/ExercisePurchase.model';
+import Order from '../models/Order.model';
 import mongoose from 'mongoose';
 
 const router = Router();
@@ -60,11 +61,18 @@ router.get('/users', authMiddleware, async (req: AuthRequest, res: Response) => 
     const enrichedUsers = await Promise.all(
       users.map(async (user) => {
         const userId = user._id;
+        const objectId = new mongoose.Types.ObjectId(user._id.toString());
 
         // Payments stats
         const payments = await Payment.find({ userId, status: 'succeeded' }).lean();
         const totalSpent = payments.reduce((sum, p) => sum + p.amount, 0);
         const lastPayment = payments.length > 0 ? payments[payments.length - 1] : null;
+
+        // Orders stats (магазин)
+        const orders = await Order.find({ userId: objectId }).lean();
+        const paidOrders = orders.filter(o => o.paymentStatus === 'paid' || o.paymentStatus === 'completed');
+        const totalOrdersAmount = paidOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+        const lastOrder = orders.length > 0 ? orders[orders.length - 1] : null;
 
         // Marathon enrollments
         const enrollments = await MarathonEnrollment.find({ userId }).lean();
@@ -100,6 +108,10 @@ router.get('/users', authMiddleware, async (req: AuthRequest, res: Response) => 
             totalSpent,
             lastPaymentDate: lastPayment?.createdAt,
             lastPaymentAmount: lastPayment?.amount,
+            totalOrders: orders.length,
+            totalOrdersAmount,
+            paidOrders: paidOrders.length,
+            lastOrderDate: lastOrder?.createdAt,
             activeMarathons,
             completedMarathons,
             totalMarathons: enrollments.length,
@@ -152,6 +164,9 @@ router.get('/users/:id/details', authMiddleware, async (req: AuthRequest, res: R
       return res.status(404).json({ success: false, error: 'User not found' });
     }
 
+    // Convert id to ObjectId for querying
+    const objectId = new mongoose.Types.ObjectId(id);
+
     // Get all related data
     const [
       payments,
@@ -159,21 +174,23 @@ router.get('/users/:id/details', authMiddleware, async (req: AuthRequest, res: R
       exerciseProgress,
       exercisePurchases,
       notes,
-      badges
+      badges,
+      orders
     ] = await Promise.all([
-      Payment.find({ userId: id }).sort({ createdAt: -1 }).lean(),
-      MarathonEnrollment.find({ userId: id }).populate('marathonId', 'title numberOfDays').sort({ enrolledAt: -1 }).lean(),
-      MarathonExerciseProgress.find({ userId: id }).populate('exerciseId', 'title').lean(),
-      ExercisePurchase.find({ userId: id }).sort({ purchaseDate: -1 }).lean(),
-      UserNote.find({ userId: id }).populate('adminId', 'firstName lastName email').sort({ createdAt: -1 }).lean(),
-      UserBadge.find({ userId: id }).sort({ earnedAt: -1 }).lean()
+      Payment.find({ userId: objectId }).sort({ createdAt: -1 }).lean(),
+      MarathonEnrollment.find({ userId: objectId }).populate('marathonId', 'title numberOfDays').sort({ enrolledAt: -1 }).lean(),
+      MarathonExerciseProgress.find({ userId: objectId }).populate('exerciseId', 'title').lean(),
+      ExercisePurchase.find({ userId: objectId }).sort({ purchaseDate: -1 }).lean(),
+      UserNote.find({ userId: objectId }).populate('adminId', 'firstName lastName email').sort({ createdAt: -1 }).lean(),
+      UserBadge.find({ userId: objectId }).sort({ earnedAt: -1 }).lean(),
+      Order.find({ userId: objectId }).sort({ createdAt: -1 }).lean()
     ]);
 
     // Calculate completion rates per marathon
     const marathonStats = await Promise.all(
       enrollments.map(async (enrollment) => {
         const marathonProgress = await MarathonExerciseProgress.find({
-          userId: id,
+          userId: objectId,
           marathonId: enrollment.marathonId
         }).lean();
 
@@ -199,6 +216,7 @@ router.get('/users/:id/details', authMiddleware, async (req: AuthRequest, res: R
         exercisePurchases,
         notes,
         badges,
+        orders,
         summary: {
           totalSpent: payments.filter(p => p.status === 'succeeded').reduce((sum, p) => sum + p.amount, 0),
           totalPayments: payments.length,
@@ -206,7 +224,10 @@ router.get('/users/:id/details', authMiddleware, async (req: AuthRequest, res: R
           activeMarathons: enrollments.filter(e => e.status === 'active').length,
           completedMarathons: enrollments.filter(e => e.status === 'completed').length,
           totalExercises: exerciseProgress.length,
-          completedExercises: exerciseProgress.filter(e => e.isCompleted).length
+          completedExercises: exerciseProgress.filter(e => e.isCompleted).length,
+          totalOrders: orders.length,
+          totalOrdersAmount: orders.reduce((sum, o) => sum + (o.total || 0), 0),
+          paidOrders: orders.filter(o => o.paymentStatus === 'paid' || o.paymentStatus === 'completed').length
         }
       }
     });
@@ -284,6 +305,50 @@ router.put('/users/:id/contacts', authMiddleware, async (req: AuthRequest, res: 
     res.json({ success: true, data: user });
   } catch (error: any) {
     console.error('Toggle contacts error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Update personal discount
+router.put('/users/:id/discount', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { personalDiscount, personalDiscountExpiry } = req.body;
+
+    const updateData: any = {};
+
+    // Set discount (null to remove)
+    if (personalDiscount !== undefined) {
+      if (personalDiscount === null || personalDiscount <= 0) {
+        updateData.personalDiscount = undefined;
+        updateData.personalDiscountExpiry = undefined;
+      } else {
+        // Validate discount range
+        const discount = Math.min(100, Math.max(0, personalDiscount));
+        updateData.personalDiscount = discount;
+        
+        // Set expiry if provided
+        if (personalDiscountExpiry) {
+          updateData.personalDiscountExpiry = new Date(personalDiscountExpiry);
+        } else {
+          updateData.personalDiscountExpiry = undefined;
+        }
+      }
+    }
+
+    const user = await User.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    res.json({ success: true, data: user });
+  } catch (error: any) {
+    console.error('Update discount error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

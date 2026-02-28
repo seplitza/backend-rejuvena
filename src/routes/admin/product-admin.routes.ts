@@ -45,7 +45,6 @@ router.get('/', async (req, res) => {
     const [products, total] = await Promise.all([
       Product.find(query)
         .populate('category', 'name slug')
-        .populate('bundleItems.product', 'name price images')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(Number(limit))
@@ -76,7 +75,6 @@ router.get('/:id', async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
       .populate('category', 'name slug')
-      .populate('bundleItems.product', 'name price images')
       .lean();
 
     if (!product) {
@@ -110,29 +108,40 @@ router.post('/', async (req, res) => {
     const {
       sku,
       name,
+      slug,
       description,
+      shortDescription,
       price,
-      oldPrice,
+      compareAtPrice,
       stock,
       category,
       images,
-      articleWB,
-      skuOzon,
-      isBundle,
-      bundleItems,
-      weight,
-      dimensions,
+      isActive,
+      isFeatured,
+      // General info
+      brand,
       manufacturer,
       countryOfOrigin,
-      tags,
+      barcode,
+      vendorCode,
+      weight,
+      dimensions,
+      characteristics,
+      // Marketplaces
+      wildberries,
+      ozon,
+      yandexMarket,
+      avito,
+      // SEO and metadata
+      metadata,
       seo,
-      isActive
+      tags
     } = req.body;
 
     // Validate required fields
-    if (!sku || !name || !price || !category) {
+    if (!sku || !name || !slug || price === undefined) {
       return res.status(400).json({ 
-        error: 'Обязательные поля: артикул, название, цена, категория' 
+        error: 'Обязательные поля: артикул (sku), название (name), slug, цена (price)' 
       });
     }
 
@@ -142,33 +151,51 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Товар с таким артикулом уже существует' });
     }
 
-    // Validate category
-    const categoryDoc = await ProductCategory.findOne({ _id: category, isActive: true });
-    if (!categoryDoc) {
-      return res.status(400).json({ error: 'Категория не найдена' });
+    // Check slug uniqueness
+    const existingSlug = await Product.findOne({ slug });
+    if (existingSlug) {
+      return res.status(400).json({ error: 'Товар с таким slug уже существует' });
+    }
+
+    // Validate category if provided
+    if (category) {
+      const categoryDoc = await ProductCategory.findById(category);
+      if (!categoryDoc) {
+        return res.status(400).json({ error: 'Категория не найдена' });
+      }
     }
 
     // Create product
     const product = new Product({
       sku,
       name,
-      description,
+      slug,
+      description: description || '',
+      shortDescription: shortDescription || '',
       price,
-      oldPrice,
+      compareAtPrice,
       stock: stock || 0,
       category,
       images: images || [],
-      articleWB,
-      skuOzon,
-      isBundle: isBundle || false,
-      bundleItems: bundleItems || [],
-      weight,
-      dimensions,
+      isActive: isActive !== undefined ? isActive : true,
+      isFeatured: isFeatured || false,
+      brand,
       manufacturer,
       countryOfOrigin,
-      tags: tags || [],
+      barcode,
+      vendorCode,
+      weight,
+      dimensions,
+      characteristics: characteristics || [],
+      wildberries,
+      ozon,
+      yandexMarket,
+      avito,
+      metadata,
       seo,
-      isActive: isActive !== undefined ? isActive : true
+      tags: tags || [],
+      isBundle: false,
+      bundleItems: []
     });
 
     await product.save();
@@ -189,32 +216,40 @@ router.post('/', async (req, res) => {
  */
 router.put('/:id', async (req, res) => {
   try {
-    const {
-      sku,
-      name,
-      description,
-      price,
-      oldPrice,
-      stock,
-      category,
-      images,
-      articleWB,
-      skuOzon,
-      isBundle,
-      bundleItems,
-      weight,
-      dimensions,
-      manufacturer,
-      countryOfOrigin,
-      tags,
-      seo,
-      isActive
-    } = req.body;
-
     const product = await Product.findById(req.params.id);
     if (!product) {
       return res.status(404).json({ error: 'Товар не найден' });
     }
+
+    const {
+      sku,
+      name,
+      slug,
+      description,
+      shortDescription,
+      price,
+      compareAtPrice,
+      stock,
+      category,
+      images,
+      isActive,
+      isFeatured,
+      brand,
+      manufacturer,
+      countryOfOrigin,
+      barcode,
+      vendorCode,
+      weight,
+      dimensions,
+      characteristics,
+      wildberries,
+      ozon,
+      yandexMarket,
+      avito,
+      metadata,
+      seo,
+      tags
+    } = req.body;
 
     // Check SKU uniqueness (if changed)
     if (sku && sku !== product.sku) {
@@ -224,32 +259,50 @@ router.put('/:id', async (req, res) => {
       }
     }
 
+    // Check slug uniqueness (if changed)
+    if (slug && slug !== product.slug) {
+      const existingSlug = await Product.findOne({ slug });
+      if (existingSlug) {
+        return res.status(400).json({ error: 'Товар с таким slug уже существует' });
+      }
+    }
+
     // Validate category (if changed)
-    if (category && category !== product.category.toString()) {
-      const categoryDoc = await ProductCategory.findOne({ _id: category, isActive: true });
+    if (category && category !== product.category?.toString()) {
+      const categoryDoc = await ProductCategory.findById(category);
       if (!categoryDoc) {
         return res.status(400).json({ error: 'Категория не найдена' });
       }
     }
 
     // Update fields
-    if (sku) product.sku = sku;
-    if (name) product.name = name;
+    if (sku !== undefined) product.sku = sku;
+    if (name !== undefined) product.name = name;
+    if (slug !== undefined) product.slug = slug;
     if (description !== undefined) product.description = description;
+    if (shortDescription !== undefined) product.shortDescription = shortDescription;
     if (price !== undefined) product.price = price;
-    if (oldPrice !== undefined) product.oldPrice = oldPrice;
+    if (compareAtPrice !== undefined) product.compareAtPrice = compareAtPrice;
     if (stock !== undefined) product.stock = stock;
-    if (category) product.category = category;
-    if (images) product.images = images;
-    if (articleWB !== undefined) product.articleWB = articleWB;
-    if (skuOzon !== undefined) product.skuOzon = skuOzon;
-    if (isBundle !== undefined) product.isBundle = isBundle;
-    if (bundleItems) product.bundleItems = bundleItems;
-    if (weight !== undefined) product.weight = weight;
-    if (dimensions) product.dimensions = dimensions;
+    if (category !== undefined) product.category = category;
+    if (images !== undefined) product.images = images;
+    if (isActive !== undefined) product.isActive = isActive;
+    if (isFeatured !== undefined) product.isFeatured = isFeatured;
+    if (brand !== undefined) product.brand = brand;
     if (manufacturer !== undefined) product.manufacturer = manufacturer;
     if (countryOfOrigin !== undefined) product.countryOfOrigin = countryOfOrigin;
-    if (tags) product.tags = tags;
+    if (barcode !== undefined) product.barcode = barcode;
+    if (vendorCode !== undefined) product.vendorCode = vendorCode;
+    if (weight !== undefined) product.weight = weight;
+    if (dimensions !== undefined) product.dimensions = dimensions;
+    if (characteristics !== undefined) product.characteristics = characteristics;
+    if (wildberries !== undefined) product.wildberries = wildberries;
+    if (ozon !== undefined) product.ozon = ozon;
+    if (yandexMarket !== undefined) product.yandexMarket = yandexMarket;
+    if (avito !== undefined) product.avito = avito;
+    if (metadata !== undefined) product.metadata = metadata;
+    if (seo !== undefined) product.seo = seo;
+    if (tags !== undefined) product.tags = tags;
     if (seo) product.seo = seo;
     if (isActive !== undefined) product.isActive = isActive;
 

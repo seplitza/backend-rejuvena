@@ -92,7 +92,7 @@ export default function FortuneWheel() {
       setPrizes(prizes.filter(p => p._id !== id));
     } catch (error) {
       console.error('Failed to delete prize:', error);
-      alert'Ошибка при удалении');
+      alert('Ошибка при удалении');
     }
   };
 

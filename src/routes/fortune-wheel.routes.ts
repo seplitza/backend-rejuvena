@@ -3,11 +3,11 @@
  * Spin the wheel to win prizes
  */
 
-import express from 'express';
+import express, { Response } from 'express';
 import FortuneWheelPrize from '../models/FortuneWheelPrize.model';
 import WheelSpin from '../models/WheelSpin.model';
 import User from '../models/User.model';
-import { authMiddleware } from '../middleware/authMiddleware';
+import { authMiddleware, AuthRequest } from '../middleware/auth.middleware';
 
 const router = express.Router();
 
@@ -42,7 +42,7 @@ router.get('/prizes', async (req, res) => {
  * GET /api/fortune-wheel/available-spins
  * Get user's available spins (requires auth)
  */
-router.get('/available-spins', authMiddleware, async (req, res) => {
+router.get('/available-spins', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId;
     if (!userId) {
@@ -67,7 +67,7 @@ router.get('/available-spins', authMiddleware, async (req, res) => {
  * POST /api/fortune-wheel/spin
  * Spin the wheel (requires auth)
  */
-router.post('/spin', authMiddleware, async (req, res) => {
+router.post('/spin', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId;
     if (!userId) {
@@ -186,7 +186,7 @@ router.post('/spin', authMiddleware, async (req, res) => {
  * GET /api/fortune-wheel/my-gifts
  * Get user's won gifts (requires auth)
  */
-router.get('/my-gifts', authMiddleware, async (req, res) => {
+router.get('/my-gifts', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId;
     if (!userId) {
@@ -222,7 +222,7 @@ router.get('/my-gifts', authMiddleware, async (req, res) => {
  * GET /api/fortune-wheel/my-history
  * Get user's spin history (requires auth)
  */
-router.get('/my-history', authMiddleware, async (req, res) => {
+router.get('/history', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId;
     if (!userId) {

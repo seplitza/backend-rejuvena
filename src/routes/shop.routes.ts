@@ -3,14 +3,14 @@
  * Endpoints for product browsing, cart, checkout
  */
 
-import express from 'express';
+import express, { Response } from 'express';
 import Product from '../models/Product.model';
 import ProductCategory from '../models/ProductCategory.model';
 import Order from '../models/Order.model';
 import PromoCode from '../models/PromoCode.model';
 import MarketplacePrice from '../models/MarketplacePrice.model';
 import User from '../models/User.model';
-import { authMiddleware } from '../middleware/authMiddleware';
+import { authMiddleware, AuthRequest } from '../middleware/auth.middleware';
 
 const router = express.Router();
 
@@ -331,7 +331,7 @@ router.post('/validate-promo', async (req, res) => {
  * POST /api/shop/checkout
  * Create order (requires authentication)
  */
-router.post('/checkout', authMiddleware, async (req, res) => {
+router.post('/checkout', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId;
     if (!userId) {
@@ -517,7 +517,7 @@ router.post('/checkout', authMiddleware, async (req, res) => {
  * GET /api/shop/orders
  * Get user's orders (requires authentication)
  */
-router.get('/orders', authMiddleware, async (req, res) => {
+router.get('/orders', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId;
     if (!userId) {
@@ -556,7 +556,7 @@ router.get('/orders', authMiddleware, async (req, res) => {
  * GET /api/shop/orders/:id
  * Get order details (requires authentication)
  */
-router.get('/orders/:id', authMiddleware, async (req, res) => {
+router.get('/orders/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId;
     if (!userId) {

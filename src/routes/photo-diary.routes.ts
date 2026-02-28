@@ -7,10 +7,12 @@ import path from 'path';
 
 const router = Router();
 
-// Пути для хранения фото дневника
-const PHOTO_DIARY_DIR = path.join(__dirname, '../../uploads/photo-diary');
+// Пути для хранения фото дневника (абсолютные пути для production)
+const PHOTO_DIARY_DIR = process.env.NODE_ENV === 'production' 
+  ? '/var/www/rejuvena/uploads/photo-diary'
+  : path.join(__dirname, '../../uploads/photo-diary');
 const ORIGINALS_DIR = path.join(PHOTO_DIARY_DIR, 'originals'); // 1 день
-const CROPPED_DIR =path.join(PHOTO_DIARY_DIR, 'cropped');   // 30 дней бесплатно
+const CROPPED_DIR = path.join(PHOTO_DIARY_DIR, 'cropped');   // 30 дней бесплатно
 
 // Убедимся что директории существуют
 (async () => {
@@ -50,7 +52,7 @@ router.post('/mark-first-upload', authMiddleware, async (req: AuthRequest, res: 
 // Save photo (cropped, for display) - хранение до user.photoDiaryEndDate
 router.post('/save-photo', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const { image, photoType, isBeforePhoto } = req.body;
+    const { image, photoType, isBeforePhoto, exifData, uploadDate } = req.body;
 
     if (!image || !photoType || typeof isBeforePhoto !== 'boolean') {
       return res.status(400).json({ message: 'Missing required fields' });
@@ -75,12 +77,14 @@ router.post('/save-photo', authMiddleware, async (req: AuthRequest, res: Respons
       filePath: `/uploads/photo-diary/cropped/${filename}`,
       fileName: filename,
       fileSize: buffer.length,
-      mimeType: 'image/jpeg'
+      mimeType: 'image/jpeg',
+      exifData: exifData || null,
+      uploadDate: uploadDate ? new Date(uploadDate) : new Date()
     });
 
     await photoDiary.save();
 
-    console.log(`✅ Photo saved: ${photoDiary.filePath}`);
+    console.log(`✅ Photo saved: ${photoDiary.filePath} with EXIF: ${!!exifData}`);
 
     res.json({
       success: true,
@@ -125,6 +129,11 @@ router.get('/photos', authMiddleware, async (req: AuthRequest, res: Response) =>
       before: {},
       after: {}
     };
+    
+    const metadata: any = {
+      before: {},
+      after: {}
+    };
 
     for (const record of photoRecords) {
       const period = record.period.toString();
@@ -135,6 +144,12 @@ router.get('/photos', authMiddleware, async (req: AuthRequest, res: Response) =>
         photos[period][photoType] = {
           url: record.filePath,
           uploadDate: record.uploadDate
+        };
+        
+        // Сохраняем метаданные
+        metadata[period][photoType] = {
+          uploadDate: record.uploadDate.toISOString(),
+          exifData: record.exifData || null
         };
       }
     }
@@ -154,6 +169,7 @@ router.get('/photos', authMiddleware, async (req: AuthRequest, res: Response) =>
     res.json({
       success: true,
       photos: result,
+      metadata: metadata,
       photoDiaryEndDate: user.photoDiaryEndDate
     });
   } catch (error) {
