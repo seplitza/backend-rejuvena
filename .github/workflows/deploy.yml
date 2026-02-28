@@ -43,15 +43,20 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
-            # Backup current version
+            # Backup current version and .env
             cd /var/www/rejuvena-backend
             mkdir -p backups
             tar -czf backups/backup-$(date +%Y%m%d-%H%M%S).tar.gz dist admin-panel || true
             
+            # Save .env file before git reset
+            cp .env .env.backup 2>/dev/null || echo "No .env to backup"
+            
             # Pull latest code from git
-            cd /var/www/rejuvena-backend
             git fetch origin
             git reset --hard origin/main
+            
+            # Restore .env file
+            mv .env.backup .env 2>/dev/null || echo "No .env backup to restore"
             
             # Update source code
             rm -rf src-new
@@ -94,6 +99,22 @@ jobs:
             
             # Install dependencies
             npm install --production
+            
+            # Create .env if it doesn't exist
+            if [ ! -f .env ]; then
+              echo "Creating .env file..."
+              cat > .env << 'EOF'
+PORT=9527
+MONGODB_URI=mongodb://localhost:27017/rejuvena
+JWT_SECRET=rejuvena-production-jwt-secret-2026
+NODE_ENV=production
+UPLOAD_DIR=uploads
+MAX_FILE_SIZE=52428800
+RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
+EMAIL_FROM=noreply@rejuvena.ru
+FRONTEND_URL=https://seplitza.github.io
+EOF
+            fi
             
             # Ensure photo diary directories exist with correct permissions
             mkdir -p uploads/photo-diary/originals
