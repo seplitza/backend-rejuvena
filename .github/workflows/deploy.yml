@@ -105,12 +105,18 @@ jobs:
               echo "Creating .env file..."
               echo "PORT=9527" > .env
               echo "MONGODB_URI=mongodb://localhost:27017/rejuvena" >> .env
-              echo "JWT_SECRET=rejuvena-production-jwt-secret-2026" >> .env
+              echo "JWT_SECRET=rejuvena-super-secret-key-2026" >> .env
               echo "NODE_ENV=production" >> .env
               echo "UPLOAD_DIR=uploads" >> .env
               echo "MAX_FILE_SIZE=52428800" >> .env
-              echo "EMAIL_FROM=noreply@rejuvena.ru" >> .env
-              echo "FRONTEND_URL=https://seplitza.github.io" >> .env
+              echo "EMAIL_FROM=noreply@mail.seplitza.ru" >> .env
+              echo "FRONTEND_URL=https://seplitza.github.io/rejuvena" >> .env
+              echo "RESEND_API_KEY=re_rj675j5x_DELv28yV2qGtTK5Dwzs6B872" >> .env
+              echo "ALFABANK_USERNAME=r-seplitza-api" >> .env
+              echo "ALFABANK_PASSWORD=D!ndA6U65Bx*bKq" >> .env
+              echo "ALFABANK_API_URL=https://payment.alfabank.ru/payment/rest" >> .env
+              echo "ALFABANK_RETURN_URL=https://seplitza.github.io/rejuvena/payment/success" >> .env
+              echo "ALFABANK_FAIL_URL=https://seplitza.github.io/rejuvena/payment/fail" >> .env
             fi
             
             # Ensure photo diary directories exist with correct permissions
