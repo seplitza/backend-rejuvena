@@ -53,9 +53,10 @@ function parseItems(itemsStr: string): Array<{ productName: string; quantity: nu
     if (match) {
       const productName = match[1].trim();
       const quantity = parseInt(match[2]);
-      const price = parseFloat(match[3].replace(/,/g, ''));
+      const priceInRubles = parseFloat(match[3].replace(/,/g, ''));
       
-      items.push({ productName, quantity, price });
+      // ВАЖНО: Конвертируем в копейки для согласованности с Payment моделью
+      items.push({ productName, quantity, price: priceInRubles * 100 });
     }
   }
   
@@ -221,11 +222,11 @@ async function importOrders() {
           continue;
         }
         
-        // Расчет сумм
+        // Расчет сумм (конвертируем в копейки)
         const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        const discount = parseFloat(crmOrder.discount.replace(/,/g, '')) || 0;
-        const shippingCost = parseFloat(crmOrder.shippingCost.replace(/,/g, '')) || 0;
-        const total = parseFloat(crmOrder.totalAmount.replace(/,/g, '')) || subtotal;
+        const discount = parseFloat(crmOrder.discount.replace(/,/g, '')) * 100 || 0;
+        const shippingCost = parseFloat(crmOrder.shippingCost.replace(/,/g, '')) * 100 || 0;
+        const total = parseFloat(crmOrder.totalAmount.replace(/,/g, '')) * 100 || subtotal;
         
         // Определяем статус заказа
         const paymentStatus = parsePaymentStatus(crmOrder.paymentStatus);

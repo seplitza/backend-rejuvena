@@ -245,8 +245,9 @@ async function importCoursePayments() {
           console.log(`👤 Создан пользователь: ${user.email}`);
         }
         
-        // Парсим сумму
-        const amount = parseFloat(payment.amount.replace(/,/g, '')) || 0;
+        // Парсим сумму и конвертируем в копейки для согласованности с Payment моделью
+        const amountInRubles = parseFloat(payment.amount.replace(/,/g, '')) || 0;
+        const amount = amountInRubles * 100; // Конвертация в копейки
         
         // Определяем статус
         const status = parsePaymentStatus(payment.paymentStatus);

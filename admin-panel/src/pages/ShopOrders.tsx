@@ -91,12 +91,13 @@ export default function ShopOrders() {
     });
   };
 
+  // ВАЖНО: Цены в БД хранятся в копейках, поэтому делим на 100
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('ru-RU', {
       style: 'currency',
       currency: 'RUB',
       minimumFractionDigits: 0
-    }).format(price);
+    }).format(price / 100);
   };
 
   const getStatusBadge = (status: string) => {

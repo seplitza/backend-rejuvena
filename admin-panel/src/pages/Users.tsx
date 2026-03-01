@@ -60,12 +60,13 @@ interface UserDetails {
 }
 
 // Helper functions
+// ВАЖНО: Цены в БД хранятся в копейках, поэтому делим на 100
 const formatMoney = (amount: number): string => {
   return new Intl.NumberFormat('ru-RU', {
     style: 'decimal',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
-  }).format(amount) + ' ₽';
+  }).format(amount / 100) + ' ₽';
 };
 
 export default function Users() {
