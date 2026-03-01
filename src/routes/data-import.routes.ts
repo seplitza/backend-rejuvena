@@ -245,7 +245,9 @@ router.post('/execute', [authMiddleware, adminMiddleware], upload.single('file')
       return res.status(400).json({ message: 'Файл не загружен' });
     }
     
-    const { dataType, mode } = req.body; // mode: 'insert' | 'upsert' | 'replace'
+    const { dataType, mode, columnMapping, selectedColumns } = req.body; // mode: 'insert' | 'upsert' | 'replace'
+    const mapping = columnMapping ? JSON.parse(columnMapping) : {};
+    const selected = selectedColumns ? JSON.parse(selectedColumns) : [];
     
     const content = req.file.buffer.toString('utf-8');
     const filename = req.file.originalname;
@@ -283,14 +285,27 @@ router.post('/execute', [authMiddleware, adminMiddleware], upload.single('file')
           }
           
           // Ищем/создаем пользователя
-          let user = await User.findOne({ email: orderData.email?.toLowerCase().trim() });
+          const userEmail = orderData.email?.toLowerCase().trim() || `user${Date.now()}@import.local`;
+          let user = await User.findOne({ email: userEmail });
           if (!user) {
-            const [firstName, ...lastNameParts] = (orderData.fullName || 'Клиент').split(' ');
+            // Используем маппинг колонок для ФИО
+            let firstName = 'Клиент';
+            let lastName = '';
+            
+            if (orderData.fullName) {
+              const nameParts = orderData.fullName.trim().split(/\s+/);
+              firstName = nameParts[0] || 'Клиент';
+              lastName = nameParts.slice(1).join(' ') || '';
+            } else if (orderData.firstName || orderData.lastName) {
+              firstName = orderData.firstName?.trim() || 'Клиент';
+              lastName = orderData.lastName?.trim() || '';
+            }
+            
             user = new User({
-              email: orderData.email?.toLowerCase().trim() || `user${Date.now()}@import.local`,
-              firstName: firstName || 'Клиент',
-              lastName: lastNameParts.join(' ') || '',
-              phone: orderData.phone,
+              email: userEmail,
+              firstName,
+              lastName,
+              phone: orderData.phone?.trim(),
               password: Math.random().toString(36).slice(-8),
               role: 'customer'
             });
@@ -309,14 +324,49 @@ router.post('/execute', [authMiddleware, adminMiddleware], upload.single('file')
           const discount = parseFloat(orderData.discount?.replace(/,/g, '') || '0') * 100;
           const shippingCost = parseFloat(orderData.shippingCost?.replace(/,/g, '') || '0') * 100;
           
+          // Парсим дату с разными форматами
+          let orderDate = new Date();
+          if (orderData.date) {
+            const dateStr = orderData.date.trim();
+            // Пробуем разные форматы: dd.mm.yyyy, dd/mm/yyyy, yyyy-mm-dd, dd-mm-yyyy
+            const formats = [
+              /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/, // dd.mm.yyyy
+              /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/, // dd/mm/yyyy
+              /^(\d{4})-(\d{1,2})-(\d{1,2})$/,   // yyyy-mm-dd
+              /^(\d{1,2})-(\d{1,2})-(\d{4})$/    // dd-mm-yyyy
+            ];
+            
+            for (let i = 0; i < formats.length; i++) {
+              const match = dateStr.match(formats[i]);
+              if (match) {
+                if (i === 0 || i === 1 || i === 3) { // dd.mm.yyyy or dd/mm/yyyy or dd-mm-yyyy
+                  orderDate = new Date(`${match[3]}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`);
+                } else { // yyyy-mm-dd
+                  orderDate = new Date(dateStr);
+                }
+                break;
+              }
+            }
+            
+            // Если не распарсилось, пробуем стандартный парсер
+            if (isNaN(orderDate.getTime())) {
+              orderDate = new Date(dateStr);
+              if (isNaN(orderDate.getTime())) {
+                orderDate = new Date(); // Fallback на текущую дату
+              }
+            }
+          }
+          
+          const fullName = orderData.fullName || `${user.firstName} ${user.lastName}`.trim() || 'Не указано';
+          
           const orderDoc = {
             orderNumber,
             userId: user._id,
             items,
             shippingAddress: {
-              fullName: orderData.fullName || 'Не указано',
-              phone: orderData.phone || '',
-              address: orderData.deliveryAddress || 'Не указан',
+              fullName,
+              phone: orderData.phone?.trim() || user.phone || '',
+              address: orderData.deliveryAddress?.trim() || 'Не указан',
               city: 'Не указан',
               postalCode: '',
               country: 'Россия'
@@ -329,8 +379,10 @@ router.post('/execute', [authMiddleware, adminMiddleware], upload.single('file')
             paymentStatus: orderData.paymentStatus === 'оплачено' ? 'paid' : 'pending',
             paymentMethod: 'online',
             shippingMethod: 'cdek_pickup',
-            notes: `Импортировано из ${filename}`,
-            createdAt: orderData.date ? new Date(orderData.date) : new Date()
+            notes: `📥 Импортировано из ${filename}`,
+            tags: ['импортированные'],
+            createdAt: orderDate,
+            updatedAt: orderDate
           };
           
           if (mode === 'upsert' && existing) {

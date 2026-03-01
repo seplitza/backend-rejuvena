@@ -34,6 +34,9 @@ export interface IOrder extends Document {
   user: mongoose.Types.ObjectId; // Alias for userId
   items: IOrderItem[];
   
+  // Теги
+  tags?: string[];
+  
   // Адрес доставки
   shippingAddress: IShippingAddress;
   
@@ -117,6 +120,10 @@ const OrderSchema = new Schema<IOrder>(
         required: true,
         min: 0
       }
+    }],
+    tags: [{
+      type: String,
+      trim: true
     }],
     shippingAddress: {
       fullName: {
