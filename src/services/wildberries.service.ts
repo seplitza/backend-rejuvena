@@ -37,8 +37,11 @@ export class WildberriesService {
   constructor() {
     this.token = process.env.WB_API_TOKEN || '';
     
+    // Инициализация будет выполнена асинхронно
+    this.initializeFromDatabase();
+    
     if (!this.token) {
-      console.warn('⚠️  WB_API_TOKEN not set in .env - Wildberries integration disabled');
+      console.warn('⚠️  WB_API_TOKEN not set in .env - will try to load from database');
     }
 
     this.apiClient = axios.create({
@@ -49,6 +52,33 @@ export class WildberriesService {
       },
       timeout: 15000
     });
+  }
+
+  /**
+   * Initialize token from database
+   */
+  private async initializeFromDatabase() {
+    try {
+      // Динамически импортируем модель чтобы избежать circular dependencies
+      const Settings = (await import('../models/Settings.model')).default;
+      const settings = await Settings.findOne({ key: 'WB_API_TOKEN' });
+      
+      if (settings && settings.value) {
+        this.updateToken(settings.value);
+        console.log('✅ WB_API_TOKEN loaded from database');
+      }
+    } catch (error) {
+      console.error('Error loading WB token from database:', error);
+    }
+  }
+
+  /**
+   * Update API token
+   */
+  public updateToken(newToken: string) {
+    this.token = newToken;
+    this.apiClient.defaults.headers['Authorization'] = newToken;
+    console.log('✅ WB_API_TOKEN updated');
   }
 
   /**

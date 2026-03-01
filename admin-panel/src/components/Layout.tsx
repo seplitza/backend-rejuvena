@@ -16,21 +16,25 @@ export default function Layout({ onLogout }: LayoutProps) {
   const isActive = (path: string) => location.pathname.startsWith(path);
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       {/* Sidebar */}
       <aside style={{
         width: '250px',
         background: '#1F2937',
         color: 'white',
-        padding: '20px',
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        height: '100vh',
+        position: 'fixed',
+        left: 0,
+        top: 0,
+        overflowY: 'auto'
       }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '30px' }}>
+        <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: '20px', marginBottom: '30px' }}>
           Rejuvena Admin
         </h1>
         
-        <nav style={{ flex: 1 }}>
+        <nav style={{ flex: 1, padding: '0 20px' }}>
           <Link
             to="/dashboard"
             style={{
@@ -405,6 +409,7 @@ export default function Layout({ onLogout }: LayoutProps) {
         <button
           onClick={handleLogout}
           style={{
+            margin: '20px',
             padding: '12px 16px',
             borderRadius: '8px',
             border: 'none',
@@ -420,7 +425,14 @@ export default function Layout({ onLogout }: LayoutProps) {
       </aside>
 
       {/* Main Content */}
-      <main style={{ flex: 1, background: '#F9FAFB', overflowY: 'auto' }}>
+      <main style={{ 
+        marginLeft: '250px',
+        width: 'calc(100% - 250px)',
+        height: '100vh',
+        background: '#F9FAFB', 
+        overflowY: 'auto',
+        overflowX: 'hidden'
+      }}>
         <Outlet />
       </main>
     </div>

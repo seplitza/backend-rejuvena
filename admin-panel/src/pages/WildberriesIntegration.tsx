@@ -36,6 +36,8 @@ const WildberriesIntegration: React.FC = () => {
   const [productInfo, setProductInfo] = useState<WBProduct | null>(null);
   const [salesReport, setSalesReport] = useState<SalesReportItem[]>([]);
   const [syncResult, setSyncResult] = useState<string>('');
+  const [apiToken, setApiToken] = useState<string>('');
+  const [tokenSaving, setTokenSaving] = useState<boolean>(false);
 
   const getAuthHeader = () => {
     const token = getAuthToken();
@@ -44,7 +46,42 @@ const WildberriesIntegration: React.FC = () => {
 
   useEffect(() => {
     checkConnection();
+    loadToken();
   }, []);
+
+  const loadToken = async () => {
+    try {
+      const response = await axios.get('/api/admin/wildberries/token', {
+        headers: getAuthHeader()
+      });
+      if (response.data.token) {
+        setApiToken(response.data.token);
+      }
+    } catch (error) {
+      console.error('Error loading token:', error);
+    }
+  };
+
+  const saveToken = async () => {
+    if (!apiToken.trim()) {
+      alert('Введите токен API');
+      return;
+    }
+
+    setTokenSaving(true);
+    try {
+      await axios.post('/api/admin/wildberries/token', 
+        { token: apiToken },
+        { headers: getAuthHeader() }
+      );
+      alert('Токен успешно сохранен');
+      checkConnection();
+    } catch (error: any) {
+      alert('Ошибка сохранения токена: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setTokenSaving(false);
+    }
+  };
 
   const checkConnection = async () => {
     try {
@@ -122,6 +159,34 @@ const WildberriesIntegration: React.FC = () => {
   return (
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-6">Интеграция с Wildberries</h1>
+
+      {/* Настройка API токена */}
+      <div className="bg-white p-6 rounded-lg shadow mb-6">
+        <h2 className="text-xl font-semibold mb-4">Настройка API токена</h2>
+        <p className="text-gray-600 mb-4">
+          Введите токен API Wildberries для подключения к маркетплейсу.
+          Токен можно получить в личном кабинете продавца.
+        </p>
+        <div className="flex gap-2">
+          <input
+            type="password"
+            value={apiToken}
+            onChange={(e) => setApiToken(e.target.value)}
+            placeholder="Введите WB_API_TOKEN"
+            className="flex-1 px-4 py-2 border rounded"
+          />
+          <button
+            onClick={saveToken}
+            disabled={tokenSaving}
+            className="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400"
+          >
+            {tokenSaving ? 'Сохранение...' : 'Сохранить токен'}
+          </button>
+        </div>
+        <p className="text-sm text-gray-500 mt-2">
+          💡 Токен будет сохранен в безопасном хранилище и использоваться для всех запросов к API
+        </p>
+      </div>
 
       {/* Статус подключения */}
       <div className={`p-4 rounded-lg mb-6 ${isConnected ? 'bg-green-100' : 'bg-red-100'}`}>

@@ -7,6 +7,7 @@ import express from 'express';
 import wildberriesService from '../../services/wildberries.service';
 import Product from '../../models/Product.model';
 import MarketplacePrice from '../../models/MarketplacePrice.model';
+import Settings from '../../models/Settings.model';
 import { authMiddleware, adminMiddleware } from '../../middleware/authMiddleware';
 
 const router = express.Router();
@@ -176,6 +177,68 @@ router.get('/sales-report', async (req, res) => {
   } catch (error) {
     console.error('Error fetching WB sales report:', error);
     res.status(500).json({ error: 'Failed to fetch sales report' });
+  }
+});
+
+/**
+ * GET /api/admin/wildberries/token
+ * Get current WB API token (masked)
+ */
+router.get('/token', async (req, res) => {
+  try {
+    const settings = await Settings.findOne({ key: 'WB_API_TOKEN' });
+    
+    if (!settings) {
+      return res.json({ token: '' });
+    }
+
+    // Возвращаем замаскированный токен (первые 10 символов)
+    const maskedToken = settings.value.substring(0, 10) + '***';
+    
+    res.json({ 
+      token: settings.value, // Для редактирования
+      masked: maskedToken,
+      configured: true
+    });
+  } catch (error) {
+    console.error('Error fetching WB token:', error);
+    res.status(500).json({ error: 'Failed to fetch token' });
+  }
+});
+
+/**
+ * POST /api/admin/wildberries/token
+ * Update WB API token
+ */
+router.post('/token', async (req, res) => {
+  try {
+    const { token } = req.body;
+
+    if (!token || typeof token !== 'string' || token.trim().length === 0) {
+      return res.status(400).json({ error: 'Token is required' });
+    }
+
+    // Сохраняем или обновляем токен в БД
+    await Settings.findOneAndUpdate(
+      { key: 'WB_API_TOKEN' },
+      { 
+        key: 'WB_API_TOKEN',
+        value: token.trim(),
+        encrypted: false 
+      },
+      { upsert: true, new: true }
+    );
+
+    // Обновляем токен в сервисе
+    wildberriesService.updateToken(token.trim());
+
+    res.json({ 
+      success: true,
+      message: 'Token updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating WB token:', error);
+    res.status(500).json({ error: 'Failed to update token' });
   }
 });
 
