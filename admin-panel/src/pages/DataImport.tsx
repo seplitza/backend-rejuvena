@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { API_URL, getAuthHeaders } from '../config';
+import api from '../api/client';
 
 interface PreviewData {
   preview: any[];
@@ -68,23 +68,20 @@ export default function DataImport() {
       const formData = new FormData();
       formData.append('file', selectedFile);
 
-      const response = await fetch(`${API_URL}/api/admin/data-import/preview`, {
-        method: 'POST',
+      const response = await api.post('/admin/data-import/preview', formData, {
         headers: {
-          ...getAuthHeaders(),
-        },
-        body: formData
+          'Content-Type': 'multipart/form-data'
+        }
       });
 
-      const data = await response.json();
-      if (data.success) {
-        setPreviewData(data.data);
+      if (response.data.success) {
+        setPreviewData(response.data.data);
       } else {
-        alert(`Ошибка предпросмотра: ${data.message}`);
+        alert(`Ошибка предпросмотра: ${response.data.message}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error previewing import:', error);
-      alert('Ошибка предпросмотра');
+      alert('Ошибка предпросмотра: ' + (error.response?.data?.message || error.message));
     } finally {
       setImporting(false);
     }
@@ -104,28 +101,25 @@ export default function DataImport() {
       formData.append('mode', importMode);
       formData.append('dataType', previewData.detectedType);
 
-      const response = await fetch(`${API_URL}/api/admin/data-import/execute`, {
-        method: 'POST',
+      const response = await api.post('/admin/data-import/execute', formData, {
         headers: {
-          ...getAuthHeaders(),
-        },
-        body: formData
+          'Content-Type': 'multipart/form-data'
+        }
       });
 
-      const data = await response.json();
-      if (data.success) {
-        setImportResult(data.data);
-        alert(`Импорт завершен!\nИмпортировано: ${data.data.imported}\nПропущено: ${data.data.skipped}\nОшибки: ${data.data.errors}`);
+      if (response.data.success) {
+        setImportResult(response.data.data);
+        alert(`Импорт завершен!\nИмпортировано: ${response.data.data.imported}\nПропущено: ${response.data.data.skipped}\nОшибки: ${response.data.data.errors}`);
         
         // Reset file selection after successful import
         setSelectedFile(null);
         setPreviewData(null);
       } else {
-        alert(`Ошибка импорта: ${data.message}`);
+        alert(`Ошибка импорта: ${response.data.message}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error executing import:', error);
-      alert('Ошибка импорта');
+      alert('Ошибка импорта: ' + (error.response?.data?.message || error.message));
     } finally {
       setImporting(false);
     }
@@ -134,17 +128,14 @@ export default function DataImport() {
   const loadHistory = async () => {
     try {
       setLoadingHistory(true);
-      const response = await fetch(`${API_URL}/api/admin/data-import/history`, {
-        headers: getAuthHeaders()
-      });
+      const response = await api.get('/admin/data-import/history');
 
-      const data = await response.json();
-      if (data.success) {
-        setHistory(data.data.history);
+      if (response.data.success) {
+        setHistory(response.data.data.history || []);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading history:', error);
-      alert('Ошибка загрузки истории');
+      alert('Ошибка загрузки истории: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoadingHistory(false);
     }
