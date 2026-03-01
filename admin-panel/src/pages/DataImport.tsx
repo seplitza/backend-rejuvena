@@ -36,6 +36,44 @@ export default function DataImport() {
   const [activeTab, setActiveTab] = useState<'import' | 'history'>('import');
   const [history, setHistory] = useState<ImportHistory[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  
+  // Column mapping state
+  const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
+  const [selectedColumns, setSelectedColumns] = useState<Set<string>>(new Set());
+
+  // System fields for different data types
+  const getSystemFields = (dataType: string) => {
+    const fieldMaps: Record<string, Array<{ value: string; label: string }>> = {
+      orders: [
+        { value: 'orderNumber', label: 'Номер заказа' },
+        { value: 'email', label: 'Email клиента' },
+        { value: 'fullName', label: 'ФИО клиента' },
+        { value: 'phone', label: 'Телефон' },
+        { value: 'deliveryAddress', label: 'Адрес доставки' },
+        { value: 'totalAmount', label: 'Сумма заказа' },
+        { value: 'paymentStatus', label: 'Статус оплаты' },
+        { value: 'items', label: 'Товары' },
+        { value: 'date', label: 'Дата заказа' },
+        { value: 'discount', label: 'Скидка' },
+        { value: 'shippingCost', label: 'Стоимость доставки' },
+      ],
+      users: [
+        { value: 'email', label: 'Email' },
+        { value: 'firstName', label: 'Имя' },
+        { value: 'lastName', label: 'Фамилия' },
+        { value: 'phone', label: 'Телефон' },
+        { value: 'role', label: 'Роль' },
+      ],
+      payments: [
+        { value: 'amount', label: 'Сумма' },
+        { value: 'currency', label: 'Валюта' },
+        { value: 'status', label: 'Статус' },
+        { value: 'method', label: 'Метод оплаты' },
+        { value: 'date', label: 'Дата' },
+      ],
+    };
+    return fieldMaps[dataType] || [];
+  };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -76,7 +114,35 @@ export default function DataImport() {
       });
 
       if (response.data.success) {
-        setPreviewData(response.data.data);
+        const data = response.data.data;
+        setPreviewData(data);
+        
+        // Auto-map columns based on field names
+        const autoMapping: Record<string, string> = {};
+        const systemFields = getSystemFields(data.detectedType);
+        const selectedCols = new Set<string>();
+        
+        data.fields.forEach((field: string) => {
+          const fieldLower = field.toLowerCase();
+          
+          // Try to match field names
+          const match = systemFields.find(sf => {
+            const sfLower = sf.value.toLowerCase();
+            const labelLower = sf.label.toLowerCase();
+            return fieldLower.includes(sfLower) || 
+                   sfLower.includes(fieldLower) ||
+                   fieldLower.includes(labelLower) ||
+                   labelLower.includes(fieldLower);
+          });
+          
+          if (match) {
+            autoMapping[field] = match.value;
+            selectedCols.add(field);
+          }
+        });
+        
+        setColumnMapping(autoMapping);
+        setSelectedColumns(selectedCols);
       } else {
         alert(`Ошибка предпросмотра: ${response.data.message}`);
       }
@@ -91,7 +157,13 @@ export default function DataImport() {
   const executeImport = async () => {
     if (!selectedFile || !previewData) return;
 
-    if (!confirm(`Импортировать ${previewData.totalRecords} записей (режим: ${importMode})?`)) {
+    const selectedCount = selectedColumns.size;
+    if (selectedCount === 0) {
+      alert('Выберите хотя бы один столбец для импорта');
+      return;
+    }
+
+    if (!confirm(`Импортировать ${previewData.totalRecords} записей (выбрано столбцов: ${selectedCount}, режим: ${importMode})?`)) {
       return;
     }
 
@@ -101,6 +173,8 @@ export default function DataImport() {
       formData.append('file', selectedFile);
       formData.append('mode', importMode);
       formData.append('dataType', previewData.detectedType);
+      formData.append('columnMapping', JSON.stringify(columnMapping));
+      formData.append('selectedColumns', JSON.stringify(Array.from(selectedColumns)));
 
       const response = await api.post('/admin/data-import/execute', formData, {
         headers: {
@@ -116,6 +190,8 @@ export default function DataImport() {
         // Reset file selection after successful import
         setSelectedFile(null);
         setPreviewData(null);
+        setColumnMapping({});
+        setSelectedColumns(new Set());
       } else {
         alert(`Ошибка импорта: ${response.data.message}`);
       }
@@ -285,6 +361,60 @@ export default function DataImport() {
               </div>
 
               <div className="mb-4">
+                <h3 className="text-md font-semibold mb-3">Маппинг колонок</h3>
+                <p className="text-sm text-gray-600 mb-3">
+                  Выберите какие столбцы импортировать и укажите соответствие полям системы
+                </p>
+                
+                <div className="space-y-2 max-h-96 overflow-y-auto border border-gray-200 rounded p-3">
+                  {previewData.fields.map((field) => (
+                    <div key={field} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded">
+                      <input
+                        type="checkbox"
+                        checked={selectedColumns.has(field)}
+                        onChange={(e) => {
+                          const newSelected = new Set(selectedColumns);
+                          if (e.target.checked) {
+                            newSelected.add(field);
+                          } else {
+                            newSelected.delete(field);
+                          }
+                          setSelectedColumns(newSelected);
+                        }}
+                        className="w-4 h-4 text-blue-600"
+                      />
+                      <div className="flex-1 grid grid-cols-2 gap-3 items-center">
+                        <div>
+                          <span className="text-sm font-medium text-gray-900">{field}</span>
+                          <span className="text-xs text-gray-500 ml-2">
+                            ({previewData.preview[0]?.[field]?.toString().substring(0, 30) || 'пусто'}...)
+                          </span>
+                        </div>
+                        <select
+                          value={columnMapping[field] || ''}
+                          onChange={(e) => {
+                            setColumnMapping({
+                              ...columnMapping,
+                              [field]: e.target.value
+                            });
+                          }}
+                          disabled={!selectedColumns.has(field)}
+                          className="text-sm border border-gray-300 rounded px-2 py-1 disabled:bg-gray-100 disabled:text-gray-500"
+                        >
+                          <option value="">→ Не импортировать</option>
+                          {getSystemFields(previewData.detectedType).map((sf) => (
+                            <option key={sf.value} value={sf.value}>
+                              → {sf.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Режим импорта
                 </label>
@@ -303,27 +433,63 @@ export default function DataImport() {
               </div>
 
               <div className="overflow-x-auto mb-4">
-                <table className="min-w-full divide-y divide-gray-200">
+                <table className="min-w-full divide-y divide-gray-200 border border-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
                       {previewData.fields.map((field) => (
                         <th
                           key={field}
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-r border-gray-200 last:border-r-0"
+                          style={{ maxWidth: '200px' }}
                         >
-                          {field}
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="checkbox"
+                                checked={selectedColumns.has(field)}
+                                onChange={(e) => {
+                                  const newSelected = new Set(selectedColumns);
+                                  if (e.target.checked) {
+                                    newSelected.add(field);
+                                  } else {
+                                    newSelected.delete(field);
+                                  }
+                                  setSelectedColumns(newSelected);
+                                }}
+                                className="w-3 h-3"
+                                title={selectedColumns.has(field) ? 'Импортировать' : 'Не импортировать'}
+                              />
+                              <span className="break-words">{field}</span>
+                            </div>
+                            {columnMapping[field] && selectedColumns.has(field) && (
+                              <span className="text-[10px] text-blue-600 font-normal">
+                                → {getSystemFields(previewData.detectedType).find(f => f.value === columnMapping[field])?.label}
+                              </span>
+                            )}
+                          </div>
                         </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {previewData.preview.map((row, idx) => (
-                      <tr key={idx}>
+                      <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                         {previewData.fields.map((field) => (
-                          <td key={field} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <td 
+                            key={field} 
+                            className={`px-3 py-2 text-xs text-gray-700 border-r border-gray-200 last:border-r-0 ${
+                              selectedColumns.has(field) ? 'bg-blue-50' : 'opacity-50'
+                            }`}
+                            style={{ 
+                              maxWidth: '200px',
+                              wordWrap: 'break-word',
+                              whiteSpace: 'normal',
+                              overflowWrap: 'break-word'
+                            }}
+                          >
                             {typeof row[field] === 'object' 
-                              ? JSON.stringify(row[field]).substring(0, 50) + '...'
-                              : String(row[field] || '')}
+                              ? JSON.stringify(row[field]).substring(0, 100) + '...'
+                              : String(row[field] || '-')}
                           </td>
                         ))}
                       </tr>
@@ -341,15 +507,22 @@ export default function DataImport() {
               <div className="flex gap-4">
                 <button
                   onClick={executeImport}
-                  disabled={importing}
-                  className="flex-1 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:opacity-50"
+                  disabled={importing || selectedColumns.size === 0}
+                  className="flex-1 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {importing ? 'Импорт...' : `Импортировать ${previewData.totalRecords} записей`}
+                  {importing 
+                    ? 'Импорт...' 
+                    : selectedColumns.size === 0 
+                      ? 'Выберите столбцы для импорта' 
+                      : `Импортировать ${previewData.totalRecords} записей (${selectedColumns.size} столбцов)`
+                  }
                 </button>
                 <button
                   onClick={() => {
                     setPreviewData(null);
                     setSelectedFile(null);
+                    setColumnMapping({});
+                    setSelectedColumns(new Set());
                   }}
                   className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
                 >
