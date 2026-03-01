@@ -360,57 +360,112 @@ export default function DataImport() {
                 </div>
               </div>
 
-              <div className="mb-4">
-                <h3 className="text-md font-semibold mb-3">Маппинг колонок</h3>
-                <p className="text-sm text-gray-600 mb-3">
-                  Выберите какие столбцы импортировать и укажите соответствие полям системы
+              <div className="mb-6">
+                <h3 className="text-md font-semibold mb-2">Маппинг колонок</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Выберите столбцы для импорта и укажите соответствие полям системы
                 </p>
                 
-                <div className="space-y-2 max-h-96 overflow-y-auto border border-gray-200 rounded p-3">
-                  {previewData.fields.map((field) => (
-                    <div key={field} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded">
-                      <input
-                        type="checkbox"
-                        checked={selectedColumns.has(field)}
-                        onChange={(e) => {
-                          const newSelected = new Set(selectedColumns);
-                          if (e.target.checked) {
-                            newSelected.add(field);
-                          } else {
-                            newSelected.delete(field);
-                          }
-                          setSelectedColumns(newSelected);
-                        }}
-                        className="w-4 h-4 text-blue-600"
-                      />
-                      <div className="flex-1 grid grid-cols-2 gap-3 items-center">
-                        <div>
-                          <span className="text-sm font-medium text-gray-900">{field}</span>
-                          <span className="text-xs text-gray-500 ml-2">
-                            ({previewData.preview[0]?.[field]?.toString().substring(0, 30) || 'пусто'}...)
-                          </span>
-                        </div>
-                        <select
-                          value={columnMapping[field] || ''}
-                          onChange={(e) => {
-                            setColumnMapping({
-                              ...columnMapping,
-                              [field]: e.target.value
-                            });
-                          }}
-                          disabled={!selectedColumns.has(field)}
-                          className="text-sm border border-gray-300 rounded px-2 py-1 disabled:bg-gray-100 disabled:text-gray-500"
-                        >
-                          <option value="">→ Не импортировать</option>
-                          {getSystemFields(previewData.detectedType).map((sf) => (
-                            <option key={sf.value} value={sf.value}>
-                              → {sf.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  ))}
+                <div className="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                  <div className="max-h-80 overflow-y-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-100 sticky top-0">
+                        <tr>
+                          <th className="w-12 px-4 py-3 text-left">
+                            <input
+                              type="checkbox"
+                              checked={selectedColumns.size === previewData.fields.length}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedColumns(new Set(previewData.fields));
+                                } else {
+                                  setSelectedColumns(new Set());
+                                }
+                              }}
+                              className="w-4 h-4 text-blue-600 rounded"
+                              title="Выбрать все"
+                            />
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
+                            Столбец из файла
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
+                            Поле системы
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {previewData.fields.map((field) => (
+                          <tr 
+                            key={field}
+                            className={`hover:bg-blue-50 transition-colors ${
+                              selectedColumns.has(field) ? 'bg-blue-50/50' : ''
+                            }`}
+                          >
+                            <td className="px-4 py-3">
+                              <input
+                                type="checkbox"
+                                checked={selectedColumns.has(field)}
+                                onChange={(e) => {
+                                  const newSelected = new Set(selectedColumns);
+                                  if (e.target.checked) {
+                                    newSelected.add(field);
+                                  } else {
+                                    newSelected.delete(field);
+                                  }
+                                  setSelectedColumns(newSelected);
+                                }}
+                                className="w-4 h-4 text-blue-600 rounded"
+                              />
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium text-gray-900">{field}</span>
+                                <span className="text-xs text-gray-500 mt-1">
+                                  Пример: {previewData.preview[0]?.[field]?.toString().substring(0, 40) || '(пусто)'}
+                                  {previewData.preview[0]?.[field]?.toString().length > 40 ? '...' : ''}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <select
+                                value={columnMapping[field] || ''}
+                                onChange={(e) => {
+                                  setColumnMapping({
+                                    ...columnMapping,
+                                    [field]: e.target.value
+                                  });
+                                  // Автоматически выбираем колонку при маппинге
+                                  if (e.target.value && !selectedColumns.has(field)) {
+                                    const newSelected = new Set(selectedColumns);
+                                    newSelected.add(field);
+                                    setSelectedColumns(newSelected);
+                                  }
+                                }}
+                                className={`w-full text-sm border rounded-md px-3 py-2 transition-colors ${
+                                  selectedColumns.has(field)
+                                    ? 'border-blue-300 bg-white'
+                                    : 'border-gray-200 bg-gray-50 text-gray-500'
+                                }`}
+                              >
+                                <option value="">— Не импортировать —</option>
+                                {getSystemFields(previewData.detectedType).map((sf) => (
+                                  <option key={sf.value} value={sf.value}>
+                                    {sf.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="bg-gray-100 px-4 py-3 border-t border-gray-200">
+                    <p className="text-xs text-gray-600">
+                      Выбрано: <span className="font-semibold">{selectedColumns.size}</span> из {previewData.fields.length} столбцов
+                    </p>
+                  </div>
                 </div>
               </div>
 

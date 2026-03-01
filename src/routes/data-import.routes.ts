@@ -125,14 +125,18 @@ class DataImportParser {
   /**
    * Нормализация названий полей (маппинг на стандартные поля)
    */
-  static normalizeFields(data: any[], type: string): any[] {
+  static normalizeFields(data: any[], type: string, userMapping: Record<string, string> = {}): any[] {
     const fieldMappings: Record<string, Record<string, string>> = {
       orders: {
         'Порядковый номер': 'orderNumber',
         'ФИО': 'fullName',
+        'Имя': 'firstName',
+        'Фамилия': 'lastName',
         'Email': 'email',
         'Phone': 'phone',
+        'Телефон': 'phone',
         'Date': 'date',
+        'Дата': 'date',
         'Сумма заказа': 'totalAmount',
         'Статус оплаты': 'paymentStatus',
         'Товары в заказе': 'items',
@@ -165,7 +169,14 @@ class DataImportParser {
       const normalized: any = {};
       
       Object.keys(row).forEach(key => {
-        const normalizedKey = mapping[key] || key;
+        // Сначала проверяем пользовательский маппинг
+        let normalizedKey = userMapping[key];
+        
+        // Если нет пользовательского маппинга, используем автоматический
+        if (!normalizedKey) {
+          normalizedKey = mapping[key] || key;
+        }
+        
         normalized[normalizedKey] = row[key];
       });
       
@@ -212,7 +223,7 @@ router.post('/preview', [authMiddleware, adminMiddleware], upload.single('file')
     const detectedType = DataImportParser.detectDataType(data);
     
     // Нормализуем поля
-    const normalizedData = DataImportParser.normalizeFields(data, detectedType);
+    const normalizedData = DataImportParser.normalizeFields(data, detectedType, {});
     
     res.json({
       success: true,
@@ -262,8 +273,8 @@ router.post('/execute', [authMiddleware, adminMiddleware], upload.single('file')
       data = DataImportParser.parseCSV(content);
     }
     
-    // Нормализуем
-    const normalizedData = DataImportParser.normalizeFields(data, dataType);
+    // Нормализуем с учетом пользовательского маппинга
+    const normalizedData = DataImportParser.normalizeFields(data, dataType, mapping);
     
     let imported = 0;
     let skipped = 0;
@@ -285,27 +296,48 @@ router.post('/execute', [authMiddleware, adminMiddleware], upload.single('file')
           }
           
           // Ищем/создаем пользователя
-          const userEmail = orderData.email?.toLowerCase().trim() || `user${Date.now()}@import.local`;
-          let user = await User.findOne({ email: userEmail });
+          const userEmail = orderData.email?.toLowerCase().trim();
+          const userPhone = orderData.phone?.trim();
+          const hasRealEmail = userEmail && !userEmail.includes('@import.local');
+          
+          // Проверяем дубликаты по email или phone
+          let user = null;
+          if (hasRealEmail) {
+            user = await User.findOne({ email: userEmail });
+          }
+          if (!user && userPhone) {
+            user = await User.findOne({ phone: userPhone });
+          }
+          
           if (!user) {
-            // Используем маппинг колонок для ФИО
-            let firstName = 'Клиент';
+            // Извлекаем ФИО из данных
+            let firstName = '';
             let lastName = '';
             
             if (orderData.fullName) {
               const nameParts = orderData.fullName.trim().split(/\s+/);
-              firstName = nameParts[0] || 'Клиент';
+              firstName = nameParts[0] || '';
               lastName = nameParts.slice(1).join(' ') || '';
             } else if (orderData.firstName || orderData.lastName) {
-              firstName = orderData.firstName?.trim() || 'Клиент';
+              firstName = orderData.firstName?.trim() || '';
               lastName = orderData.lastName?.trim() || '';
             }
             
+            // Если нет ФИО, пропускаем создание пользователя
+            if (!firstName && !lastName) {
+              errors++;
+              errorDetails.push({
+                record: orderNumber,
+                error: 'Нет ФИО для создания пользователя'
+              });
+              continue;
+            }
+            
             user = new User({
-              email: userEmail,
+              email: hasRealEmail ? userEmail : `user${Date.now()}_${Math.random().toString(36).slice(2)}@import.local`,
               firstName,
               lastName,
-              phone: orderData.phone?.trim(),
+              phone: userPhone,
               password: Math.random().toString(36).slice(-8),
               role: 'customer'
             });
