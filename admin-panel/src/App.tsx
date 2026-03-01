@@ -29,6 +29,7 @@ import PromoCodes from './pages/PromoCodes';
 import FortuneWheel from './pages/FortuneWheel';
 import ShopOrders from './pages/ShopOrders';
 import WildberriesIntegration from './pages/WildberriesIntegration';
+import DataImport from './pages/DataImport';
 import Layout from './components/Layout';
 import { getAuthToken } from './utils/auth';
 
@@ -88,6 +89,7 @@ function App() {
           <Route path="fortune-wheel" element={<FortuneWheel />} />
           <Route path="shop-orders" element={<ShopOrders />} />
           <Route path="wildberries" element={<WildberriesIntegration />} />
+          <Route path="data-import" element={<DataImport />} />
         </Route>
       </Routes>
     </Router>

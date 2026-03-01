@@ -1,0 +1,29 @@
+[
+  {
+    "userEmail": "user1@example.com",
+    "amount": 99000,
+    "status": "success",
+    "paymentDate": "2024-01-15T10:30:00Z",
+    "transactionId": "TXN-001",
+    "paymentMethod": "card",
+    "description": "Оплата курса Anti-Age марафон"
+  },
+  {
+    "userEmail": "user2@example.com",
+    "amount": 199000,
+    "status": "success",
+    "paymentDate": "2024-01-16T14:20:00Z",
+    "transactionId": "TXN-002",
+    "paymentMethod": "sbp",
+    "description": "Оплата премиум подписки"
+  },
+  {
+    "userEmail": "user3@example.com",
+    "amount": 49000,
+    "status": "pending",
+    "paymentDate": "2024-01-17T09:15:00Z",
+    "transactionId": "TXN-003",
+    "paymentMethod": "card",
+    "description": "Оплата комплекса упражнений"
+  }
+]

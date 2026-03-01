@@ -383,6 +383,22 @@ export default function Layout({ onLogout }: LayoutProps) {
             >
               🟣 Wildberries
             </Link>
+
+            <Link
+              to="/data-import"
+              style={{
+                display: 'block',
+                padding: '12px 16px',
+                marginBottom: '8px',
+                borderRadius: '8px',
+                textDecoration: 'none',
+                color: 'white',
+                background: isActive('/data-import') ? '#4F46E5' : 'transparent',
+                transition: 'background 0.2s'
+              }}
+            >
+              📥 Импорт данных
+            </Link>
           </div>
         </nav>
 
