@@ -71,7 +71,8 @@ export default function DataImport() {
       const response = await api.post('/admin/data-import/preview', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
-        }
+        },
+        timeout: 120000 // 2 минуты для обработки больших файлов
       });
 
       if (response.data.success) {
@@ -104,7 +105,8 @@ export default function DataImport() {
       const response = await api.post('/admin/data-import/execute', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
-        }
+        },
+        timeout: 300000 // 5 минут для импорта больших файлов
       });
 
       if (response.data.success) {

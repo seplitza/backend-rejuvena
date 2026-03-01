@@ -216,12 +216,14 @@ router.post('/preview', [authMiddleware, adminMiddleware], upload.single('file')
     
     res.json({
       success: true,
-      preview: normalizedData.slice(0, 10), // Первые 10 записей
-      totalRecords: data.length,
-      detectedType,
-      fields: Object.keys(normalizedData[0] || {}),
-      fileType,
-      filename
+      data: {
+        preview: normalizedData.slice(0, 10), // Первые 10 записей
+        totalRecords: data.length,
+        detectedType,
+        fields: Object.keys(normalizedData[0] || {}),
+        fileType,
+        filename
+      }
     });
     
   } catch (error: any) {
@@ -347,11 +349,13 @@ router.post('/execute', [authMiddleware, adminMiddleware], upload.single('file')
     
     res.json({
       success: true,
-      imported,
-      skipped,
-      errors,
-      errorDetails: errorDetails.slice(0, 10), // Первые 10 ошибок
-      totalProcessed: normalizedData.length
+      data: {
+        imported,
+        skipped,
+        errors,
+        errorDetails: errorDetails.slice(0, 10), // Первые 10 ошибок
+        totalProcessed: normalizedData.length
+      }
     });
     
   } catch (error: any) {
@@ -382,8 +386,10 @@ router.get('/history', [authMiddleware, adminMiddleware], async (req: Request, r
     
     res.json({
       success: true,
-      imports: importedOrders,
-      stats
+      data: {
+        history: importedOrders,
+        stats
+      }
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
