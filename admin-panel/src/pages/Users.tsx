@@ -80,6 +80,10 @@ export default function Users() {
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   
+  // Пагинация
+  const [page, setPage] = useState<number>(1);
+  const [limit] = useState<number>(100);
+  
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
@@ -95,10 +99,22 @@ export default function Users() {
   
   // Multi-select state
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  
+  // Статистика для карточек
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    premiumUsers: 0,
+    activeMarathons: 0,
+    totalRevenue: 0
+  });
 
   useEffect(() => {
     loadUsers();
-  }, [searchTerm, filterPremium, filterContacts, filterTags, sortBy, sortOrder]);
+  }, [searchTerm, filterPremium, filterContacts, filterTags, sortBy, sortOrder, page]);
+
+  useEffect(() => {
+    loadStats();
+  }, []);
 
   const loadUsers = async () => {
     try {
@@ -111,7 +127,8 @@ export default function Users() {
       if (filterTags !== 'all') params.append('tags', filterTags);
       params.append('sortBy', sortBy);
       params.append('sortOrder', sortOrder);
-      params.append('limit', '10000'); // Показываем всех пользователей
+      params.append('page', String(page));
+      params.append('limit', String(limit));
 
       const response = await fetch(`${API_URL}/api/admin/users?${params}`, {
         headers: getAuthHeaders()
@@ -148,6 +165,67 @@ export default function Users() {
       setLoadingDetails(false);
     }
   };
+
+  const loadStats = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/admin/users?limit=10000`, {
+        headers: getAuthHeaders()
+      });
+      const data = await response.json();
+      if (data.success) {
+        const premiumCount = data.users.filter((u: User) => u.isPremium).length;
+        const marathonCount = data.users.reduce((sum: number, u: User) => sum + (u.stats?.activeMarathons || 0), 0);
+        const revenue = data.users.reduce((sum: number, u: User) => sum + (u.stats?.totalSpent || 0) + (u.stats?.totalOrdersAmount || 0), 0);
+        
+        setStats({
+          totalUsers: data.total || data.users.length,
+          premiumUsers: premiumCount,
+          activeMarathons: marathonCount,
+          totalRevenue: revenue
+        });
+      }
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    }
+  };
+
+  // Быстрые фильтры по клику на карточки
+  const handleQuickFilterPremium = () => {
+    setFilterPremium(filterPremium === 'true' ? 'all' : 'true');
+    setPage(1);
+  };
+
+  const handleQuickFilterMarathons = () => {
+    // Фильтр по пользователям с марафонами - требует доработки API
+    alert('Фильтр по марафонам будет добавлен в следующей версии');
+  };
+
+  // Очистить все фильтры
+  const clearAllFilters = () => {
+    setSearchTerm('');
+    setFilterPremium('all');
+    setFilterContacts('all');
+    setFilterTags('all');
+    setSortBy('createdAt');
+    setSortOrder('desc');
+    setPage(1);
+  };
+
+  // Сортировка по колонке
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('desc');
+    }
+    setPage(1);
+  };
+  
+  // Сброс страницы при изменении фильтров
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, filterPremium, filterContacts, filterTags]);
 
   const toggleContacts = async (userId: string, enabled: boolean) => {
     try {
@@ -530,6 +608,22 @@ export default function Users() {
         </button>
 
         <button
+          onClick={clearAllFilters}
+          style={{
+            padding: '10px 20px',
+            background: '#EF4444',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '500'
+          }}
+        >
+          Очистить фильтры
+        </button>
+
+        <button
           onClick={loadUsers}
           style={{
             padding: '10px 20px',
@@ -553,26 +647,74 @@ export default function Users() {
         gap: '16px',
         marginBottom: '24px'
       }}>
-        <div style={{ background: 'white', padding: '20px', borderRadius: '12px' }}>
+        <div 
+          style={{ 
+            background: 'white', 
+            padding: '20px', 
+            borderRadius: '12px',
+            border: '2px solid transparent'
+          }}
+        >
           <div style={{ fontSize: '13px', color: '#6B7280', marginBottom: '8px' }}>Всего пользователей</div>
-          <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#1F2937' }}>{users.length}</div>
+          <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#1F2937' }}>{stats.totalUsers}</div>
         </div>
-        <div style={{ background: 'white', padding: '20px', borderRadius: '12px' }}>
-          <div style={{ fontSize: '13px', color: '#6B7280', marginBottom: '8px' }}>Премиум</div>
+        
+        <div 
+          onClick={handleQuickFilterPremium}
+          style={{ 
+            background: 'white', 
+            padding: '20px', 
+            borderRadius: '12px',
+            cursor: 'pointer',
+            border: filterPremium === 'true' ? '2px solid #10B981' : '2px solid transparent',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = 'none';
+          }}
+        >
+          <div style={{ fontSize: '13px', color: '#6B7280', marginBottom: '8px' }}>
+            Премиум {filterPremium === 'true' && '✓'}
+          </div>
           <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#10B981' }}>
-            {users.filter(u => u.isPremium).length}
+            {stats.premiumUsers}
           </div>
         </div>
-        <div style={{ background: 'white', padding: '20px', borderRadius: '12px' }}>
+        
+        <div 
+          onClick={handleQuickFilterMarathons}
+          style={{ 
+            background: 'white', 
+            padding: '20px', 
+            borderRadius: '12px',
+            cursor: 'pointer',
+            border: '2px solid transparent',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = 'none';
+          }}
+        >
           <div style={{ fontSize: '13px', color: '#6B7280', marginBottom: '8px' }}>Активных марафонов</div>
           <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#3B82F6' }}>
-            {users.reduce((sum, u) => sum + u.stats.activeMarathons, 0)}
+            {stats.activeMarathons}
           </div>
         </div>
+        
         <div style={{ background: 'white', padding: '20px', borderRadius: '12px' }}>
           <div style={{ fontSize: '13px', color: '#6B7280', marginBottom: '8px' }}>Общая выручка</div>
           <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#8B5CF6' }}>
-            {formatMoney(users.reduce((sum, u) => sum + u.stats.totalSpent + u.stats.totalOrdersAmount, 0))}
+            {formatMoney(stats.totalRevenue)}
           </div>
         </div>
       </div>
@@ -605,23 +747,65 @@ export default function Users() {
                       }}
                     />
                   </th>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', fontWeight: '600', color: '#6B7280' }}>
-                    Пользователь
+                  <th 
+                    onClick={() => handleSort('email')}
+                    style={{ 
+                      padding: '12px 16px', 
+                      textAlign: 'left', 
+                      fontSize: '13px', 
+                      fontWeight: '600', 
+                      color: '#6B7280',
+                      cursor: 'pointer',
+                      userSelect: 'none'
+                    }}
+                  >
+                    Пользователь {sortBy === 'email' && (sortOrder === 'asc' ? '↑' : '↓')}
                   </th>
                   <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', fontWeight: '600', color: '#6B7280' }}>
                     Статус
                   </th>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', fontWeight: '600', color: '#6B7280' }}>
+                  <th 
+                    style={{ 
+                      padding: '12px 16px', 
+                      textAlign: 'left', 
+                      fontSize: '13px', 
+                      fontWeight: '600', 
+                      color: '#6B7280',
+                      cursor: 'pointer',
+                      userSelect: 'none'
+                    }}
+                  >
                     Марафоны
                   </th>
                   <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', fontWeight: '600', color: '#6B7280' }}>
                     Прогресс
                   </th>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', fontWeight: '600', color: '#6B7280' }}>
+                  <th 
+                    style={{ 
+                      padding: '12px 16px', 
+                      textAlign: 'left', 
+                      fontSize: '13px', 
+                      fontWeight: '600', 
+                      color: '#6B7280',
+                      cursor: 'pointer',
+                      userSelect: 'none'
+                    }}
+                  >
                     Покупки
                   </th>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', fontWeight: '600', color: '#6B7280' }}>
-                    Последний заход
+                  <th 
+                    onClick={() => handleSort('lastLoginAt')}
+                    style={{ 
+                      padding: '12px 16px', 
+                      textAlign: 'left', 
+                      fontSize: '13px', 
+                      fontWeight: '600', 
+                      color: '#6B7280',
+                      cursor: 'pointer',
+                      userSelect: 'none'
+                    }}
+                  >
+                    Последний заход {sortBy === 'lastLoginAt' && (sortOrder === 'asc' ? '↑' : '↓')}
                   </th>
                   <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '13px', fontWeight: '600', color: '#6B7280' }}>
                     Контакты
@@ -832,6 +1016,63 @@ export default function Users() {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {!loading && total > limit && (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginTop: '24px',
+          padding: '16px',
+          background: 'white',
+          borderRadius: '12px'
+        }}>
+          <div style={{ fontSize: '14px', color: '#6B7280' }}>
+            Показано {((page - 1) * limit) + 1}–{Math.min(page * limit, total)} из {total}
+          </div>
+          
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button
+              onClick={() => setPage(Math.max(1, page - 1))}
+              disabled={page === 1}
+              style={{
+                padding: '8px 16px',
+                background: page === 1 ? '#F3F4F6' : '#3B82F6',
+                color: page === 1 ? '#9CA3AF' : 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: page === 1 ? 'not-allowed' : 'pointer',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}
+            >
+              ← Назад
+            </button>
+            
+            <div style={{ fontSize: '14px', color: '#1F2937', fontWeight: '600' }}>
+              Страница {page} из {Math.ceil(total / limit)}
+            </div>
+            
+            <button
+              onClick={() => setPage(Math.min(Math.ceil(total / limit), page + 1))}
+              disabled={page >= Math.ceil(total / limit)}
+              style={{
+                padding: '8px 16px',
+                background: page >= Math.ceil(total / limit) ? '#F3F4F6' : '#3B82F6',
+                color: page >= Math.ceil(total / limit) ? '#9CA3AF' : 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: page >= Math.ceil(total / limit) ? 'not-allowed' : 'pointer',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}
+            >
+              Вперед →
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* User Details Modal */}
       {selectedUser && (
