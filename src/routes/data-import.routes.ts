@@ -21,29 +21,32 @@ class DataImportParser {
   
   /**
    * Парс CSV с авто-детекцией разделителя
+   * Правильно обрабатывает многострочные поля в кавычках
    */
   static parseCSV(content: string): any[] {
-    const lines = content.trim().split('\n');
-    if (lines.length < 2) return [];
-    
     // Определяем разделитель (;, ,, \t)
     const separators = [';', ',', '\t'];
     let separator = ';';
     
+    const firstLine = content.split('\n')[0];
     for (const sep of separators) {
-      if (lines[0].includes(sep)) {
+      if (firstLine.includes(sep)) {
         separator = sep;
         break;
       }
     }
     
-    const headers = this.parseCSVLine(lines[0], separator);
+    // Разбиваем на строки с учетом кавычек
+    const rows = this.splitCSVRows(content);
+    if (rows.length < 2) return [];
+    
+    const headers = this.parseCSVLine(rows[0], separator);
     const data: any[] = [];
     
-    for (let i = 1; i < lines.length; i++) {
-      if (!lines[i].trim()) continue;
+    for (let i = 1; i < rows.length; i++) {
+      if (!rows[i].trim()) continue;
       
-      const values = this.parseCSVLine(lines[i], separator);
+      const values = this.parseCSVLine(rows[i], separator);
       const row: any = {};
       
       headers.forEach((header, index) => {
@@ -57,6 +60,53 @@ class DataImportParser {
   }
   
   /**
+   * Разбивает CSV на строки с учетом многострочных полей в кавычках
+   */
+  static splitCSVRows(content: string): string[] {
+    const rows: string[] = [];
+    let currentRow = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < content.length; i++) {
+      const char = content[i];
+      const nextChar = content[i + 1];
+      
+      if (char === '"') {
+        // Проверяем на escaped кавычку ""
+        if (nextChar === '"') {
+          currentRow += '""';
+          i++; // Пропускаем следующую кавычку
+        } else {
+          inQuotes = !inQuotes;
+          currentRow += char;
+        }
+      } else if (char === '\n' && !inQuotes) {
+        // Конец строки (только если не внутри кавычек)
+        if (currentRow.trim()) {
+          rows.push(currentRow);
+        }
+        currentRow = '';
+      } else if (char === '\r' && nextChar === '\n' && !inQuotes) {
+        // Windows line ending
+        if (currentRow.trim()) {
+          rows.push(currentRow);
+        }
+        currentRow = '';
+        i++; // Пропускаем \n
+      } else {
+        currentRow += char;
+      }
+    }
+    
+    // Добавляем последнюю строку
+    if (currentRow.trim()) {
+      rows.push(currentRow);
+    }
+    
+    return rows;
+  }
+  
+  /**
    * Парс одной строки CSV с учетом кавычек
    */
   static parseCSVLine(line: string, separator: string): string[] {
@@ -66,9 +116,16 @@ class DataImportParser {
     
     for (let i = 0; i < line.length; i++) {
       const char = line[i];
+      const nextChar = line[i + 1];
       
       if (char === '"') {
-        inQuotes = !inQuotes;
+        // Проверяем на escaped кавычку ""
+        if (nextChar === '"' && inQuotes) {
+          current += '"';
+          i++; // Пропускаем следующую кавычку
+        } else {
+          inQuotes = !inQuotes;
+        }
       } else if (char === separator && !inQuotes) {
         values.push(current);
         current = '';
@@ -78,7 +135,7 @@ class DataImportParser {
     }
     values.push(current);
     
-    return values.map(v => v.replace(/^"|"$/g, ''));
+    return values.map(v => v.trim());
   }
   
   /**
