@@ -281,8 +281,121 @@ router.post('/execute', [authMiddleware, adminMiddleware], upload.single('file')
     let errors = 0;
     const errorDetails: any[] = [];
     
+    // Определяем источник импорта из имени файла
+    const importSource = filename.toLowerCase().includes('tilda') || filename.toLowerCase().includes('тильда') 
+      ? 'Тильда' 
+      : filename.toLowerCase().includes('leads')
+        ? 'Тильда'
+        : 'Приложение';
+    
     // Импортируем в зависимости от типа
-    if (dataType === 'orders') {
+    if (dataType === 'users') {
+      // Импорт пользователей
+      for (const userData of normalizedData) {
+        try {
+          const userEmail = userData.email?.toLowerCase().trim();
+          const userPhone = userData.phone?.trim();
+          const hasRealEmail = userEmail && userEmail.length > 0 && !userEmail.includes('@import.local');
+          
+          // Проверка на наличие email или phone
+          if (!hasRealEmail && !userPhone) {
+            errors++;
+            errorDetails.push({
+              row: userData,
+              error: 'Отсутствует email или телефон'
+            });
+            continue;
+          }
+          
+          // Извлекаем ФИО из данных
+          let firstName = '';
+          let lastName = '';
+          
+          if (userData.fullName) {
+            const nameParts = userData.fullName.trim().split(/\s+/);
+            firstName = nameParts[0] || '';
+            lastName = nameParts.slice(1).join(' ') || '';
+          } else if (userData.firstName || userData.lastName) {
+            firstName = userData.firstName?.trim() || '';
+            lastName = userData.lastName?.trim() || '';
+          }
+          
+          // Если нет ФИО, пропускаем
+          if (!firstName && !lastName) {
+            errors++;
+            errorDetails.push({
+              row: userData,
+              error: 'Отсутствует ФИО'
+            });
+            continue;
+          }
+          
+          // Проверяем существование по email или phone
+          let existingUser = null;
+          if (hasRealEmail) {
+            existingUser = await User.findOne({ email: userEmail });
+          }
+          if (!existingUser && userPhone) {
+            existingUser = await User.findOne({ phone: userPhone });
+          }
+          
+          if (existingUser) {
+            if (mode === 'insert') {
+              skipped++;
+              continue;
+            } else if (mode === 'upsert') {
+              // Обновляем существующего пользователя, добавляем тег
+              const tags = existingUser.tags || [];
+              const importTag = `Импортированные (${importSource})`;
+              
+              if (!tags.includes(importTag)) {
+                tags.push(importTag);
+              }
+              if (!tags.includes('Импортированные')) {
+                tags.push('Импортированные');
+              }
+              
+              await User.updateOne(
+                { _id: existingUser._id },
+                {
+                  $set: {
+                    firstName: firstName || existingUser.firstName,
+                    lastName: lastName || existingUser.lastName,
+                    phone: userPhone || existingUser.phone,
+                    tags
+                  }
+                }
+              );
+              imported++;
+              continue;
+            }
+          }
+          
+          // Создаем нового пользователя
+          const importTag = `Импортированные (${importSource})`;
+          const newUser = new User({
+            email: hasRealEmail ? userEmail : `user${Date.now()}_${Math.random().toString(36).slice(2)}@import.local`,
+            firstName,
+            lastName,
+            phone: userPhone,
+            password: Math.random().toString(36).slice(-8),
+            role: 'customer',
+            tags: ['Импортированные', importTag]
+          });
+          
+          await newUser.save();
+          imported++;
+          
+        } catch (error: any) {
+          errors++;
+          errorDetails.push({ 
+            row: userData, 
+            error: error.message 
+          });
+        }
+      }
+      
+    } else if (dataType === 'orders') {
       // Импорт заказов (используем существующую логику из import-crm-orders)
       for (const orderData of normalizedData) {
         try {
@@ -339,7 +452,8 @@ router.post('/execute', [authMiddleware, adminMiddleware], upload.single('file')
               lastName,
               phone: userPhone,
               password: Math.random().toString(36).slice(-8),
-              role: 'customer'
+              role: 'customer',
+              tags: ['Импортированные', `Импортированные (${importSource})`]
             });
             await user.save();
           }
@@ -412,7 +526,7 @@ router.post('/execute', [authMiddleware, adminMiddleware], upload.single('file')
             paymentMethod: 'online',
             shippingMethod: 'cdek_pickup',
             notes: `📥 Импортировано из ${filename}`,
-            tags: ['импортированные'],
+            tags: ['импортированные', `импортированные (${importSource})`],
             createdAt: orderDate,
             updatedAt: orderDate
           };
@@ -437,8 +551,9 @@ router.post('/execute', [authMiddleware, adminMiddleware], upload.single('file')
         imported,
         skipped,
         errors,
-        errorDetails: errorDetails.slice(0, 10), // Первые 10 ошибок
-        totalProcessed: normalizedData.length
+        errorDetails, // Все ошибки, не ограничено
+        totalProcessed: normalizedData.length,
+        importSource
       }
     });
     

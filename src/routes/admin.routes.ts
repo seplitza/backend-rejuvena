@@ -21,6 +21,7 @@ router.get('/users', authMiddleware, async (req: AuthRequest, res: Response) => 
       hasMarathons,
       hasPurchases,
       contactsEnabled,
+      tags,
       sortBy = 'createdAt',
       sortOrder = 'desc',
       page = 1,
@@ -44,6 +45,10 @@ router.get('/users', authMiddleware, async (req: AuthRequest, res: Response) => 
 
     if (contactsEnabled !== undefined) {
       filter.contactsEnabled = contactsEnabled === 'true';
+    }
+
+    if (tags) {
+      filter.tags = tags; // Фильтр по тегу
     }
 
     // Get users

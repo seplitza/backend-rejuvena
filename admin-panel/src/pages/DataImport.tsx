@@ -13,9 +13,11 @@ interface ImportResult {
   skipped: number;
   errors: number;
   errorDetails: Array<{
-    record: any;
+    record?: any;
+    row?: any;
     error: string;
   }>;
+  importSource?: string;
 }
 
 interface ImportHistory {
@@ -37,6 +39,29 @@ export default function DataImport() {
   const [history, setHistory] = useState<ImportHistory[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [showFullPreview, setShowFullPreview] = useState(false);
+  
+  // Функция для скачивания ошибок в CSV
+  const downloadErrors = () => {
+    if (!importResult || importResult.errorDetails.length === 0) return;
+    
+    // Формируем CSV
+    const headers = ['Ошибка', 'Данные записи'];
+    const rows = importResult.errorDetails.map(err => {
+      const recordData = err.record || err.row || {};
+      return [
+        err.error,
+        JSON.stringify(recordData)
+      ].map(cell => `"${cell.replace(/"/g, '""')}"`).join(';');
+    });
+    
+    const csv = [headers.join(';'), ...rows].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' }); // BOM для Excel
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `import-errors-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  };
+
   
   // Column mapping state
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
@@ -614,7 +639,14 @@ export default function DataImport() {
           {/* Import Result */}
           {importResult && (
             <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-lg font-semibold mb-4">Результаты импорта</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold">Результаты импорта</h2>
+                {importResult.importSource && (
+                  <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                    Источник: {importResult.importSource}
+                  </span>
+                )}
+              </div>
               
               <div className="max-w-4xl">
                 <div className="grid grid-cols-3 gap-4 mb-4">
@@ -634,16 +666,29 @@ export default function DataImport() {
 
                 {importResult.errorDetails.length > 0 && (
                   <div>
-                    <h3 className="text-md font-semibold mb-2">Детали ошибок:</h3>
-                    <div className="bg-red-50 border border-red-200 rounded p-4 max-h-64 overflow-y-auto">
-                      {importResult.errorDetails.map((error, idx) => (
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className="text-md font-semibold">Детали ошибок ({importResult.errorDetails.length}):</h3>
+                      <button
+                        onClick={downloadErrors}
+                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                      >
+                        📥 Скачать все ошибки (CSV)
+                      </button>
+                    </div>
+                    <div className="bg-red-50 border border-red-200 rounded p-4 max-h-96 overflow-y-auto">
+                      {importResult.errorDetails.slice(0, 50).map((error, idx) => (
                         <div key={idx} className="mb-3 pb-3 border-b border-red-200 last:border-0">
                           <p className="text-sm font-medium text-red-800">Ошибка: {error.error}</p>
                           <p className="text-xs text-red-600 mt-1">
-                            Запись: {JSON.stringify(error.record).substring(0, 100)}...
+                            Запись: {JSON.stringify(error.record || error.row || {}).substring(0, 150)}...
                           </p>
                         </div>
                       ))}
+                      {importResult.errorDetails.length > 50 && (
+                        <div className="mt-3 text-center text-sm text-red-600">
+                          ... и еще {importResult.errorDetails.length - 50} ошибок. Скачайте CSV для просмотра всех.
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

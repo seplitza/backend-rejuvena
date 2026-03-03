@@ -66,6 +66,9 @@ export interface IUser extends Document {
   fortuneWheelLastSpin?: Date;
   fortuneWheelGifts?: IWheelGift[];
   
+  // Теги для фильтрации (например, "Импортированные")
+  tags?: string[];
+  
   createdAt: Date;
 }
 
@@ -211,6 +214,9 @@ const UserSchema = new Schema<IUser>({
     },
     usedAt: Date,
     orderId: String
+  }],
+  tags: [{
+    type: String
   }],
   createdAt: {
     type: Date,

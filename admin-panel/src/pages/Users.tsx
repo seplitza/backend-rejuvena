@@ -75,6 +75,7 @@ export default function Users() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterPremium, setFilterPremium] = useState<string>('all');
   const [filterContacts, setFilterContacts] = useState<string>('all');
+  const [filterTags, setFilterTags] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   
@@ -96,7 +97,7 @@ export default function Users() {
 
   useEffect(() => {
     loadUsers();
-  }, [searchTerm, filterPremium, filterContacts, sortBy, sortOrder]);
+  }, [searchTerm, filterPremium, filterContacts, filterTags, sortBy, sortOrder]);
 
   const loadUsers = async () => {
     try {
@@ -106,6 +107,7 @@ export default function Users() {
       if (searchTerm) params.append('search', searchTerm);
       if (filterPremium !== 'all') params.append('isPremium', filterPremium);
       if (filterContacts !== 'all') params.append('contactsEnabled', filterContacts);
+      if (filterTags !== 'all') params.append('tags', filterTags);
       params.append('sortBy', sortBy);
       params.append('sortOrder', sortOrder);
       params.append('limit', '100');
@@ -473,6 +475,22 @@ export default function Users() {
           <option value="all">Все контакты</option>
           <option value="true">Контакты разрешены</option>
           <option value="false">Контакты запрещены</option>
+        </select>
+
+        <select
+          value={filterTags}
+          onChange={(e) => setFilterTags(e.target.value)}
+          style={{
+            padding: '10px 16px',
+            border: '1px solid #D1D5DB',
+            borderRadius: '8px',
+            fontSize: '14px'
+          }}
+        >
+          <option value="all">Все пользователи</option>
+          <option value="Импортированные">Импортированные</option>
+          <option value="Импортированные (Тильда)">Импортированные (Тильда)</option>
+          <option value="Импортированные (Приложение)">Импортированные (Приложение)</option>
         </select>
 
         <select
