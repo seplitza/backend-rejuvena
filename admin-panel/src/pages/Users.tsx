@@ -71,6 +71,7 @@ const formatMoney = (amount: number): string => {
 
 export default function Users() {
   const [users, setUsers] = useState<User[]>([]);
+  const [total, setTotal] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterPremium, setFilterPremium] = useState<string>('all');
@@ -110,7 +111,7 @@ export default function Users() {
       if (filterTags !== 'all') params.append('tags', filterTags);
       params.append('sortBy', sortBy);
       params.append('sortOrder', sortOrder);
-      params.append('limit', '100');
+      params.append('limit', '10000'); // Показываем всех пользователей
 
       const response = await fetch(`${API_URL}/api/admin/users?${params}`, {
         headers: getAuthHeaders()
@@ -119,6 +120,7 @@ export default function Users() {
       const data = await response.json();
       if (data.success) {
         setUsers(data.users);
+        setTotal(data.total || data.users.length);
       }
     } catch (error) {
       console.error('Error loading users:', error);
@@ -327,9 +329,14 @@ export default function Users() {
 
   return (
     <div style={{ padding: '40px', maxWidth: '1600px', margin: '0 auto' }}>
-      <h1 style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '24px' }}>
-        CRM - Управление пользователями
-      </h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '24px' }}>
+        <h1 style={{ fontSize: '32px', fontWeight: 'bold' }}>
+          CRM - Управление пользователями
+        </h1>
+        <div style={{ fontSize: '16px', color: '#6B7280' }}>
+          Показано: <span style={{ fontWeight: '600', color: '#1F2937' }}>{users.length}</span> из <span style={{ fontWeight: '600', color: '#1F2937' }}>{total}</span>
+        </div>
+      </div>
 
       {/* Bulk Actions Bar */}
       {selectedUserIds.length > 0 && (
