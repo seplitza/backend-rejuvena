@@ -36,6 +36,7 @@ export default function DataImport() {
   const [activeTab, setActiveTab] = useState<'import' | 'history'>('import');
   const [history, setHistory] = useState<ImportHistory[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [showFullPreview, setShowFullPreview] = useState(false);
   
   // Column mapping state
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
@@ -279,7 +280,7 @@ export default function DataImport() {
       {activeTab === 'import' && (
         <div className="space-y-6">
           {/* File Upload */}
-          <div className="bg-white shadow rounded-lg p-6">
+          <div className="bg-white shadow rounded-lg p-6 max-w-4xl">
             <h2 className="text-lg font-semibold mb-4">Выбор файла</h2>
             
             <div
@@ -345,212 +346,234 @@ export default function DataImport() {
             <div className="bg-white shadow rounded-lg p-6">
               <h2 className="text-lg font-semibold mb-4">Предпросмотр данных</h2>
               
-              <div className="mb-4 grid grid-cols-3 gap-4">
-                <div className="bg-gray-50 p-4 rounded">
-                  <p className="text-sm text-gray-600">Тип данных</p>
-                  <p className="text-lg font-semibold">{getDataTypeLabel(previewData.detectedType)}</p>
+              {/* Контрольные элементы - фиксированная ширина, независимы от таблицы */}
+              <div className="max-w-4xl">
+                <div className="mb-4 grid grid-cols-3 gap-4">
+                  <div className="bg-gray-50 p-4 rounded">
+                    <p className="text-sm text-gray-600">Тип данных</p>
+                    <p className="text-lg font-semibold">{getDataTypeLabel(previewData.detectedType)}</p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded">
+                    <p className="text-sm text-gray-600">Всего записей</p>
+                    <p className="text-lg font-semibold">{previewData.totalRecords}</p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded">
+                    <p className="text-sm text-gray-600">Полей</p>
+                    <p className="text-lg font-semibold">{previewData.fields.length}</p>
+                  </div>
                 </div>
-                <div className="bg-gray-50 p-4 rounded">
-                  <p className="text-sm text-gray-600">Всего записей</p>
-                  <p className="text-lg font-semibold">{previewData.totalRecords}</p>
+
+                <div className="mb-6">
+                  <h3 className="text-md font-semibold mb-2">Маппинг колонок</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Выберите столбцы для импорта и укажите соответствие полям системы
+                  </p>
+                  
+                  <div className="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                    <div className="max-h-80 overflow-y-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-100 sticky top-0">
+                          <tr>
+                            <th className="w-12 px-4 py-3 text-left">
+                              <input
+                                type="checkbox"
+                                checked={selectedColumns.size === previewData.fields.length}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedColumns(new Set(previewData.fields));
+                                  } else {
+                                    setSelectedColumns(new Set());
+                                  }
+                                }}
+                                className="w-4 h-4 text-blue-600 rounded"
+                                title="Выбрать все"
+                              />
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
+                              Столбец из файла
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
+                              Поле системы
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {previewData.fields.map((field) => (
+                            <tr 
+                              key={field}
+                              className={`hover:bg-blue-50 transition-colors ${
+                                selectedColumns.has(field) ? 'bg-blue-50/50' : ''
+                              }`}
+                            >
+                              <td className="px-4 py-3">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedColumns.has(field)}
+                                  onChange={(e) => {
+                                    const newSelected = new Set(selectedColumns);
+                                    if (e.target.checked) {
+                                      newSelected.add(field);
+                                    } else {
+                                      newSelected.delete(field);
+                                    }
+                                    setSelectedColumns(newSelected);
+                                  }}
+                                  className="w-4 h-4 text-blue-600 rounded"
+                                />
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-medium text-gray-900">{field}</span>
+                                  <span className="text-xs text-gray-500 mt-1">
+                                    Пример: {previewData.preview[0]?.[field]?.toString().substring(0, 40) || '(пусто)'}
+                                    {previewData.preview[0]?.[field]?.toString().length > 40 ? '...' : ''}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <select
+                                  value={columnMapping[field] || ''}
+                                  onChange={(e) => {
+                                    setColumnMapping({
+                                      ...columnMapping,
+                                      [field]: e.target.value
+                                    });
+                                    // Автоматически выбираем колонку при маппинге
+                                    if (e.target.value && !selectedColumns.has(field)) {
+                                      const newSelected = new Set(selectedColumns);
+                                      newSelected.add(field);
+                                      setSelectedColumns(newSelected);
+                                    }
+                                  }}
+                                  className={`w-full text-sm border rounded-md px-3 py-2 transition-colors ${
+                                    selectedColumns.has(field)
+                                      ? 'border-blue-300 bg-white'
+                                      : 'border-gray-200 bg-gray-50 text-gray-500'
+                                  }`}
+                                >
+                                  <option value="">— Не импортировать —</option>
+                                  {getSystemFields(previewData.detectedType).map((sf) => (
+                                    <option key={sf.value} value={sf.value}>
+                                      {sf.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="bg-gray-100 px-4 py-3 border-t border-gray-200">
+                      <p className="text-xs text-gray-600">
+                        Выбрано: <span className="font-semibold">{selectedColumns.size}</span> из {previewData.fields.length} столбцов
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-gray-50 p-4 rounded">
-                  <p className="text-sm text-gray-600">Полей</p>
-                  <p className="text-lg font-semibold">{previewData.fields.length}</p>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Режим импорта
+                  </label>
+                  <select
+                    value={importMode}
+                    onChange={(e) => setImportMode(e.target.value as any)}
+                    className="w-full border border-gray-300 rounded px-3 py-2"
+                  >
+                    <option value="insert">Только новые записи</option>
+                    <option value="upsert">Обновить существующие + добавить новые</option>
+                    <option value="replace">⚠️ Удалить все и заменить</option>
+                  </select>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {getImportModeLabel(importMode)}
+                  </p>
                 </div>
               </div>
 
-              <div className="mb-6">
-                <h3 className="text-md font-semibold mb-2">Маппинг колонок</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Выберите столбцы для импорта и укажите соответствие полям системы
-                </p>
-                
-                <div className="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
-                  <div className="max-h-80 overflow-y-auto">
+              {/* Таблица превью - независимый блок с горизонтальным скроллом */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-md font-semibold">Предпросмотр данных</h3>
+                  <button
+                    onClick={() => setShowFullPreview(!showFullPreview)}
+                    className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    {showFullPreview ? '◀ Показать только выбранные столбцы' : '▶ Показать все столбцы'}
+                  </button>
+                </div>
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-100 sticky top-0">
+                      <thead className="bg-gray-50">
                         <tr>
-                          <th className="w-12 px-4 py-3 text-left">
-                            <input
-                              type="checkbox"
-                              checked={selectedColumns.size === previewData.fields.length}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedColumns(new Set(previewData.fields));
-                                } else {
-                                  setSelectedColumns(new Set());
-                                }
-                              }}
-                              className="w-4 h-4 text-blue-600 rounded"
-                              title="Выбрать все"
-                            />
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                            Столбец из файла
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                            Поле системы
-                          </th>
+                          {previewData.fields
+                            .filter(field => showFullPreview || selectedColumns.has(field))
+                            .map((field) => (
+                            <th
+                              key={field}
+                              className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider whitespace-nowrap"
+                              style={{ minWidth: '150px', maxWidth: '250px' }}
+                            >
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedColumns.has(field)}
+                                    onChange={(e) => {
+                                      const newSelected = new Set(selectedColumns);
+                                      if (e.target.checked) {
+                                        newSelected.add(field);
+                                      } else {
+                                        newSelected.delete(field);
+                                      }
+                                      setSelectedColumns(newSelected);
+                                    }}
+                                    className="w-3 h-3"
+                                    title={selectedColumns.has(field) ? 'Импортировать' : 'Не импортировать'}
+                                  />
+                                  <span className="break-words">{field}</span>
+                                </div>
+                                {columnMapping[field] && selectedColumns.has(field) && (
+                                  <span className="text-[10px] text-blue-600 font-normal">
+                                    → {getSystemFields(previewData.detectedType).find(f => f.value === columnMapping[field])?.label}
+                                  </span>
+                                )}
+                              </div>
+                            </th>
+                          ))}
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {previewData.fields.map((field) => (
-                          <tr 
-                            key={field}
-                            className={`hover:bg-blue-50 transition-colors ${
-                              selectedColumns.has(field) ? 'bg-blue-50/50' : ''
-                            }`}
-                          >
-                            <td className="px-4 py-3">
-                              <input
-                                type="checkbox"
-                                checked={selectedColumns.has(field)}
-                                onChange={(e) => {
-                                  const newSelected = new Set(selectedColumns);
-                                  if (e.target.checked) {
-                                    newSelected.add(field);
-                                  } else {
-                                    newSelected.delete(field);
-                                  }
-                                  setSelectedColumns(newSelected);
-                                }}
-                                className="w-4 h-4 text-blue-600 rounded"
-                              />
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="flex flex-col">
-                                <span className="text-sm font-medium text-gray-900">{field}</span>
-                                <span className="text-xs text-gray-500 mt-1">
-                                  Пример: {previewData.preview[0]?.[field]?.toString().substring(0, 40) || '(пусто)'}
-                                  {previewData.preview[0]?.[field]?.toString().length > 40 ? '...' : ''}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3">
-                              <select
-                                value={columnMapping[field] || ''}
-                                onChange={(e) => {
-                                  setColumnMapping({
-                                    ...columnMapping,
-                                    [field]: e.target.value
-                                  });
-                                  // Автоматически выбираем колонку при маппинге
-                                  if (e.target.value && !selectedColumns.has(field)) {
-                                    const newSelected = new Set(selectedColumns);
-                                    newSelected.add(field);
-                                    setSelectedColumns(newSelected);
-                                  }
-                                }}
-                                className={`w-full text-sm border rounded-md px-3 py-2 transition-colors ${
-                                  selectedColumns.has(field)
-                                    ? 'border-blue-300 bg-white'
-                                    : 'border-gray-200 bg-gray-50 text-gray-500'
+                        {previewData.preview.map((row, idx) => (
+                          <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                            {previewData.fields
+                              .filter(field => showFullPreview || selectedColumns.has(field))
+                              .map((field) => (
+                              <td 
+                                key={field} 
+                                className={`px-3 py-2 text-xs text-gray-700 ${
+                                  selectedColumns.has(field) ? 'bg-blue-50 font-medium' : 'opacity-50'
                                 }`}
+                                style={{ 
+                                  minWidth: '150px',
+                                  maxWidth: '250px',
+                                  wordWrap: 'break-word',
+                                  whiteSpace: 'normal',
+                                  overflowWrap: 'break-word'
+                                }}
                               >
-                                <option value="">— Не импортировать —</option>
-                                {getSystemFields(previewData.detectedType).map((sf) => (
-                                  <option key={sf.value} value={sf.value}>
-                                    {sf.label}
-                                  </option>
-                                ))}
-                              </select>
-                            </td>
+                                {typeof row[field] === 'object' 
+                                  ? JSON.stringify(row[field]).substring(0, 100) + '...'
+                                  : String(row[field] || '-')}
+                              </td>
+                            ))}
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
-                  <div className="bg-gray-100 px-4 py-3 border-t border-gray-200">
-                    <p className="text-xs text-gray-600">
-                      Выбрано: <span className="font-semibold">{selectedColumns.size}</span> из {previewData.fields.length} столбцов
-                    </p>
-                  </div>
                 </div>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Режим импорта
-                </label>
-                <select
-                  value={importMode}
-                  onChange={(e) => setImportMode(e.target.value as any)}
-                  className="w-full border border-gray-300 rounded px-3 py-2"
-                >
-                  <option value="insert">Только новые записи</option>
-                  <option value="upsert">Обновить существующие + добавить новые</option>
-                  <option value="replace">⚠️ Удалить все и заменить</option>
-                </select>
-                <p className="mt-1 text-sm text-gray-500">
-                  {getImportModeLabel(importMode)}
-                </p>
-              </div>
-
-              <div className="overflow-x-auto mb-4">
-                <table className="min-w-full divide-y divide-gray-200 border border-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      {previewData.fields.map((field) => (
-                        <th
-                          key={field}
-                          className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-r border-gray-200 last:border-r-0"
-                          style={{ maxWidth: '200px' }}
-                        >
-                          <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-1">
-                              <input
-                                type="checkbox"
-                                checked={selectedColumns.has(field)}
-                                onChange={(e) => {
-                                  const newSelected = new Set(selectedColumns);
-                                  if (e.target.checked) {
-                                    newSelected.add(field);
-                                  } else {
-                                    newSelected.delete(field);
-                                  }
-                                  setSelectedColumns(newSelected);
-                                }}
-                                className="w-3 h-3"
-                                title={selectedColumns.has(field) ? 'Импортировать' : 'Не импортировать'}
-                              />
-                              <span className="break-words">{field}</span>
-                            </div>
-                            {columnMapping[field] && selectedColumns.has(field) && (
-                              <span className="text-[10px] text-blue-600 font-normal">
-                                → {getSystemFields(previewData.detectedType).find(f => f.value === columnMapping[field])?.label}
-                              </span>
-                            )}
-                          </div>
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {previewData.preview.map((row, idx) => (
-                      <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                        {previewData.fields.map((field) => (
-                          <td 
-                            key={field} 
-                            className={`px-3 py-2 text-xs text-gray-700 border-r border-gray-200 last:border-r-0 ${
-                              selectedColumns.has(field) ? 'bg-blue-50' : 'opacity-50'
-                            }`}
-                            style={{ 
-                              maxWidth: '200px',
-                              wordWrap: 'break-word',
-                              whiteSpace: 'normal',
-                              overflowWrap: 'break-word'
-                            }}
-                          >
-                            {typeof row[field] === 'object' 
-                              ? JSON.stringify(row[field]).substring(0, 100) + '...'
-                              : String(row[field] || '-')}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
               </div>
 
               {previewData.totalRecords > 10 && (
@@ -559,7 +582,7 @@ export default function DataImport() {
                 </p>
               )}
 
-              <div className="flex gap-4">
+              <div className="max-w-4xl flex gap-4">
                 <button
                   onClick={executeImport}
                   disabled={importing || selectedColumns.size === 0}
@@ -578,6 +601,7 @@ export default function DataImport() {
                     setSelectedFile(null);
                     setColumnMapping({});
                     setSelectedColumns(new Set());
+                    setShowFullPreview(false);
                   }}
                   className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
                 >
@@ -592,41 +616,43 @@ export default function DataImport() {
             <div className="bg-white shadow rounded-lg p-6">
               <h2 className="text-lg font-semibold mb-4">Результаты импорта</h2>
               
-              <div className="grid grid-cols-3 gap-4 mb-4">
-                <div className="bg-green-50 p-4 rounded border border-green-200">
-                  <p className="text-sm text-green-600">Импортировано</p>
-                  <p className="text-2xl font-bold text-green-700">{importResult.imported}</p>
-                </div>
-                <div className="bg-yellow-50 p-4 rounded border border-yellow-200">
-                  <p className="text-sm text-yellow-600">Пропущено</p>
-                  <p className="text-2xl font-bold text-yellow-700">{importResult.skipped}</p>
-                </div>
-                <div className="bg-red-50 p-4 rounded border border-red-200">
-                  <p className="text-sm text-red-600">Ошибки</p>
-                  <p className="text-2xl font-bold text-red-700">{importResult.errors}</p>
-                </div>
-              </div>
-
-              {importResult.errorDetails.length > 0 && (
-                <div>
-                  <h3 className="text-md font-semibold mb-2">Детали ошибок:</h3>
-                  <div className="bg-red-50 border border-red-200 rounded p-4 max-h-64 overflow-y-auto">
-                    {importResult.errorDetails.map((error, idx) => (
-                      <div key={idx} className="mb-3 pb-3 border-b border-red-200 last:border-0">
-                        <p className="text-sm font-medium text-red-800">Ошибка: {error.error}</p>
-                        <p className="text-xs text-red-600 mt-1">
-                          Запись: {JSON.stringify(error.record).substring(0, 100)}...
-                        </p>
-                      </div>
-                    ))}
+              <div className="max-w-4xl">
+                <div className="grid grid-cols-3 gap-4 mb-4">
+                  <div className="bg-green-50 p-4 rounded border border-green-200">
+                    <p className="text-sm text-green-600">Импортировано</p>
+                    <p className="text-2xl font-bold text-green-700">{importResult.imported}</p>
+                  </div>
+                  <div className="bg-yellow-50 p-4 rounded border border-yellow-200">
+                    <p className="text-sm text-yellow-600">Пропущено</p>
+                    <p className="text-2xl font-bold text-yellow-700">{importResult.skipped}</p>
+                  </div>
+                  <div className="bg-red-50 p-4 rounded border border-red-200">
+                    <p className="text-sm text-red-600">Ошибки</p>
+                    <p className="text-2xl font-bold text-red-700">{importResult.errors}</p>
                   </div>
                 </div>
-              )}
+
+                {importResult.errorDetails.length > 0 && (
+                  <div>
+                    <h3 className="text-md font-semibold mb-2">Детали ошибок:</h3>
+                    <div className="bg-red-50 border border-red-200 rounded p-4 max-h-64 overflow-y-auto">
+                      {importResult.errorDetails.map((error, idx) => (
+                        <div key={idx} className="mb-3 pb-3 border-b border-red-200 last:border-0">
+                          <p className="text-sm font-medium text-red-800">Ошибка: {error.error}</p>
+                          <p className="text-xs text-red-600 mt-1">
+                            Запись: {JSON.stringify(error.record).substring(0, 100)}...
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
           {/* Info */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-4xl">
             <h3 className="text-sm font-semibold text-blue-800 mb-2">📋 Справка</h3>
             <ul className="text-sm text-blue-700 space-y-1">
               <li>• Поддерживаемые форматы: CSV (с различными разделителями), JSON</li>
