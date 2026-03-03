@@ -47,8 +47,8 @@ router.get('/users', authMiddleware, async (req: AuthRequest, res: Response) => 
       filter.contactsEnabled = contactsEnabled === 'true';
     }
 
-    if (tags) {
-      filter.tags = tags; // Фильтр по тегу
+    if (tags && tags !== 'all') {
+      filter.tags = { $in: [tags] }; // Проверка что массив tags содержит указанный тег
     }
 
     // Get users

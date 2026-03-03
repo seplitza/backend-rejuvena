@@ -277,6 +277,7 @@ router.post('/execute', [authMiddleware, adminMiddleware], upload.single('file')
     const normalizedData = DataImportParser.normalizeFields(data, dataType, mapping);
     
     let imported = 0;
+    let updated = 0;
     let skipped = 0;
     let errors = 0;
     const errorDetails: any[] = [];
@@ -348,25 +349,32 @@ router.post('/execute', [authMiddleware, adminMiddleware], upload.single('file')
               const tags = existingUser.tags || [];
               const importTag = `Импортированные (${importSource})`;
               
+              let needsUpdate = false;
               if (!tags.includes(importTag)) {
                 tags.push(importTag);
+                needsUpdate = true;
               }
               if (!tags.includes('Импортированные')) {
                 tags.push('Импортированные');
+                needsUpdate = true;
               }
               
-              await User.updateOne(
-                { _id: existingUser._id },
-                {
-                  $set: {
-                    firstName: firstName || existingUser.firstName,
-                    lastName: lastName || existingUser.lastName,
-                    phone: userPhone || existingUser.phone,
-                    tags
+              if (needsUpdate) {
+                await User.updateOne(
+                  { _id: existingUser._id },
+                  {
+                    $set: {
+                      firstName: firstName || existingUser.firstName,
+                      lastName: lastName || existingUser.lastName,
+                      phone: userPhone || existingUser.phone,
+                      tags
+                    }
                   }
-                }
-              );
-              imported++;
+                );
+                updated++;
+              } else {
+                skipped++;
+              }
               continue;
             }
           }
@@ -403,9 +411,17 @@ router.post('/execute', [authMiddleware, adminMiddleware], upload.single('file')
           
           // Проверяем существование
           const existing = await Order.findOne({ orderNumber });
-          if (existing && mode === 'insert') {
-            skipped++;
-            continue;
+          if (existing) {
+            if (mode === 'insert') {
+              skipped++;
+              continue;
+            } else if (mode === 'upsert') {
+              // Будем обновлять существующий заказ
+              // (updated++ будет ниже)
+            } else {
+              skipped++;
+              continue;
+            }
           }
           
           // Ищем/создаем пользователя
@@ -533,11 +549,14 @@ router.post('/execute', [authMiddleware, adminMiddleware], upload.single('file')
           
           if (mode === 'upsert' && existing) {
             await Order.updateOne({ _id: existing._id }, orderDoc);
-          } else {
+            updated++;
+          } else if (!existing) {
             await Order.create(orderDoc);
+            imported++;
+          } else {
+            // Не должно попасть сюда, но на всякий случай
+            skipped++;
           }
-          
-          imported++;
         } catch (error: any) {
           errors++;
           errorDetails.push({ row: orderData, error: error.message });
@@ -549,6 +568,7 @@ router.post('/execute', [authMiddleware, adminMiddleware], upload.single('file')
       success: true,
       data: {
         imported,
+        updated,
         skipped,
         errors,
         errorDetails, // Все ошибки, не ограничено

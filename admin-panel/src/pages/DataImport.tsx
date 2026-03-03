@@ -10,6 +10,7 @@ interface PreviewData {
 
 interface ImportResult {
   imported: number;
+  updated?: number;
   skipped: number;
   errors: number;
   errorDetails: Array<{
@@ -649,11 +650,17 @@ export default function DataImport() {
               </div>
               
               <div className="max-w-4xl">
-                <div className="grid grid-cols-3 gap-4 mb-4">
+                <div className="grid grid-cols-4 gap-4 mb-4">
                   <div className="bg-green-50 p-4 rounded border border-green-200">
-                    <p className="text-sm text-green-600">Импортировано</p>
+                    <p className="text-sm text-green-600">Создано новых</p>
                     <p className="text-2xl font-bold text-green-700">{importResult.imported}</p>
                   </div>
+                  {importResult.updated !== undefined && importResult.updated > 0 && (
+                    <div className="bg-blue-50 p-4 rounded border border-blue-200">
+                      <p className="text-sm text-blue-600">Обновлено</p>
+                      <p className="text-2xl font-bold text-blue-700">{importResult.updated}</p>
+                    </div>
+                  )}
                   <div className="bg-yellow-50 p-4 rounded border border-yellow-200">
                     <p className="text-sm text-yellow-600">Пропущено</p>
                     <p className="text-2xl font-bold text-yellow-700">{importResult.skipped}</p>
