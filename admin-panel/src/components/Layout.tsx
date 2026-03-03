@@ -46,7 +46,14 @@ export default function Layout({ onLogout }: LayoutProps) {
   const isActive = (path: string) => location.pathname.startsWith(path);
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', position: 'relative' }}>
+    <div style={{ 
+      display: 'flex', 
+      height: '100vh', 
+      overflow: 'hidden', 
+      position: 'relative',
+      width: '100vw',
+      maxWidth: '100vw'
+    }}>
       {/* Mobile Overlay */}
       {isMobile && isSidebarOpen && (
         <div 
@@ -73,12 +80,14 @@ export default function Layout({ onLogout }: LayoutProps) {
         flexDirection: 'column',
         height: '100vh',
         position: 'fixed',
-        left: isSidebarOpen ? 0 : '-250px',
+        left: isSidebarOpen ? 0 : '-270px',
         top: 0,
         overflowY: 'auto',
+        overflowX: 'hidden',
         zIndex: 999,
         transition: 'left 0.3s ease-in-out',
-        boxShadow: isMobile && isSidebarOpen ? '4px 0 12px rgba(0, 0, 0, 0.3)' : 'none'
+        boxShadow: isMobile && isSidebarOpen ? '4px 0 12px rgba(0, 0, 0, 0.3)' : 'none',
+        WebkitOverflowScrolling: 'touch'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '20px', marginBottom: '30px' }}>
           <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>
@@ -494,13 +503,15 @@ export default function Layout({ onLogout }: LayoutProps) {
       {/* Main Content */}
       <main style={{ 
         marginLeft: isMobile ? 0 : (isSidebarOpen ? '250px' : 0),
-        width: isMobile ? '100%' : (isSidebarOpen ? 'calc(100% - 250px)' : '100%'),
+        width: isMobile ? '100vw' : (isSidebarOpen ? 'calc(100% - 250px)' : '100%'),
+        maxWidth: isMobile ? '100vw' : 'none',
         height: '100vh',
         background: '#F9FAFB', 
         overflowY: 'auto',
         overflowX: 'hidden',
         transition: 'margin-left 0.3s ease-in-out, width 0.3s ease-in-out',
-        position: 'relative'
+        position: 'relative',
+        WebkitOverflowScrolling: 'touch'
       }}>
         {/* Hamburger Button */}
         <button
