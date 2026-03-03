@@ -1,4 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { removeAuthToken } from '../utils/auth';
 
 interface LayoutProps {
@@ -7,16 +8,62 @@ interface LayoutProps {
 
 export default function Layout({ onLogout }: LayoutProps) {
   const location = useLocation();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Определяем мобильное устройство
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      // На мобильных меню по умолчанию закрыто
+      if (mobile) {
+        setIsSidebarOpen(false);
+      }
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Закрываем меню на мобильных при смене страницы
+  useEffect(() => {
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
+  }, [location.pathname, isMobile]);
 
   const handleLogout = () => {
     removeAuthToken();
     onLogout();
   };
 
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
   const isActive = (path: string) => location.pathname.startsWith(path);
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', position: 'relative' }}>
+      {/* Mobile Overlay */}
+      {isMobile && isSidebarOpen && (
+        <div 
+          onClick={toggleSidebar}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 998,
+            animation: 'fadeIn 0.2s ease-in-out'
+          }}
+        />
+      )}
+
       {/* Sidebar */}
       <aside style={{
         width: '250px',
@@ -26,13 +73,33 @@ export default function Layout({ onLogout }: LayoutProps) {
         flexDirection: 'column',
         height: '100vh',
         position: 'fixed',
-        left: 0,
+        left: isSidebarOpen ? 0 : '-250px',
         top: 0,
-        overflowY: 'auto'
+        overflowY: 'auto',
+        zIndex: 999,
+        transition: 'left 0.3s ease-in-out',
+        boxShadow: isMobile && isSidebarOpen ? '4px 0 12px rgba(0, 0, 0, 0.3)' : 'none'
       }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: '20px', marginBottom: '30px' }}>
-          Rejuvena Admin
-        </h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '20px', marginBottom: '30px' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>
+            Rejuvena Admin
+          </h1>
+          {isMobile && (
+            <button
+              onClick={toggleSidebar}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'white',
+                fontSize: '24px',
+                cursor: 'pointer',
+                padding: '4px'
+              }}
+            >
+              ✕
+            </button>
+          )}
+        </div>
         
         <nav style={{ flex: 1, padding: '0 20px' }}>
           <Link
@@ -426,13 +493,66 @@ export default function Layout({ onLogout }: LayoutProps) {
 
       {/* Main Content */}
       <main style={{ 
-        marginLeft: '250px',
-        width: 'calc(100% - 250px)',
+        marginLeft: isMobile ? 0 : (isSidebarOpen ? '250px' : 0),
+        width: isMobile ? '100%' : (isSidebarOpen ? 'calc(100% - 250px)' : '100%'),
         height: '100vh',
         background: '#F9FAFB', 
         overflowY: 'auto',
-        overflowX: 'hidden'
+        overflowX: 'hidden',
+        transition: 'margin-left 0.3s ease-in-out, width 0.3s ease-in-out',
+        position: 'relative'
       }}>
+        {/* Hamburger Button */}
+        <button
+          onClick={toggleSidebar}
+          style={{
+            position: 'fixed',
+            top: '16px',
+            left: isMobile ? '16px' : (isSidebarOpen ? '266px' : '16px'),
+            zIndex: 997,
+            background: '#4F46E5',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '12px',
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+            transition: 'left 0.3s ease-in-out',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '44px',
+            height: '44px'
+          }}
+          title={isSidebarOpen ? 'Скрыть меню' : 'Показать меню'}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '20px' }}>
+            <div style={{
+              width: '100%',
+              height: '2px',
+              background: 'white',
+              borderRadius: '2px',
+              transition: 'transform 0.3s, opacity 0.3s',
+              transform: isSidebarOpen ? 'rotate(45deg) translateY(6px)' : 'none',
+            }} />
+            <div style={{
+              width: '100%',
+              height: '2px',
+              background: 'white',
+              borderRadius: '2px',
+              transition: 'opacity 0.3s',
+              opacity: isSidebarOpen ? 0 : 1
+            }} />
+            <div style={{
+              width: '100%',
+              height: '2px',
+              background: 'white',
+              borderRadius: '2px',
+              transition: 'transform 0.3s, opacity 0.3s',
+              transform: isSidebarOpen ? 'rotate(-45deg) translateY(-6px)' : 'none'
+            }} />
+          </div>
+        </button>
+        
         <Outlet />
       </main>
     </div>
