@@ -12,6 +12,28 @@ import Marathon from '../models/Marathon.model';
 
 const router = Router();
 
+// Get campaign statistics (for notifications)
+router.get('/stats', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const [active, scheduled, draft] = await Promise.all([
+      EmailCampaign.countDocuments({ isActive: true }),
+      EmailCampaign.countDocuments({ isActive: false, 'steps.0': { $exists: true } }),
+      EmailCampaign.countDocuments({ isActive: false, steps: { $size: 0 } })
+    ]);
+
+    res.json({
+      success: true,
+      active,
+      scheduled,
+      draft,
+      total: active + scheduled
+    });
+  } catch (error: any) {
+    console.error('Get campaign stats error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Get all campaigns
 router.get('/', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {

@@ -7,6 +7,32 @@ import Marathon from '../models/Marathon.model';
 
 const router = Router();
 
+// Get comment statistics (for notifications)
+router.get('/stats', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const [pending, urgent, needsResponse] = await Promise.all([
+      Comment.countDocuments({ status: 'pending' }),
+      Comment.countDocuments({ priority: 'urgent', status: { $ne: 'rejected' } }),
+      Comment.countDocuments({ 
+        status: 'approved', 
+        adminResponseId: { $exists: false },
+        isPrivate: false
+      })
+    ]);
+
+    res.json({
+      success: true,
+      pending,
+      urgent,
+      needsResponse,
+      total: pending + needsResponse
+    });
+  } catch (error: any) {
+    console.error('Get comment stats error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Get all comments with filters (admin moderation)
 router.get('/', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {

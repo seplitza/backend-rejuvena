@@ -1,15 +1,25 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { removeAuthToken } from '../utils/auth';
+import { API_URL, getAuthHeaders } from '../config';
 
 interface LayoutProps {
   onLogout: () => void;
+}
+
+interface NotificationCounts {
+  comments: number;
+  emailCampaigns: number;
 }
 
 export default function Layout({ onLogout }: LayoutProps) {
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationCounts>({
+    comments: 0,
+    emailCampaigns: 0
+  });
 
   // Определяем мобильное устройство
   useEffect(() => {
@@ -34,6 +44,43 @@ export default function Layout({ onLogout }: LayoutProps) {
     }
   }, [location.pathname, isMobile]);
 
+  // Загружаем счетчики уведомлений
+  const loadNotifications = async () => {
+    try {
+      // Загружаем количество комментариев на модерации
+      const commentsRes = await fetch(`${API_URL}/api/admin/comments/stats`, {
+        headers: getAuthHeaders()
+      });
+      
+      if (commentsRes.ok) {
+        const commentsData = await commentsRes.json();
+        
+        // Загружаем количество активных email-кампаний
+        const campaignsRes = await fetch(`${API_URL}/api/admin/email-campaigns/stats`, {
+          headers: getAuthHeaders()
+        });
+        
+        if (campaignsRes.ok) {
+          const campaignsData = await campaignsRes.json();
+          
+          setNotifications({
+            comments: commentsData.total || 0,
+            emailCampaigns: campaignsData.total || 0
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error loading notifications:', error);
+    }
+  };
+
+  // Загружаем уведомления при монтировании и каждые 30 секунд
+  useEffect(() => {
+    loadNotifications();
+    const interval = setInterval(loadNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   const handleLogout = () => {
     removeAuthToken();
     onLogout();
@@ -44,6 +91,30 @@ export default function Layout({ onLogout }: LayoutProps) {
   };
 
   const isActive = (path: string) => location.pathname.startsWith(path);
+
+  // Компонент бейджа с уведомлениями
+  const Badge = ({ count, color = '#EF4444' }: { count: number; color?: string }) => {
+    if (count === 0) return null;
+    return (
+      <span style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: '20px',
+        height: '20px',
+        padding: '0 6px',
+        background: color,
+        color: 'white',
+        borderRadius: '10px',
+        fontSize: '11px',
+        fontWeight: '700',
+        marginLeft: 'auto',
+        animation: 'pulse 2s infinite'
+      }}>
+        {count > 99 ? '99+' : count}
+      </span>
+    );
+  };
 
   return (
     <div style={{ 
@@ -242,7 +313,8 @@ export default function Layout({ onLogout }: LayoutProps) {
           <Link
             to="/comments"
             style={{
-              display: 'block',
+              display: 'flex',
+              alignItems: 'center',
               padding: '12px 16px',
               marginBottom: '8px',
               borderRadius: '8px',
@@ -252,7 +324,8 @@ export default function Layout({ onLogout }: LayoutProps) {
               transition: 'background 0.2s'
             }}
           >
-            💬 Управление комментариями
+            <span>💬 Управление комментариями</span>
+            <Badge count={notifications.comments} color="#EF4444" />
           </Link>
 
           <Link
@@ -274,7 +347,8 @@ export default function Layout({ onLogout }: LayoutProps) {
           <Link
             to="/email-campaigns"
             style={{
-              display: 'block',
+              display: 'flex',
+              alignItems: 'center',
               padding: '12px 16px',
               marginBottom: '8px',
               borderRadius: '8px',
@@ -284,7 +358,8 @@ export default function Layout({ onLogout }: LayoutProps) {
               transition: 'background 0.2s'
             }}
           >
-            🚀 Email-кампании
+            <span>🚀 Email-кампании</span>
+            <Badge count={notifications.emailCampaigns} color="#F59E0B" />
           </Link>
 
           <Link
