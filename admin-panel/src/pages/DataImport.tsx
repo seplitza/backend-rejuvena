@@ -98,6 +98,23 @@ export default function DataImport() {
         { value: 'method', label: 'Метод оплаты' },
         { value: 'date', label: 'Дата' },
       ],
+      products: [
+        { value: 'title', label: 'Название товара' },
+        { value: 'sku', label: 'Артикул (SKU)' },
+        { value: 'brand', label: 'Бренд' },
+        { value: 'category', label: 'Категория' },
+        { value: 'shortDescription', label: 'Краткое описание' },
+        { value: 'description', label: 'Полное описание' },
+        { value: 'price', label: 'Цена' },
+        { value: 'compareAtPrice', label: 'Старая цена' },
+        { value: 'stock', label: 'Количество (остаток)' },
+        { value: 'images', label: 'Фотографии' },
+        { value: 'weight', label: 'Вес' },
+        { value: 'tildaUid', label: 'Tilda UID' },
+        { value: 'externalId', label: 'Внешний ID' },
+        { value: 'seoTitle', label: 'SEO заголовок' },
+        { value: 'seoDescription', label: 'SEO описание' },
+      ],
     };
     return fieldMaps[dataType] || [];
   };

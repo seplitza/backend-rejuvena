@@ -4,6 +4,8 @@ import { authMiddleware, adminMiddleware } from '../middleware/authMiddleware';
 import Order from '../models/Order.model';
 import Payment from '../models/Payment.model';
 import User from '../models/User.model';
+import Product from '../models/Product.model';
+import ProductCategory from '../models/ProductCategory.model';
 import mongoose from 'mongoose';
 
 const router = express.Router();
@@ -147,13 +149,19 @@ class DataImportParser {
   }
   
   /**
-   * Авто-детекция типа данных (заказы, платежи, пользователи)
+   * Авто-детекция типа данных (заказы, платежи, пользователи, товары)
    */
-  static detectDataType(data: any[]): 'orders' | 'payments' | 'users' | 'unknown' {
+  static detectDataType(data: any[]): 'orders' | 'payments' | 'users' | 'products' | 'unknown' {
     if (data.length === 0) return 'unknown';
     
     const sample = data[0];
     const keys = Object.keys(sample).map(k => k.toLowerCase());
+    
+    // Признаки товара (Tilda export)
+    if (keys.includes('tilda uid') || 
+        (keys.includes('title') && keys.includes('price') && keys.includes('sku'))) {
+      return 'products';
+    }
     
     // Признаки заказа
     if (keys.includes('orderNumber'.toLowerCase()) || 
@@ -217,6 +225,36 @@ class DataImportParser {
         'Телефон': 'phone',
         'Имя': 'firstName',
         'Фамилия': 'lastName'
+      },
+      products: {
+        'Tilda UID': 'tildaUid',
+        'Brand': 'brand',
+        'SKU': 'sku',
+        'Mark': 'mark',
+        'Category': 'category',
+        'Title': 'title',
+        'Description': 'shortDescription',
+        'Text': 'description',
+        'Photo': 'images',
+        'Price': 'price',
+        'Quantity': 'stock',
+        'Price Old': 'compareAtPrice',
+        'Editions': 'editions',
+        'Modifications': 'modifications',
+        'External ID': 'externalId',
+        'Parent UID': 'parentUid',
+        'Weight': 'weight',
+        'Length': 'length',
+        'Width': 'width',
+        'Height': 'height',
+        'Unit': 'unit',
+        'Portion': 'portion',
+        'SEO title': 'seoTitle',
+        'SEO descr': 'seoDescription',
+        'SEO keywords': 'seoKeywords',
+        'FB title': 'fbTitle',
+        'FB descr': 'fbDescription',
+        'Url': 'url'
       }
     };
     
@@ -617,6 +655,155 @@ router.post('/execute', [authMiddleware, adminMiddleware], upload.single('file')
         } catch (error: any) {
           errors++;
           errorDetails.push({ row: orderData, error: error.message });
+        }
+      }
+    } else if (dataType === 'products') {
+      // Импорт товаров (Tilda export)
+      for (const productData of normalizedData) {
+        try {
+          // Обязательные поля
+          const title = productData.title?.trim();
+          const sku = productData.sku?.trim() || productData.tildaUid;
+          
+          if (!title || !sku) {
+            errors++;
+            errorDetails.push({
+              row: productData,
+              error: 'Отсутствует название или SKU'
+            });
+            continue;
+          }
+          
+          // Проверяем существование по SKU
+          const existing = await Product.findOne({ sku });
+          if (existing) {
+            if (mode === 'insert') {
+              skipped++;
+              continue;
+            } else if (mode === 'upsert') {
+              // Обновление существующего товара
+            } else {
+              skipped++;
+              continue;
+            }
+          }
+          
+          // Создаем/находим категорию
+          let categoryId = null;
+          if (productData.category) {
+            const categoryName = productData.category.trim();
+            const categorySlug = categoryName
+              .toLowerCase()
+              .replace(/[^a-zа-я0-9\s-]/gi, '')
+              .replace(/\s+/g, '-');
+            
+            let category = await ProductCategory.findOne({ 
+              $or: [
+                { name: categoryName },
+                { slug: categorySlug }
+              ]
+            });
+            
+            if (!category) {
+              category = await ProductCategory.create({
+                name: categoryName,
+                slug: categorySlug,
+                isActive: true,
+                order: 0
+              });
+            }
+            
+            categoryId = category._id;
+          }
+          
+          // Обрабатываем фотографии (разделены пробелами)
+          let images: string[] = [];
+          if (productData.images) {
+            images = productData.images
+              .split(/\s+/)
+              .filter((url: string) => url.trim().startsWith('http'));
+          }
+          
+          // Обрабатываем характеристики
+          const characteristics: Array<{ name: string; value: string }> = [];
+          Object.keys(productData).forEach(key => {
+            if (key.startsWith('Characteristics:')) {
+              const charName = key.replace('Characteristics:', '');
+              const charValue = productData[key];
+              if (charValue) {
+                characteristics.push({
+                  name: charName,
+                  value: String(charValue)
+                });
+              }
+            }
+          });
+          
+          // Создаем slug из названия
+          const slug = title
+            .toLowerCase()
+            .replace(/[^a-zа-я0-9\s-]/gi, '')
+            .replace(/\s+/g, '-')
+            .substring(0, 100);
+          
+          // Парсим цены
+          const price = parseFloat(productData.price) || 0;
+          const compareAtPrice = productData.compareAtPrice 
+            ? parseFloat(productData.compareAtPrice) 
+            : undefined;
+          
+          // Парсим остаток
+          const stock = parseInt(productData.stock) || 0;
+          
+          // Габариты
+          const dimensions = (productData.length || productData.width || productData.height) ? {
+            length: parseFloat(productData.length) || 0,
+            width: parseFloat(productData.width) || 0,
+            height: parseFloat(productData.height) || 0
+          } : undefined;
+          
+          // Создаем/обновляем товар
+          const productDoc: any = {
+            name: title,
+            slug: existing ? existing.slug : slug,
+            sku,
+            description: productData.description || '',
+            shortDescription: productData.shortDescription || '',
+            price,
+            compareAtPrice,
+            stock,
+            images,
+            category: categoryId,
+            brand: productData.brand,
+            isActive: true,
+            isFeatured: false,
+            isBundle: false,
+            characteristics,
+            weight: productData.weight ? parseFloat(productData.weight) : undefined,
+            dimensions,
+            metadata: {
+              seoTitle: productData.seoTitle,
+              seoDescription: productData.seoDescription
+            },
+            seo: {
+              metaTitle: productData.seoTitle,
+              metaDescription: productData.seoDescription
+            }
+          };
+          
+          if (mode === 'upsert' && existing) {
+            await Product.updateOne({ _id: existing._id }, productDoc);
+            updated++;
+          } else if (!existing) {
+            await Product.create(productDoc);
+            imported++;
+          } else {
+            skipped++;
+          }
+          
+        } catch (error: any) {
+          errors++;
+          errorDetails.push({ row: productData, error: error.message });
         }
       }
     }
