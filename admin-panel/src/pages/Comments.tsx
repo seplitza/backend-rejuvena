@@ -68,9 +68,6 @@ export default function Comments() {
   // Exercise list for filter
   const [exercises, setExercises] = useState<Exercise[]>([]);
   
-  // Expanded comments on admin-replies tab
-  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
-  
   // Statistics
   const [stats, setStats] = useState({ pending: 0, urgent: 0, needsResponse: 0, adminReplies: 0 });
   
