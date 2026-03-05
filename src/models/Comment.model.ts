@@ -22,6 +22,7 @@ export interface IComment extends Document {
   likes: number;
   isEdited: boolean;
   editedAt?: Date;
+  starred: boolean; // Важный вопрос-ответ (звездочка)
   
   createdAt: Date;
   updatedAt: Date;
@@ -98,6 +99,11 @@ const CommentSchema = new Schema<IComment>(
     },
     editedAt: {
       type: Date
+    },
+    starred: {
+      type: Boolean,
+      default: false,
+      index: true
     }
   },
   {

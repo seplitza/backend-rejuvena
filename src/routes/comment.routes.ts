@@ -54,17 +54,36 @@ router.get('/', authMiddleware, async (req: AuthRequest, res: Response) => {
     }
 
     const skip = (Number(page) - 1) * Number(limit);
+    
+    // Custom sorting: starred first, then admin responses to current user, then by date
     const comments = await Comment.find(query)
       .populate('userId', 'firstName lastName')
       .populate('adminResponseId')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(Number(limit))
       .lean();
+
+    // Sort comments: starred first, then admin replies to this user, then everything else by date
+    const sortedComments = comments.sort((a, b) => {
+      // Starred comments always first
+      if (a.starred && !b.starred) return -1;
+      if (!a.starred && b.starred) return 1;
+      
+      // If both starred or both not starred, check if admin replied to current user
+      const aHasAdminReply = a.adminResponseId && a.userId.toString() === req.userId;
+      const bHasAdminReply = b.adminResponseId && b.userId.toString() === req.userId;
+      
+      if (aHasAdminReply && !bHasAdminReply) return -1;
+      if (!aHasAdminReply && bHasAdminReply) return 1;
+      
+      // Otherwise sort by date (newest first)
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    // Apply pagination after sorting
+    const paginatedComments = sortedComments.slice(skip, skip + Number(limit));
 
     // Get replies for each comment
     const commentsWithReplies = await Promise.all(
-      comments.map(async (comment) => {
+      paginatedComments.map(async (comment) => {
         const replies = await Comment.find({
           parentCommentId: comment._id,
           $or: [
@@ -83,7 +102,7 @@ router.get('/', authMiddleware, async (req: AuthRequest, res: Response) => {
       })
     );
 
-    const total = await Comment.countDocuments(query);
+    const total = comments.length;
 
     res.json({
       success: true,

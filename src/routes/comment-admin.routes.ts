@@ -44,6 +44,7 @@ router.get('/', authMiddleware, async (req: AuthRequest, res: Response) => {
       marathonId,
       userId,
       search,
+      view = 'moderation', // 'moderation' or 'admin-replies'
       sortBy = 'createdAt',
       sortOrder = 'desc',
       page = 1,
@@ -51,6 +52,22 @@ router.get('/', authMiddleware, async (req: AuthRequest, res: Response) => {
     } = req.query;
 
     const filter: any = {};
+
+    // View filter - separate moderation queue from admin replies
+    if (view === 'admin-replies') {
+      // Show only admin's own replies (where user is admin)
+      // Get admin users (assuming admins have isAdmin flag or specific role)
+      // For now, we'll filter by respondedBy field existence
+      filter.parentCommentId = { $exists: true }; // Only replies
+      filter.respondedBy = { $exists: true }; // Only admin responses
+    } else {
+      // Moderation view - exclude admin's own replies to avoid duplicates
+      // Show all root comments (no parent) OR user comments that need response
+      filter.$or = [
+        { parentCommentId: { $exists: false } }, // Root comments
+        { parentCommentId: { $exists: true }, respondedBy: { $exists: false } } // User replies without admin response
+      ];
+    }
 
     if (status) filter.status = status;
     if (priority) filter.priority = priority;
@@ -84,14 +101,19 @@ router.get('/', authMiddleware, async (req: AuthRequest, res: Response) => {
 
     const total = await Comment.countDocuments(filter);
 
-    // Get statistics
-    const [pending, urgent, needsResponseCount] = await Promise.all([
-      Comment.countDocuments({ status: 'pending' }),
-      Comment.countDocuments({ priority: 'urgent', status: { $ne: 'rejected' } }),
+    // Get statistics (only for moderation view, not admin replies)
+    const [pending, urgent, needsResponseCount, adminRepliesCount] = await Promise.all([
+      Comment.countDocuments({ status: 'pending', parentCommentId: { $exists: false } }),
+      Comment.countDocuments({ priority: 'urgent', status: { $ne: 'rejected' }, parentCommentId: { $exists: false } }),
       Comment.countDocuments({ 
         status: 'approved', 
         adminResponseId: { $exists: false },
-        isPrivate: false
+        isPrivate: false,
+        parentCommentId: { $exists: false }
+      }),
+      Comment.countDocuments({ 
+        parentCommentId: { $exists: true },
+        respondedBy: { $exists: true }
       })
     ]);
 
@@ -101,7 +123,8 @@ router.get('/', authMiddleware, async (req: AuthRequest, res: Response) => {
       stats: {
         pending,
         urgent,
-        needsResponse: needsResponseCount
+        needsResponse: needsResponseCount,
+        adminReplies: adminRepliesCount
       },
       pagination: {
         page: Number(page),
@@ -305,6 +328,74 @@ router.post('/:id/ai-suggest', authMiddleware, async (req: AuthRequest, res: Res
     });
   } catch (error: any) {
     console.error('AI suggest error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Toggle starred status
+router.put('/:id/starred', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { starred } = req.body;
+
+    const comment = await Comment.findByIdAndUpdate(
+      id,
+      { starred: starred !== undefined ? starred : true },
+      { new: true }
+    ).populate('userId', 'email firstName lastName');
+
+    if (!comment) {
+      return res.status(404).json({ success: false, error: 'Comment not found' });
+    }
+
+    res.json({ success: true, data: comment });
+  } catch (error: any) {
+    console.error('Update starred status error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Get list of exercises with comments (for filter dropdown)
+router.get('/exercises/list', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const exercises = await Comment.aggregate([
+      {
+        $match: {
+          exerciseId: { $exists: true, $ne: null }
+        }
+      },
+      {
+        $group: {
+          _id: '$exerciseId',
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $lookup: {
+          from: 'exercises',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'exercise'
+        }
+      },
+      {
+        $unwind: '$exercise'
+      },
+      {
+        $project: {
+          _id: 1,
+          title: '$exercise.title',
+          count: 1
+        }
+      },
+      {
+        $sort: { count: -1 }
+      }
+    ]);
+
+    res.json({ success: true, exercises });
+  } catch (error: any) {
+    console.error('Get exercises list error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

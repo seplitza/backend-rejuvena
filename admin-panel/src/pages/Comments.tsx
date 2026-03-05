@@ -34,8 +34,15 @@ interface Comment {
   likes: number;
   isEdited: boolean;
   editedAt?: Date;
+  starred: boolean;
   createdAt: Date;
   replies?: Comment[];
+}
+
+interface Exercise {
+  _id: string;
+  title: string;
+  count: number;
 }
 
 interface CommentThread {
@@ -48,14 +55,24 @@ export default function Comments() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   
+  // Tabs
+  const [activeTab, setActiveTab] = useState<'moderation' | 'admin-replies'>('moderation');
+  
   // Filters
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const [exerciseFilter, setExerciseFilter] = useState<string>('all');
   const [needsResponse, setNeedsResponse] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
+  // Exercise list for filter
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  
+  // Expanded comments on admin-replies tab
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+  
   // Statistics
-  const [stats, setStats] = useState({ pending: 0, urgent: 0, needsResponse: 0 });
+  const [stats, setStats] = useState({ pending: 0, urgent: 0, needsResponse: 0, adminReplies: 0 });
   
   // Modals
   const [selectedComment, setSelectedComment] = useState<Comment | null>(null);
@@ -71,15 +88,36 @@ export default function Comments() {
 
   useEffect(() => {
     loadComments();
-  }, [statusFilter, priorityFilter, needsResponse, searchTerm]);
+  }, [statusFilter, priorityFilter, needsResponse, searchTerm, activeTab, exerciseFilter]);
+
+  useEffect(() => {
+    loadExercises();
+  }, []);
+
+  const loadExercises = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/admin/comments/exercises/list`, {
+        headers: getAuthHeaders()
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setExercises(data.exercises);
+      }
+    } catch (error) {
+      console.error('Error loading exercises:', error);
+    }
+  };
 
   const loadComments = async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
       
+      params.append('view', activeTab);
       if (statusFilter !== 'all') params.append('status', statusFilter);
       if (priorityFilter !== 'all') params.append('priority', priorityFilter);
+      if (exerciseFilter !== 'all') params.append('exerciseId', exerciseFilter);
       if (needsResponse) params.append('needsResponse', 'true');
       if (searchTerm) params.append('search', searchTerm);
       params.append('limit', '100');
@@ -239,6 +277,27 @@ export default function Comments() {
     }
   };
 
+  const toggleStarred = async (commentId: string, currentStarred: boolean) => {
+    try {
+      const response = await fetch(`${API_URL}/api/admin/comments/${commentId}/starred`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ starred: !currentStarred })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        loadComments();
+        if (selectedComment?._id === commentId) {
+          setSelectedComment({ ...selectedComment, starred: !currentStarred });
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling starred:', error);
+      alert('Ошибка изменения статуса звезды');
+    }
+  };
+
   const formatDate = (date?: Date) => {
     if (!date) return '—';
     return new Date(date).toLocaleDateString('ru-RU', {
@@ -278,6 +337,75 @@ export default function Comments() {
         Модерация комментариев
       </h1>
 
+      {/* Tabs */}
+      <div style={{
+        display: 'flex',
+        gap: '8px',
+        marginBottom: '24px',
+        borderBottom: '2px solid #E5E7EB'
+      }}>
+        <button
+          onClick={() => setActiveTab('moderation')}
+          style={{
+            padding: '12px 24px',
+            background: activeTab === 'moderation' ? 'white' : 'transparent',
+            color: activeTab === 'moderation' ? '#3B82F6' : '#6B7280',
+            border: 'none',
+            borderBottom: activeTab === 'moderation' ? '2px solid #3B82F6' : 'none',
+            marginBottom: '-2px',
+            cursor: 'pointer',
+            fontSize: '16px',
+            fontWeight: '600',
+            transition: 'all 0.2s'
+          }}
+        >
+          Общий поток
+          {stats.pending > 0 && (
+            <span style={{
+              marginLeft: '8px',
+              padding: '2px 8px',
+              background: '#FEF3C7',
+              color: '#92400E',
+              borderRadius: '12px',
+              fontSize: '12px',
+              fontWeight: '600'
+            }}>
+              {stats.pending}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab('admin-replies')}
+          style={{
+            padding: '12px 24px',
+            background: activeTab === 'admin-replies' ? 'white' : 'transparent',
+            color: activeTab === 'admin-replies' ? '#3B82F6' : '#6B7280',
+            border: 'none',
+            borderBottom: activeTab === 'admin-replies' ? '2px solid #3B82F6' : 'none',
+            marginBottom: '-2px',
+            cursor: 'pointer',
+            fontSize: '16px',
+            fontWeight: '600',
+            transition: 'all 0.2s'
+          }}
+        >
+          Ответы админа
+          {stats.adminReplies > 0 && (
+            <span style={{
+              marginLeft: '8px',
+              padding: '2px 8px',
+              background: '#D1FAE5',
+              color: '#065F46',
+              borderRadius: '12px',
+              fontSize: '12px',
+              fontWeight: '600'
+            }}>
+              {stats.adminReplies}
+            </span>
+          )}
+        </button>
+      </div>
+
       {/* Statistics */}
       <div style={{
         display: 'grid',
@@ -298,8 +426,8 @@ export default function Comments() {
           <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#3B82F6' }}>{stats.needsResponse}</div>
         </div>
         <div style={{ background: 'white', padding: '20px', borderRadius: '12px' }}>
-          <div style={{ fontSize: '13px', color: '#6B7280', marginBottom: '8px' }}>Всего комментариев</div>
-          <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#1F2937' }}>{comments.length}</div>
+          <div style={{ fontSize: '13px', color: '#6B7280', marginBottom: '8px' }}>Ответов админа</div>
+          <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#10B981' }}>{stats.adminReplies}</div>
         </div>
       </div>
 
@@ -329,56 +457,79 @@ export default function Comments() {
           }}
         />
 
+        {activeTab === 'moderation' && (
+          <>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              style={{
+                padding: '10px 16px',
+                border: '1px solid #D1D5DB',
+                borderRadius: '8px',
+                fontSize: '14px'
+              }}
+            >
+              <option value="all">Все статусы</option>
+              <option value="pending">На модерации</option>
+              <option value="approved">Одобренные</option>
+              <option value="rejected">Отклоненные</option>
+              <option value="spam">Спам</option>
+            </select>
+
+            <select
+              value={priorityFilter}
+              onChange={(e) => setPriorityFilter(e.target.value)}
+              style={{
+                padding: '10px 16px',
+                border: '1px solid #D1D5DB',
+                borderRadius: '8px',
+                fontSize: '14px'
+              }}
+            >
+              <option value="all">Все приоритеты</option>
+              <option value="urgent">Горящие</option>
+              <option value="normal">Обычные</option>
+            </select>
+
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 16px',
+              background: '#F3F4F6',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}>
+              <input
+                type="checkbox"
+                checked={needsResponse}
+                onChange={(e) => setNeedsResponse(e.target.checked)}
+                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+              />
+              Только ждущие ответа
+            </label>
+          </>
+        )}
+
         <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          value={exerciseFilter}
+          onChange={(e) => setExerciseFilter(e.target.value)}
           style={{
             padding: '10px 16px',
             border: '1px solid #D1D5DB',
             borderRadius: '8px',
-            fontSize: '14px'
+            fontSize: '14px',
+            minWidth: '200px'
           }}
         >
-          <option value="all">Все статусы</option>
-          <option value="pending">На модерации</option>
-          <option value="approved">Одобренные</option>
-          <option value="rejected">Отклоненные</option>
-          <option value="spam">Спам</option>
+          <option value="all">Все упражнения</option>
+          {exercises.map((exercise) => (
+            <option key={exercise._id} value={exercise._id}>
+              {exercise.title} ({exercise.count})
+            </option>
+          ))}
         </select>
-
-        <select
-          value={priorityFilter}
-          onChange={(e) => setPriorityFilter(e.target.value)}
-          style={{
-            padding: '10px 16px',
-            border: '1px solid #D1D5DB',
-            borderRadius: '8px',
-            fontSize: '14px'
-          }}
-        >
-          <option value="all">Все приоритеты</option>
-          <option value="urgent">Горящие</option>
-          <option value="normal">Обычные</option>
-        </select>
-
-        <label style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '10px 16px',
-          background: '#F3F4F6',
-          borderRadius: '8px',
-          cursor: 'pointer',
-          fontSize: '14px'
-        }}>
-          <input
-            type="checkbox"
-            checked={needsResponse}
-            onChange={(e) => setNeedsResponse(e.target.checked)}
-            style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-          />
-          Только ждущие ответа
-        </label>
 
         <button
           onClick={loadComments}
@@ -491,6 +642,17 @@ export default function Comments() {
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    {comment.starred && (
+                      <span style={{
+                        padding: '4px 10px',
+                        background: '#FEF3C7',
+                        color: '#92400E',
+                        borderRadius: '8px',
+                        fontSize: '16px'
+                      }}>
+                        ⭐
+                      </span>
+                    )}
                     {getStatusBadge(comment.status)}
                     {comment.adminResponseId ? (
                       <span style={{
@@ -645,6 +807,25 @@ export default function Comments() {
                       }}
                     >
                       Удалить
+                    </button>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleStarred(selectedComment._id, selectedComment.starred);
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        background: selectedComment.starred ? '#FEF3C7' : '#F3F4F6',
+                        color: selectedComment.starred ? '#92400E' : '#6B7280',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: '500'
+                      }}
+                    >
+                      {selectedComment.starred ? '⭐ Убрать из важных' : '⭐ Сделать важным'}
                     </button>
                   </div>
                 </div>
