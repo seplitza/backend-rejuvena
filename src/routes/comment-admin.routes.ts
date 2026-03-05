@@ -11,12 +11,21 @@ const router = Router();
 router.get('/stats', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const [pending, urgent, needsResponse] = await Promise.all([
-      Comment.countDocuments({ status: 'pending' }),
-      Comment.countDocuments({ priority: 'urgent', status: { $ne: 'rejected' } }),
+      // На модерации - только корневые комментарии (не ответы)
+      Comment.countDocuments({ 
+        status: 'pending',
+        parentCommentId: { $exists: false }
+      }),
+      Comment.countDocuments({ 
+        priority: 'urgent', 
+        status: { $ne: 'rejected' },
+        parentCommentId: { $exists: false }
+      }),
       Comment.countDocuments({ 
         status: 'approved', 
         adminResponseId: { $exists: false },
-        isPrivate: false
+        isPrivate: false,
+        parentCommentId: { $exists: false }
       })
     ]);
 
@@ -55,18 +64,13 @@ router.get('/', authMiddleware, async (req: AuthRequest, res: Response) => {
 
     // View filter - separate moderation queue from admin replies
     if (view === 'admin-replies') {
-      // Show only admin's own replies (where user is admin)
-      // Get admin users (assuming admins have isAdmin flag or specific role)
-      // For now, we'll filter by respondedBy field existence
+      // Show only admin responses (replies with respondedBy field)
       filter.parentCommentId = { $exists: true }; // Only replies
       filter.respondedBy = { $exists: true }; // Only admin responses
     } else {
-      // Moderation view - exclude admin's own replies to avoid duplicates
-      // Show all root comments (no parent) OR user comments that need response
-      filter.$or = [
-        { parentCommentId: { $exists: false } }, // Root comments
-        { parentCommentId: { $exists: true }, respondedBy: { $exists: false } } // User replies without admin response
-      ];
+      // Moderation view - exclude admin replies from general queue
+      // Show only root comments (user questions)
+      filter.parentCommentId = { $exists: false }; // Only root comments
     }
 
     if (status) filter.status = status;
@@ -101,16 +105,27 @@ router.get('/', authMiddleware, async (req: AuthRequest, res: Response) => {
 
     const total = await Comment.countDocuments(filter);
 
-    // Get statistics (only for moderation view, not admin replies)
+    // Get statistics
     const [pending, urgent, needsResponseCount, adminRepliesCount] = await Promise.all([
-      Comment.countDocuments({ status: 'pending', parentCommentId: { $exists: false } }),
-      Comment.countDocuments({ priority: 'urgent', status: { $ne: 'rejected' }, parentCommentId: { $exists: false } }),
+      // На модерации - только корневые комментарии (вопросы пользователей)
+      Comment.countDocuments({ 
+        status: 'pending', 
+        parentCommentId: { $exists: false }
+      }),
+      // Горящие - только корневые комментарии
+      Comment.countDocuments({ 
+        priority: 'urgent', 
+        status: { $ne: 'rejected' }, 
+        parentCommentId: { $exists: false }
+      }),
+      // Ждут ответа - одобренные корневые комментарии без ответа админа
       Comment.countDocuments({ 
         status: 'approved', 
         adminResponseId: { $exists: false },
         isPrivate: false,
         parentCommentId: { $exists: false }
       }),
+      // Ответов админа - все ответы с respondedBy
       Comment.countDocuments({ 
         parentCommentId: { $exists: true },
         respondedBy: { $exists: true }
@@ -204,7 +219,8 @@ router.post('/:id/respond', authMiddleware, async (req: AuthRequest, res: Respon
       content,
       parentCommentId: id,
       isPrivate,
-      status: 'approved' // Admin responses are auto-approved
+      status: 'approved', // Admin responses are auto-approved
+      respondedBy: req.userId as any // Mark this as admin response
     });
 
     await responseComment.save();
