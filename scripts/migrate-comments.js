@@ -1,13 +1,34 @@
 // MongoDB Migration Script for Comments Update
-// Запускать через: node migrate-comments.js
+// Запускать через: node scripts/migrate-comments.js
 
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import Comment from './src/models/Comment.model.js';
 
 dotenv.config();
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/rejuvena';
+
+// Определяем схему Comment напрямую, чтобы избежать проблем с импортом
+const CommentSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  exerciseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Exercise' },
+  marathonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Marathon' },
+  marathonDayNumber: Number,
+  content: { type: String, required: true },
+  parentCommentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Comment' },
+  isPrivate: { type: Boolean, default: false },
+  status: { type: String, enum: ['pending', 'approved', 'rejected', 'spam'], default: 'pending' },
+  priority: { type: String, enum: ['normal', 'urgent'], default: 'normal' },
+  adminResponseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Comment' },
+  respondedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  respondedAt: Date,
+  likes: { type: Number, default: 0 },
+  isEdited: { type: Boolean, default: false },
+  editedAt: Date,
+  starred: { type: Boolean, default: false }
+}, { timestamps: true });
+
+const Comment = mongoose.model('Comment', CommentSchema);
 
 async function migrate() {
   try {
