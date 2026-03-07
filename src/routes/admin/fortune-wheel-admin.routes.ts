@@ -39,6 +39,26 @@ router.post('/init-prizes-temp', async (req: Request, res: Response) => {
 });
 // 🚨 END TEMPORARY
 
+// 🚨 TEMPORARY: Grant spins to all users
+router.post('/grant-spins-temp', async (req: Request, res: Response) => {
+  try {
+    const User = require('../../models/User.model').default;
+    const result = await User.updateMany({}, { 
+      $set: { fortuneWheelSpins: 3, fortuneWheelGifts: [] } 
+    });
+    const totalUsers = await User.countDocuments();
+    res.json({ 
+      success: true, 
+      message: `✅ Выдано 3 вращения всем пользователям`,
+      modifiedCount: result.modifiedCount,
+      totalUsers 
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Ошибка выдачи spins', details: error.message });
+  }
+});
+// 🚨 END TEMPORARY
+
 interface AuthRequest extends Request {
   userId?: string;
   user?: any;
