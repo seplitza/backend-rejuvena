@@ -1,0 +1,71 @@
+#!/usr/bin/expect -f
+
+set timeout 180
+set password "c+d2Ei@GeWWKq8"
+set server "37.252.20.170"
+
+puts "\n🚀 === DEPLOYMENT SCRIPT === \n"
+
+# Step 1: Upload deployment package
+puts "📤 Шаг 1/7: Загрузка deployment package..."
+spawn scp -o StrictHostKeyChecking=no backend-deploy.tar.gz root@$server:/tmp/
+expect {
+    "password:" {
+        send "$password\r"
+    }
+}
+expect eof
+puts "✅ Файл загружен\n"
+
+# Step 2: SSH and deploy
+puts "🔧 Шаг 2/7: Подключение к серверу и развертывание..."
+spawn ssh -o StrictHostKeyChecking=no root@$server
+expect {
+    "password:" {
+        send "$password\r"
+    }
+}
+
+# Wait for shell prompt
+expect "#"
+
+# Step 3: Extract files
+puts "📦 Шаг 3/7: Распаковка файлов..."
+send "cd /var/www/rejuvena-backend\r"
+expect "#"
+send "tar -xzf /tmp/backend-deploy.tar.gz\r"
+expect "#"
+puts "✅ Файлы распакованы\n"
+
+# Step 4: Install dependencies
+puts "⚙️  Шаг 4/7: Установка зависимостей..."
+send "npm ci --production 2>&1 | tail -5\r"
+expect "#" { puts "✅ Зависимости установлены\n" }
+
+# Step 5: Restart PM2
+puts "🔄 Шаг 5/7: Перезапуск backend сервиса..."
+send "pm2 restart rejuvena-backend\r"
+expect "#"
+puts "✅ Backend перезапущен\n"
+
+# Step 6: Wait and check health
+puts "⏳ Шаг 6/7: Ожидание запуска (5 сек)..."
+send "sleep 5\r"
+expect "#"
+send "curl -s http://localhost:9527/health\r"
+expect "#"
+puts "\n✅ Backend работает\n"
+
+# Step 7: Get admin token
+puts "🔑 Шаг 7/7: Получение admin токена..."
+send "curl -s -X POST http://localhost:9527/api/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"seplitza@gmail.com\",\"password\":\"1234back\"}' | python3 -c 'import json,sys; data=json.load(sys.stdin); print(data\[\"token\"\] if \"token\" in data else \"ERROR\")'\r"
+expect "#"
+
+puts "\n✅ Deployment завершен!\n"
+
+# Keep connection for manual commands
+puts "\n💡 SSH соединение открыто. Нажмите Ctrl+D для выхода.\n"
+puts "Выполните команду создания призов:\n"
+puts "curl -X POST http://localhost:9527/api/admin/fortune-wheel/seed-prizes -H 'Authorization: Bearer YOUR_TOKEN'\n"
+
+interact

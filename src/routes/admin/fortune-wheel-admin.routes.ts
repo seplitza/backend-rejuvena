@@ -23,8 +23,8 @@ router.post('/init-prizes-temp', async (req: Request, res: Response) => {
       { name: 'Подарок: любая из 3-х сывороток на выбор', description: 'Выберите любую сыворотку из трёх', type: 'freeProduct', probability: 9, icon: '💧', validityDays: 30, isActive: true },
       { name: 'Подарок: любой БАД на выбор', description: 'Выберите любую биодобавку', type: 'freeProduct', probability: 8, icon: '💊', validityDays: 30, isActive: true },
       { name: 'Скидка 30% на любой товар', description: 'Скидка 30% на покупку', type: 'discount', value: 30, probability: 12, icon: '💰', validityDays: 30, isActive: true },
-      { name: 'Скидка 20% на любой товар', description: 'Скидка 20% на покупку', type: 'discount', value: 20, probability: 13, icon: '🏷️', validityDays: 30, isActive: true },
-      { name: 'Бесплатная доставка на следующий заказ', description: 'Доставка вашего следующего заказа бесплатно', type: 'freeShipping', probability: 15, icon: '📦', validityDays: 30, isActive: true },
+      { name: 'Скидка 20% на любой товар', description: 'Скидка 20% на покупку', type: 'discount', value: 20, probability: 8, icon: '🏷️', validityDays: 30, isActive: true },
+      { name: 'Бесплатная доставка на следующий заказ', description: 'Доставка вашего следующего заказа бесплатно', type: 'freeShipping', probability: 10, icon: '📦', validityDays: 30, isActive: true },
       { name: 'Скидка 10% на любой товар', description: 'Скидка 10% на покупку', type: 'discount', value: 10, probability: 8, icon: '🎫', validityDays: 30, isActive: true }
     ];
 

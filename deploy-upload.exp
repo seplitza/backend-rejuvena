@@ -1,0 +1,16 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password "c+d2Ei@GeWWKq8"
+
+# Upload deployment package
+spawn scp -o StrictHostKeyChecking=no backend-deploy.tar.gz root@37.252.20.170:/tmp/
+expect {
+    "password:" {
+        send "$password\r"
+        exp_continue
+    }
+    eof
+}
+
+puts "\n✅ Файл загружен на сервер"
