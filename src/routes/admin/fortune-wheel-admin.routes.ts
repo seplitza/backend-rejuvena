@@ -24,6 +24,48 @@ router.post('/grant-spins-test-users', async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Ошибка выдачи spins', details: error.message });
   }
 });
+
+// 🚨 TEMPORARY: Recreate all prizes with new extraSpin prizes
+router.post('/recreate-prizes', async (req: Request, res: Response) => {
+  try {
+    // Delete old prizes
+    const deleted = await FortuneWheelPrize.deleteMany({});
+    console.log(`🗑️  Deleted ${deleted.deletedCount} old prizes`);
+
+    // Get products for prizes
+    const products = await Product.find({ isActive: true }).sort({ price: -1 }).limit(10);
+
+    const prizes = [
+      { name: 'Бесплатный доступ к продвинутому курсу', description: 'Бесплатный доступ к любому из продвинутых курсов на 1 месяц', type: 'freeProduct', value: 'advanced_course_1month', probability: 5, icon: '/images/prize-course.png', validityDays: 30, isActive: true },
+      { name: 'Крем для тела с медным пептидом', description: 'Подарок: крем для тела с медным пептидом из магазина Сеплица', type: 'freeProduct', value: products[0] ? products[0]._id : null, probability: 8, icon: products[0]?.images[0] || '/images/prize-cream.png', validityDays: 30, isActive: true },
+      { name: 'Продление модуля «+ на губы и челюсть»', description: 'Бесплатное продление продвинутого модуля «+ на губы и челюсть» на 1 месяц', type: 'freeProduct', value: 'lips_jaw_module_extension', probability: 7, icon: '/images/prize-module.png', validityDays: 30, isActive: true },
+      { name: 'Набор: сыворотка + крем', description: 'Подарочный набор: сыворотка + крем с медным пептидом', type: 'freeProduct', value: 'serum_cream_set', probability: 5, icon: '/images/prize-set.png', validityDays: 30, isActive: true },
+      { name: 'Участие в марафоне Сеплица', description: 'Бесплатное участие в следующем марафоне от Сеплица', type: 'freeProduct', value: 'marathon_participation', probability: 7, icon: '/images/prize-marathon.png', validityDays: 60, isActive: true },
+      { name: 'Скидка 50% при заказе от 3-х товаров', description: 'Скидка 50% при заказе от 3-х товаров в магазине Сеплица', type: 'discount', value: 50, discountPercent: 50, probability: 8, icon: '/images/prize-discount-50.png', validityDays: 14, isActive: true },
+      { name: 'Сыворотка на выбор', description: 'Подарок: любая из 3-х сывороток из магазина Сеплица', type: 'freeProduct', value: products[1] ? products[1]._id : 'serum_choice', probability: 7, icon: products[1]?.images[0] || '/images/prize-serum.png', validityDays: 30, isActive: true },
+      { name: 'БАД на выбор', description: 'Подарок: любой БАД из магазина Сеплица', type: 'freeProduct', value: products[2] ? products[2]._id : 'supplement_choice', probability: 6, icon: products[2]?.images[0] || '/images/prize-supplement.png', validityDays: 30, isActive: true },
+      { name: 'Скидка 30%', description: 'Скидка 30% на следующий заказ', type: 'discount', value: 30, discountPercent: 30, probability: 9, icon: '/images/discount-30.png', validityDays: 14, isActive: true },
+      { name: 'Скидка 20%', description: 'Скидка 20% на следующий заказ', type: 'discount', value: 20, discountPercent: 20, probability: 8, icon: '/images/discount-20.png', validityDays: 7, isActive: true },
+      { name: 'Бесплатная доставка', description: 'Бесплатная доставка на следующий заказ', type: 'freeShipping', value: 'free_shipping', probability: 8, icon: '/images/free-shipping.png', validityDays: 7, isActive: true },
+      { name: 'Скидка 10%', description: 'Скидка 10% на следующий заказ', type: 'discount', value: 10, discountPercent: 10, probability: 5, icon: '/images/discount-10.png', validityDays: 7, isActive: true },
+      { name: '+1 вращение колеса', description: 'Получите дополнительное вращение колеса фортуны!', type: 'extraSpin', value: 1, probability: 10, icon: '/images/prize-spin-1.png', validityDays: 0, isActive: true },
+      { name: '+2 вращения колеса', description: 'Получите 2 дополнительных вращения колеса фортуны!', type: 'extraSpin', value: 2, probability: 5, icon: '/images/prize-spin-2.png', validityDays: 0, isActive: true },
+      { name: '+3 вращения колеса', description: 'Получите 3 дополнительных вращения колеса фортуны!', type: 'extraSpin', value: 3, probability: 2, icon: '/images/prize-spin-3.png', validityDays: 0, isActive: true }
+    ];
+
+    const created = await FortuneWheelPrize.insertMany(prizes);
+    
+    res.json({ 
+      success: true, 
+      message: `✅ Создано ${created.length} новых призов (включая extraSpin)`,
+      oldCount: deleted.deletedCount,
+      newCount: created.length,
+      distribution: created.map((p: any) => ({ name: p.name, type: p.type, probability: p.probability + '%' }))
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Ошибка пересоздания призов', details: error.message });
+  }
+});
 // 🚨 END TEMPORARY
 
 interface AuthRequest extends Request {
