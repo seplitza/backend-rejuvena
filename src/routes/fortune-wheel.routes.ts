@@ -150,15 +150,19 @@ router.post('/spin', authMiddleware, async (req: AuthRequest, res: Response) => 
     const gift: any = {
       prizeId: selectedPrize._id,
       description: selectedPrize.description,
-      prizeType: selectedPrize.type,
+      type: selectedPrize.type,
       expiry,
-      used: false
+      used: false,
+      isUsed: false
     };
 
-    if (selectedPrize.prizeType === 'discount') {
+    if (selectedPrize.type === 'discount') {
+      gift.value = selectedPrize.discountPercent;
       gift.discountPercent = selectedPrize.discountPercent;
-    } else if (selectedPrize.prizeType === 'freeProduct') {
-      gift.freeProductId = selectedPrize.freeProductId;
+    } else if (selectedPrize.type === 'freeProduct' || selectedPrize.type === 'product') {
+      gift.value = selectedPrize.productId;
+    } else {
+      gift.value = selectedPrize.value;
     }
 
     user.fortuneWheelGifts.push(gift);
@@ -173,6 +177,7 @@ router.post('/spin', authMiddleware, async (req: AuthRequest, res: Response) => 
     selectedPrize.timesWon += 1;
 
     await user.save();
+    await selectedPrize.save();
 
     // Save spin history
     const spin = new WheelSpin({
@@ -182,18 +187,14 @@ router.post('/spin', authMiddleware, async (req: AuthRequest, res: Response) => 
     });
     await spin.save();
 
-    // Increment prize usage
-    selectedPrize.timesWon += 1;
-    await selectedPrize.save();
-
     res.json({
       prize: {
         _id: selectedPrize._id,
         name: selectedPrize.name,
         description: selectedPrize.description,
-        prizeType: selectedPrize.prizeType,
-        discountPercent: selectedPrize.discountPercent,
-        imageUrl: selectedPrize.imageUrl
+        type: selectedPrize.type,
+        value: selectedPrize.value,
+        icon: selectedPrize.icon
       },
       gift: {
         _id: gift._id,
