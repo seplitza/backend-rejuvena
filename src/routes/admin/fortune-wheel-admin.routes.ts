@@ -25,6 +25,40 @@ router.post('/grant-spins-test-users', async (req: Request, res: Response) => {
   }
 });
 
+// 🎁 Grant spins to specific user by email
+router.post('/grant-spins', async (req: Request, res: Response) => {
+  try {
+    const { email, spins = 5 } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ error: 'Email обязателен' });
+    }
+
+    const User = require('../../models/User.model').default;
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    
+    if (!user) {
+      return res.status(404).json({ error: `Пользователь с email ${email} не найден` });
+    }
+
+    // Добавляем спины (не перезаписываем, а добавляем к существующим)
+    user.fortuneWheelSpins = (user.fortuneWheelSpins || 0) + spins;
+    await user.save();
+
+    res.json({ 
+      success: true, 
+      message: `✅ Добавлено ${spins} вращений пользователю ${email}`,
+      user: {
+        email: user.email,
+        firstName: user.firstName,
+        totalSpins: user.fortuneWheelSpins
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Ошибка выдачи спинов', details: error.message });
+  }
+});
+
 // 🚨 TEMPORARY: Recreate all prizes with new extraSpin prizes
 router.post('/recreate-prizes', async (req: Request, res: Response) => {
   try {
