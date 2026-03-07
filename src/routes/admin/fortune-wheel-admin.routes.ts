@@ -48,9 +48,9 @@ router.post('/recreate-prizes', async (req: Request, res: Response) => {
       { name: 'Скидка 20%', description: 'Скидка 20% на следующий заказ', type: 'discount', value: 20, discountPercent: 20, probability: 8, icon: '/images/discount-20.png', validityDays: 7, isActive: true },
       { name: 'Бесплатная доставка', description: 'Бесплатная доставка на следующий заказ', type: 'freeShipping', value: 'free_shipping', probability: 8, icon: '/images/free-shipping.png', validityDays: 7, isActive: true },
       { name: 'Скидка 10%', description: 'Скидка 10% на следующий заказ', type: 'discount', value: 10, discountPercent: 10, probability: 5, icon: '/images/discount-10.png', validityDays: 7, isActive: true },
-      { name: '+1 вращение колеса', description: 'Получите дополнительное вращение колеса фортуны!', type: 'extraSpin', value: 1, probability: 10, icon: '/images/prize-spin-1.png', validityDays: 0, isActive: true },
-      { name: '+2 вращения колеса', description: 'Получите 2 дополнительных вращения колеса фортуны!', type: 'extraSpin', value: 2, probability: 5, icon: '/images/prize-spin-2.png', validityDays: 0, isActive: true },
-      { name: '+3 вращения колеса', description: 'Получите 3 дополнительных вращения колеса фортуны!', type: 'extraSpin', value: 3, probability: 2, icon: '/images/prize-spin-3.png', validityDays: 0, isActive: true }
+      { name: '+1 вращение колеса', description: 'Получите дополнительное вращение колеса фортуны!', type: 'extraSpin', value: 1, probability: 10, icon: '/images/prize-spin-1.png', validityDays: 1, isActive: true },
+      { name: '+2 вращения колеса', description: 'Получите 2 дополнительных вращения колеса фортуны!', type: 'extraSpin', value: 2, probability: 5, icon: '/images/prize-spin-2.png', validityDays: 1, isActive: true },
+      { name: '+3 вращения колеса', description: 'Получите 3 дополнительных вращения колеса фортуны!', type: 'extraSpin', value: 3, probability: 2, icon: '/images/prize-spin-3.png', validityDays: 1, isActive: true }
     ];
 
     const created = await FortuneWheelPrize.insertMany(prizes);
@@ -256,7 +256,7 @@ router.post('/seed-prizes', [authMiddleware, adminMiddleware], async (req: Reque
         value: 1,
         probability: 10,
         icon: '/images/prize-spin-1.png',
-        validityDays: 0,
+        validityDays: 1,
         isActive: true
       },
 
@@ -268,7 +268,7 @@ router.post('/seed-prizes', [authMiddleware, adminMiddleware], async (req: Reque
         value: 2,
         probability: 5,
         icon: '/images/prize-spin-2.png',
-        validityDays: 0,
+        validityDays: 1,
         isActive: true
       },
 
@@ -280,7 +280,7 @@ router.post('/seed-prizes', [authMiddleware, adminMiddleware], async (req: Reque
         value: 3,
         probability: 2,
         icon: '/images/prize-spin-3.png',
-        validityDays: 0,
+        validityDays: 1,
         isActive: true
       }
     ];
