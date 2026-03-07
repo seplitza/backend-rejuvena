@@ -3,7 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IFortuneWheelPrize extends Document {
   name: string;
   description?: string;
-  type: 'discount' | 'product' | 'freeShipping' | 'personalDiscount' | 'freeProduct' | 'noWin';
+  type: 'discount' | 'product' | 'freeShipping' | 'personalDiscount' | 'freeProduct' | 'noWin' | 'extraSpin';
   prizeType?: string; // Alias for type
   value: any;
   discountPercent?: number;
@@ -31,7 +31,7 @@ const FortuneWheelPrizeSchema = new Schema<IFortuneWheelPrize>(
     description: String,
     type: {
       type: String,
-      enum: ['discount', 'product', 'freeShipping', 'personalDiscount', 'freeProduct', 'noWin'],
+      enum: ['discount', 'product', 'freeShipping', 'personalDiscount', 'freeProduct', 'noWin', 'extraSpin'],
       required: true
     },
     value: {

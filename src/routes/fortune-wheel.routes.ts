@@ -113,11 +113,46 @@ router.post('/spin', authMiddleware, async (req: AuthRequest, res: Response) => 
       }
     }
 
-    // Calculate expiry (default 30 days)
+    // Calculate expiry (default 30 days or validityDays from prize)
     const expiry = new Date();
-    expiry.setDate(expiry.getDate() + 30);
+    const validityDays = selectedPrize.validityDays || 30;
+    expiry.setDate(expiry.getDate() + validityDays);
 
-    // Add prize to user's gifts
+    // 🎰 Special handling for extraSpin prizes
+    if (selectedPrize.type === 'extraSpin') {
+      const extraSpins = selectedPrize.value || 1;
+      user.fortuneWheelSpins += extraSpins;
+      console.log(`🎁 User ${userId} won ${extraSpins} extra spins!`);
+      
+      // Decrease the spin used for this round
+      user.fortuneWheelSpins -= 1;
+      
+      // Increase prize win count
+      if (!selectedPrize.timesWon) {
+        selectedPrize.timesWon = 0;
+      }
+      selectedPrize.timesWon += 1;
+
+      await user.save();
+      await selectedPrize.save();
+
+      return res.json({
+        success: true,
+        prize: {
+          _id: selectedPrize._id,
+          name: selectedPrize.name,
+          description: selectedPrize.description,
+          type: selectedPrize.type,
+          value: selectedPrize.value,
+          icon: selectedPrize.icon
+        },
+        extraSpinsAwarded: extraSpins,
+        remainingSpins: user.fortuneWheelSpins,
+        message: `Вы выиграли ${extraSpins} дополнительных вращения!`
+      });
+    }
+
+    // Regular prizes: add to user's gifts
     if (!user.fortuneWheelGifts) {
       user.fortuneWheelGifts = [];
     }
@@ -125,7 +160,7 @@ router.post('/spin', authMiddleware, async (req: AuthRequest, res: Response) => 
     const gift: any = {
       prizeId: selectedPrize._id,
       description: selectedPrize.description,
-      prizeType: selectedPrize.prizeType,
+      prizeType: selectedPrize.type,
       expiry,
       used: false
     };

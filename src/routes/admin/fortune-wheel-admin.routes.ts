@@ -5,6 +5,27 @@ import { authMiddleware, adminMiddleware } from '../../middleware/authMiddleware
 
 const router = Router();
 
+// 🚨 TEMPORARY: Grant spins to test users
+router.post('/grant-spins-test-users', async (req: Request, res: Response) => {
+  try {
+    const User = require('../../models/User.model').default;
+    const result = await User.updateMany(
+      { email: { $regex: 'test', $options: 'i' } },
+      { $set: { fortuneWheelSpins: 5, fortuneWheelGifts: [] } }
+    );
+    const totalTestUsers = await User.countDocuments({ email: { $regex: 'test', $options: 'i' } });
+    res.json({ 
+      success: true, 
+      message: `✅ Выдано 5 вращений тестовым пользователям`,
+      modifiedCount: result.modifiedCount,
+      totalTestUsers 
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Ошибка выдачи spins', details: error.message });
+  }
+});
+// 🚨 END TEMPORARY
+
 interface AuthRequest extends Request {
   userId?: string;
   user?: any;
@@ -35,7 +56,7 @@ router.post('/seed-prizes', [authMiddleware, adminMiddleware], async (req: Reque
       .limit(10);
 
     const prizes = [
-      // 1️⃣ Бесплатный доступ к продвинутому курсу на 1 месяц (редкий приз - 5%)
+      // 1️⃣ Курс (5%)
       {
         name: 'Бесплатный доступ к продвинутому курсу',
         description: 'Бесплатный доступ к любому из продвинутых курсов на 1 месяц',
@@ -47,7 +68,7 @@ router.post('/seed-prizes', [authMiddleware, adminMiddleware], async (req: Reque
         isActive: true
       },
 
-      // 2️⃣ Подарок: крем для тела с медным пептидом (8%)
+      // 2️⃣ Крем (8%)
       {
         name: 'Крем для тела с медным пептидом',
         description: 'Подарок: крем для тела с медным пептидом из магазина Сеплица',
@@ -59,7 +80,7 @@ router.post('/seed-prizes', [authMiddleware, adminMiddleware], async (req: Reque
         isActive: true
       },
 
-      // 3️⃣ Бесплатное продление модуля «+ на губы и челюсть» (7%)
+      // 3️⃣ Модуль (7%)
       {
         name: 'Продление модуля «+ на губы и челюсть»',
         description: 'Бесплатное продление продвинутого модуля «+ на губы и челюсть» на 1 месяц',
@@ -71,115 +92,153 @@ router.post('/seed-prizes', [authMiddleware, adminMiddleware], async (req: Reque
         isActive: true
       },
 
-      // 4️⃣ Подарочный набор: сыворотка + крем с медным пептидом (6%)
+      // 4️⃣ Набор (5%)
       {
         name: 'Набор: сыворотка + крем',
         description: 'Подарочный набор: сыворотка + крем с медным пептидом',
         type: 'freeProduct',
         value: 'serum_cream_set',
-        probability: 6,
+        probability: 5,
         icon: '/images/prize-set.png',
         validityDays: 30,
         isActive: true
       },
 
-      // 5️⃣ Бесплатное участие в следующем марафоне (9%)
+      // 5️⃣ Марафон (7%)
       {
         name: 'Участие в марафоне Сеплица',
         description: 'Бесплатное участие в следующем марафоне от Сеплица',
         type: 'freeProduct',
         value: 'marathon_participation',
-        probability: 9,
+        probability: 7,
         icon: '/images/prize-marathon.png',
         validityDays: 60,
         isActive: true
       },
 
-      // 6️⃣ Скидка 50% при заказе от 3-х товаров (10%)
+      // 6️⃣ Скидка 50% (8%)
       {
         name: 'Скидка 50% при заказе от 3-х товаров',
         description: 'Скидка 50% при заказе от 3-х товаров в магазине Сеплица',
         type: 'discount',
         value: 50,
         discountPercent: 50,
-        probability: 10,
+        probability: 8,
         icon: '/images/prize-discount-50.png',
         validityDays: 14,
         isActive: true
       },
 
-      // 7️⃣ Подарок: любая из 3-х сывороток (9%)
+      // 7️⃣ Сыворотка (7%)
       {
         name: 'Сыворотка на выбор',
         description: 'Подарок: любая из 3-х сывороток из магазина Сеплица',
         type: 'freeProduct',
         value: products[1] ? products[1]._id : 'serum_choice',
-        probability: 9,
+        probability: 7,
         icon: products[1]?.images[0] || '/images/prize-serum.png',
         validityDays: 30,
         isActive: true
       },
 
-      // 8️⃣ Подарок: любой БАД (8%)
+      // 8️⃣ БАД (6%)
       {
         name: 'БАД на выбор',
         description: 'Подарок: любой БАД из магазина Сеплица',
         type: 'freeProduct',
         value: products[2] ? products[2]._id : 'supplement_choice',
-        probability: 8,
+        probability: 6,
         icon: products[2]?.images[0] || '/images/prize-supplement.png',
         validityDays: 30,
         isActive: true
       },
 
-      // 9️⃣ Скидка 30% (12%)
+      // 9️⃣ Скидка 30% (9%)
       {
         name: 'Скидка 30%',
         description: 'Скидка 30% на следующий заказ',
         type: 'discount',
         value: 30,
         discountPercent: 30,
-        probability: 12,
+        probability: 9,
         icon: '/images/discount-30.png',
         validityDays: 14,
         isActive: true
       },
 
-      // 🔟 Скидка 20% (13%)
+      // 🔟 Скидка 20% (8%)
       {
         name: 'Скидка 20%',
         description: 'Скидка 20% на следующий заказ',
         type: 'discount',
         value: 20,
         discountPercent: 20,
-        probability: 13,
+        probability: 8,
         icon: '/images/discount-20.png',
         validityDays: 7,
         isActive: true
       },
 
-      // 1️⃣1️⃣ Бесплатная доставка (15%)
+      // 1️⃣1️⃣ Доставка (8%)
       {
         name: 'Бесплатная доставка',
         description: 'Бесплатная доставка на следующий заказ',
         type: 'freeShipping',
         value: 'free_shipping',
-        probability: 15,
+        probability: 8,
         icon: '/images/free-shipping.png',
         validityDays: 7,
         isActive: true
       },
 
-      // 1️⃣2️⃣ Скидка 10% (8%)
+      // 1️⃣2️⃣ Скидка 10% (5%)
       {
         name: 'Скидка 10%',
         description: 'Скидка 10% на следующий заказ',
         type: 'discount',
         value: 10,
         discountPercent: 10,
-        probability: 8,
+        probability: 5,
         icon: '/images/discount-10.png',
         validityDays: 7,
+        isActive: true
+      },
+
+      // 🎁 ПРИЗЫ ДЛЯ ВОВЛЕЧЕНИЯ 🎁
+
+      // 1️⃣3️⃣ +1 вращение (10%)
+      {
+        name: '+1 вращение колеса',
+        description: 'Получите дополнительное вращение колеса фортуны!',
+        type: 'extraSpin',
+        value: 1,
+        probability: 10,
+        icon: '/images/prize-spin-1.png',
+        validityDays: 0,
+        isActive: true
+      },
+
+      // 1️⃣4️⃣ +2 вращения (5%)
+      {
+        name: '+2 вращения колеса',
+        description: 'Получите 2 дополнительных вращения колеса фортуны!',
+        type: 'extraSpin',
+        value: 2,
+        probability: 5,
+        icon: '/images/prize-spin-2.png',
+        validityDays: 0,
+        isActive: true
+      },
+
+      // 1️⃣5️⃣ +3 вращения (2%)
+      {
+        name: '+3 вращения колеса',
+        description: 'Получите 3 дополнительных вращения колеса фортуны!',
+        type: 'extraSpin',
+        value: 3,
+        probability: 2,
+        icon: '/images/prize-spin-3.png',
+        validityDays: 0,
         isActive: true
       }
     ];
