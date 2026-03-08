@@ -182,9 +182,9 @@ router.post('/spin', authMiddleware, async (req: AuthRequest, res: Response) => 
 
     // Save spin history
     const spin = new WheelSpin({
-      user: userId,
-      prize: selectedPrize._id,
-      expiry
+      userId: userId,
+      prizeId: selectedPrize._id,
+      expiryDate: expiry
     });
     await spin.save();
 
