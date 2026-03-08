@@ -284,4 +284,60 @@ router.get('/history', authMiddleware, async (req: AuthRequest, res: Response) =
   }
 });
 
+/**
+ * POST /api/fortune-wheel/confirm-prize
+ * Confirm/activate won prize (requires auth)
+ */
+router.post('/confirm-prize', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Требуется авторизация' });
+    }
+
+    const { prizeId } = req.body;
+    if (!prizeId) {
+      return res.status(400).json({ error: 'Не указан prizeId' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+
+    // Найти приз в массиве fortuneWheelGifts
+    const prizeGift = user.fortuneWheelGifts?.find((g: any) => 
+      g.prizeId?.toString() === prizeId && !g.isUsed && !g.used
+    );
+
+    if (!prizeGift) {
+      return res.status(404).json({ 
+        error: 'Приз не найден или уже активирован',
+        debug: {
+          prizeId,
+          gifts: user.fortuneWheelGifts?.length || 0
+        }
+      });
+    }
+
+    // Отметить приз как активирован
+    prizeGift.isUsed = true;
+    prizeGift.used = true;
+    prizeGift.usedAt = new Date();
+
+    await user.save();
+
+    console.log(`✅ Prize confirmed for user ${userId}: ${prizeId}`);
+
+    res.json({ 
+      success: true, 
+      message: 'Приз успешно активирован',
+      prize: prizeGift 
+    });
+  } catch (error) {
+    console.error('Error confirming prize:', error);
+    res.status(500).json({ error: 'Не удалось активировать приз' });
+  }
+});
+
 export default router;
