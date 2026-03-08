@@ -340,4 +340,59 @@ router.post('/confirm-prize', authMiddleware, async (req: AuthRequest, res: Resp
   }
 });
 
+/**
+ * GET /api/fortune-wheel/my-prizes
+ * Get user's fortune wheel prizes (requires auth)
+ */
+router.get('/my-prizes', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Требуется авторизация' });
+    }
+
+    const user = await User.findById(userId)
+      .select('fortuneWheelGifts')
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+
+    // Фильтруем и сортируем призы
+    const prizes = (user.fortuneWheelGifts || [])
+      .filter((gift: any) => gift.type !== 'extraSpin') // Исключаем дополнительные спины
+      .map((gift: any) => ({
+        _id: gift._id,
+        type: gift.type,
+        description: gift.description,
+        value: gift.value,
+        discountPercent: gift.discountPercent,
+        expiryDate: gift.expiryDate,
+        isUsed: gift.isUsed || gift.used || false,
+        usedAt: gift.usedAt,
+        orderId: gift.orderId,
+        prizeId: gift.prizeId,
+        createdAt: gift.expiryDate // Используем expiryDate как ориентир для даты получения
+      }))
+      .sort((a: any, b: any) => {
+        // Сначала неиспользованные, потом использованные
+        if (a.isUsed !== b.isUsed) return a.isUsed ? 1 : -1;
+        // Потом по дате (новые сначала)
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+
+    res.json({
+      prizes,
+      total: prizes.length,
+      active: prizes.filter((p: any) => !p.isUsed && new Date(p.expiryDate) > new Date()).length,
+      expired: prizes.filter((p: any) => !p.isUsed && new Date(p.expiryDate) <= new Date()).length,
+      used: prizes.filter((p: any) => p.isUsed).length
+    });
+  } catch (error) {
+    console.error('Error fetching user prizes:', error);
+    res.status(500).json({ error: 'Не удалось загрузить призы' });
+  }
+});
+
 export default router;
