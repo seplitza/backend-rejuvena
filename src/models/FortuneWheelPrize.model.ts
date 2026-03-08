@@ -16,6 +16,7 @@ export interface IFortuneWheelPrize extends Document {
   productId?: mongoose.Types.ObjectId;
   freeProductId?: mongoose.Types.ObjectId; // Alias for productId
   timesWon?: number;
+  displayOrder?: number; // Порядок отображения на колесе (для равномерного распределения)
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -59,6 +60,10 @@ const FortuneWheelPrizeSchema = new Schema<IFortuneWheelPrize>(
       ref: 'Product'
     },
     timesWon: {
+      type: Number,
+      default: 0
+    },
+    displayOrder: {
       type: Number,
       default: 0
     },

@@ -27,8 +27,8 @@ router.get('/prizes', async (req, res) => {
         { validFrom: null, validUntil: null }
       ]
     })
-      .select('name description type prizeType discountPercent freeProductId probability imageUrl icon value validityDays')
-      .sort({ _id: 1 }) // ВАЖНО: сортировка для синхронизации с фронтендом
+      .select('name description type prizeType discountPercent freeProductId probability imageUrl icon value validityDays displayOrder')
+      .sort({ displayOrder: 1, _id: 1 }) // ВАЖНО: сортировка по displayOrder для равномерного распределения призов
       .lean();
 
     res.json(prizes);
@@ -94,7 +94,7 @@ router.post('/spin', authMiddleware, async (req: AuthRequest, res: Response) => 
         { validFrom: null, validUntil: { $gte: now } },
         { validFrom: null, validUntil: null }
       ]
-    }).sort({ _id: 1 }); // Та же сортировка!
+    }).sort({ displayOrder: 1, _id: 1 }); // Та же сортировка!
 
     if (prizes.length === 0) {
       return res.status(400).json({ error: 'В данный момент нет доступных призов' });
