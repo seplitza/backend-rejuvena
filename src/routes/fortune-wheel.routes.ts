@@ -387,6 +387,7 @@ router.get('/my-prizes', authMiddleware, async (req: AuthRequest, res: Response)
       .filter((gift: any) => gift.type !== 'extraSpin') // Исключаем дополнительные спины
       .map((gift: any) => ({
         _id: gift._id,
+        name: gift.name, // Название приза
         type: gift.type,
         description: gift.description,
         value: gift.value,
