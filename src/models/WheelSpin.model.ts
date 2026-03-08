@@ -40,8 +40,7 @@ const WheelSpinSchema = new Schema<IWheelSpin>(
         value: Schema.Types.Mixed,
         discountPercent: Number,
         productId: Schema.Types.ObjectId
-      },
-      required: false
+      }
     },
     isUsed: {
       type: Boolean,
