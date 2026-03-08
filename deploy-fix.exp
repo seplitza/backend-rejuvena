@@ -1,0 +1,63 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password "c+d2Ei@GeWWKq8"
+set server "37.252.20.170"
+
+puts "\n🚀 Deploying Backend Fix to Production\n"
+
+# SSH to server
+spawn ssh -o StrictHostKeyChecking=no root@$server
+
+expect {
+    "password:" {
+        send "$password\r"
+        exp_continue
+    }
+    "# " {
+        # Connected, now execute commands
+        send "cd /var/www/rejuvena-backend\r"
+        expect "# "
+        
+        send "echo '✅ Current directory:' && pwd\r"
+        expect "# "
+        
+        send "echo '📥 Pulling latest code from GitHub...'\r"
+        expect "# "
+        
+        send "git pull origin main\r"
+        expect "# "
+        
+        send "echo '🔨 Building TypeScript...'\r"
+        expect "# "
+        
+        send "npm run build\r"
+        expect {
+            "# " {
+                send "echo '♻️ Restarting PM2 process...'\r"
+                expect "# "
+            }
+            timeout {
+                puts "\n⚠️ Build timeout\n"
+            }
+        }
+        
+        send "pm2 restart rejuvena-backend\r"
+        expect "# "
+        
+        send "echo '✅ Backend deployed successfully!'\r"
+        expect "# "
+        
+        send "pm2 list | grep rejuvena-backend\r"
+        expect "# "
+        
+        send "exit\r"
+    }
+    timeout {
+        puts "\n❌ Connection timeout\n"
+        exit 1
+    }
+}
+
+expect eof
+puts "\n✅ Deployment complete!\n"

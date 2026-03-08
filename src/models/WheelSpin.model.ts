@@ -3,6 +3,14 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IWheelSpin extends Document {
   userId: mongoose.Types.ObjectId;
   prizeId: mongoose.Types.ObjectId;
+  prizeData?: {
+    name: string;
+    description?: string;
+    type: string;
+    value: any;
+    discountPercent?: number;
+    productId?: mongoose.Types.ObjectId;
+  };
   isUsed: boolean;
   usedAt?: Date;
   orderId?: mongoose.Types.ObjectId;
@@ -23,6 +31,17 @@ const WheelSpinSchema = new Schema<IWheelSpin>(
       type: Schema.Types.ObjectId,
       ref: 'FortuneWheelPrize',
       required: true
+    },
+    prizeData: {
+      type: {
+        name: String,
+        description: String,
+        type: String,
+        value: Schema.Types.Mixed,
+        discountPercent: Number,
+        productId: Schema.Types.ObjectId
+      },
+      required: false
     },
     isUsed: {
       type: Boolean,

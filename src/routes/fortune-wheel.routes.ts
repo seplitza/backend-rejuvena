@@ -155,33 +155,8 @@ router.post('/spin', authMiddleware, async (req: AuthRequest, res: Response) => 
       });
     }
 
-    // Regular prizes: add to user's gifts
-    if (!user.fortuneWheelGifts) {
-      user.fortuneWheelGifts = [];
-    }
-
-    const gift: any = {
-      prizeId: selectedPrize._id,
-      description: selectedPrize.description,
-      type: selectedPrize.type,
-      expiryDate: expiry,
-      expiry,
-      used: false,
-      isUsed: false
-    };
-
-    if (selectedPrize.type === 'discount') {
-      gift.value = selectedPrize.discountPercent;
-      gift.discountPercent = selectedPrize.discountPercent;
-    } else if (selectedPrize.type === 'freeProduct' || selectedPrize.type === 'product') {
-      gift.value = selectedPrize.productId;
-    } else {
-      gift.value = selectedPrize.value;
-    }
-
-    user.fortuneWheelGifts.push(gift);
-
-    // Decrease available spins
+    // НЕ добавляем приз сразу - только после подтверждения через /confirm-prize
+    // Но уменьшаем спин, чтобы нельзя было крутить бесконечно
     user.fortuneWheelSpins -= 1;
 
     // Increase prize win count
@@ -193,15 +168,24 @@ router.post('/spin', authMiddleware, async (req: AuthRequest, res: Response) => 
     await user.save();
     await selectedPrize.save();
 
-    // Save spin history
+    // Save spin history with all prize data
     const spin = new WheelSpin({
       userId: userId,
       prizeId: selectedPrize._id,
-      expiryDate: expiry
+      expiryDate: expiry,
+      prizeData: {
+        name: selectedPrize.name,
+        description: selectedPrize.description,
+        type: selectedPrize.type,
+        value: selectedPrize.type === 'discount' ? selectedPrize.discountPercent : selectedPrize.value,
+        discountPercent: selectedPrize.discountPercent,
+        productId: selectedPrize.productId
+      }
     });
     await spin.save();
 
     res.json({
+      success: true,
       prize: {
         _id: selectedPrize._id,
         name: selectedPrize.name,
@@ -211,10 +195,6 @@ router.post('/spin', authMiddleware, async (req: AuthRequest, res: Response) => 
         icon: selectedPrize.icon
       },
       prizeIndex: selectedPrizeIndex, // Индекс для точной синхронизации вращения
-      gift: {
-        _id: gift._id,
-        expiry: gift.expiry
-      },
       remainingSpins: user.fortuneWheelSpins
     });
   } catch (error) {
@@ -319,34 +299,63 @@ router.post('/confirm-prize', authMiddleware, async (req: AuthRequest, res: Resp
       return res.status(404).json({ error: 'Пользователь не найден' });
     }
 
-    // Найти приз в массиве fortuneWheelGifts
-    const prizeGift = user.fortuneWheelGifts?.find((g: any) => 
-      g.prizeId?.toString() === prizeId && !g.isUsed && !g.used
-    );
+    // Найти последний spin этого пользователя с указанным prizeId
+    const lastSpin = await WheelSpin.findOne({
+      userId,
+      prizeId
+    }).sort({ createdAt: -1 });
 
-    if (!prizeGift) {
+    if (!lastSpin) {
       return res.status(404).json({ 
-        error: 'Приз не найден или уже активирован',
-        debug: {
-          prizeId,
-          gifts: user.fortuneWheelGifts?.length || 0
-        }
+        error: 'Приз не найден в истории вращений'
       });
     }
 
-    // Отметить приз как активирован
-    prizeGift.isUsed = true;
-    prizeGift.used = true;
-    prizeGift.usedAt = new Date();
+    // Проверить, не добавлен ли уже этот приз
+    const alreadyAdded = user.fortuneWheelGifts?.some((g: any) => 
+      g.spinId?.toString() === lastSpin._id.toString()
+    );
 
+    if (alreadyAdded) {
+      return res.status(400).json({ 
+        error: 'Этот приз уже активирован'
+      });
+    }
+
+    // Добавить приз в fortuneWheelGifts
+    if (!user.fortuneWheelGifts) {
+      user.fortuneWheelGifts = [];
+    }
+
+    const prizeData = (lastSpin as any).prizeData || {};
+    const gift: any = {
+      spinId: lastSpin._id, // Связь с конкретным spin
+      prizeId: lastSpin.prizeId,
+      description: prizeData.description,
+      type: prizeData.type,
+      value: prizeData.value,
+      discountPercent: prizeData.discountPercent,
+      expiryDate: lastSpin.expiryDate,
+      expiry: lastSpin.expiryDate,
+      used: true,
+      isUsed: true,
+      usedAt: new Date()
+    };
+
+    user.fortuneWheelGifts.push(gift);
+    
+    // ВАЖНО: После активации приза обнуляем все оставшиеся спины
+    user.fortuneWheelSpins = 0;
+    
     await user.save();
 
-    console.log(`✅ Prize confirmed for user ${userId}: ${prizeId}`);
+    console.log(`✅ Prize confirmed for user ${userId}: ${prizeId}, spins reset to 0`);
 
     res.json({ 
       success: true, 
       message: 'Приз успешно активирован',
-      prize: prizeGift 
+      prize: gift,
+      remainingSpins: 0
     });
   } catch (error) {
     console.error('Error confirming prize:', error);

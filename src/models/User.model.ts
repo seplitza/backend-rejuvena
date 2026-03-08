@@ -13,6 +13,7 @@ interface IShippingAddress {
 
 interface IWheelGift {
   _id: string;
+  spinId?: mongoose.Types.ObjectId; // Связь с WheelSpin
   type: 'discount' | 'product' | 'freeShipping' | 'personalDiscount';
   value: any;
   description: string;
@@ -22,6 +23,7 @@ interface IWheelGift {
   used?: boolean; // Alias for isUsed
   usedAt?: Date;
   orderId?: string;
+  prizeId?: mongoose.Types.ObjectId;
   discountPercent?: number; // For discount type gifts
 }
 
@@ -201,6 +203,7 @@ const UserSchema = new Schema<IUser>({
     type: Date
   },
   fortuneWheelGifts: [{
+    spinId: Schema.Types.ObjectId, // Связь с WheelSpin
     type: {
       type: String,
       enum: ['discount', 'product', 'freeShipping', 'personalDiscount', 'freeProduct', 'extraSpin', 'noWin']
