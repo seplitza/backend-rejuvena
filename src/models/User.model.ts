@@ -203,17 +203,21 @@ const UserSchema = new Schema<IUser>({
   fortuneWheelGifts: [{
     type: {
       type: String,
-      enum: ['discount', 'product', 'freeShipping', 'personalDiscount']
+      enum: ['discount', 'product', 'freeShipping', 'personalDiscount', 'freeProduct', 'extraSpin', 'noWin']
     },
     value: Schema.Types.Mixed,
     description: String,
     expiryDate: Date,
+    expiry: Date, // Alias
     isUsed: {
       type: Boolean,
       default: false
     },
+    used: Boolean, // Alias  
     usedAt: Date,
-    orderId: String
+    orderId: String,
+    prizeId: Schema.Types.ObjectId,
+    discountPercent: Number
   }],
   tags: [{
     type: String
