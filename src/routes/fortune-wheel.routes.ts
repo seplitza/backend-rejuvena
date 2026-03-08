@@ -151,6 +151,7 @@ router.post('/spin', authMiddleware, async (req: AuthRequest, res: Response) => 
       prizeId: selectedPrize._id,
       description: selectedPrize.description,
       type: selectedPrize.type,
+      expiryDate: expiry,
       expiry,
       used: false,
       isUsed: false
