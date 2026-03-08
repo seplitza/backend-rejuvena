@@ -17,7 +17,16 @@ const router = express.Router();
  */
 router.get('/prizes', async (req, res) => {
   try {
-    const prizes = await FortuneWheelPrize.find({ isActive: true })
+    const now = new Date();
+    const prizes = await FortuneWheelPrize.find({ 
+      isActive: true,
+      $or: [
+        { validFrom: { $lte: now }, validUntil: { $gte: now } },
+        { validFrom: { $lte: now }, validUntil: null },
+        { validFrom: null, validUntil: { $gte: now } },
+        { validFrom: null, validUntil: null }
+      ]
+    })
       .select('name description type prizeType discountPercent freeProductId probability imageUrl icon value validityDays')
       .sort({ _id: 1 }) // ВАЖНО: сортировка для синхронизации с фронтендом
       .lean();
