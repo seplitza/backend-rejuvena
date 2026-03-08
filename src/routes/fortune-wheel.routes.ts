@@ -19,6 +19,7 @@ router.get('/prizes', async (req, res) => {
   try {
     const prizes = await FortuneWheelPrize.find({ isActive: true })
       .select('name description type prizeType discountPercent freeProductId probability imageUrl icon value validityDays')
+      .sort({ _id: 1 }) // ВАЖНО: сортировка для синхронизации с фронтендом
       .lean();
 
     res.json(prizes);
@@ -74,7 +75,7 @@ router.post('/spin', authMiddleware, async (req: AuthRequest, res: Response) => 
       return res.status(400).json({ error: 'У вас нет доступных вращений' });
     }
 
-    // Get all active prizes
+    // Get all active prizes - ВАЖНО: та же сортировка что и в GET /prizes
     const now = new Date();
     const prizes = await FortuneWheelPrize.find({
       isActive: true,
@@ -84,7 +85,7 @@ router.post('/spin', authMiddleware, async (req: AuthRequest, res: Response) => 
         { validFrom: null, validUntil: { $gte: now } },
         { validFrom: null, validUntil: null }
       ]
-    });
+    }).sort({ _id: 1 }); // Та же сортировка!
 
     if (prizes.length === 0) {
       return res.status(400).json({ error: 'В данный момент нет доступных призов' });
@@ -95,10 +96,12 @@ router.post('/spin', authMiddleware, async (req: AuthRequest, res: Response) => 
     let random = Math.random() * totalProbability;
     
     let selectedPrize = prizes[0];
-    for (const prize of prizes) {
-      random -= prize.probability;
+    let selectedPrizeIndex = 0;
+    for (let i = 0; i < prizes.length; i++) {
+      random -= prizes[i].probability;
       if (random <= 0) {
-        selectedPrize = prize;
+        selectedPrize = prizes[i];
+        selectedPrizeIndex = i;
         break;
       }
     }
@@ -136,6 +139,7 @@ router.post('/spin', authMiddleware, async (req: AuthRequest, res: Response) => 
           value: selectedPrize.value,
           icon: selectedPrize.icon
         },
+        prizeIndex: selectedPrizeIndex, // Индекс для точной синхронизации вращения
         extraSpinsAwarded: extraSpins,
         remainingSpins: user.fortuneWheelSpins,
         message: `Вы выиграли ${extraSpins} дополнительных вращения!`
@@ -197,6 +201,7 @@ router.post('/spin', authMiddleware, async (req: AuthRequest, res: Response) => 
         value: selectedPrize.value,
         icon: selectedPrize.icon
       },
+      prizeIndex: selectedPrizeIndex, // Индекс для точной синхронизации вращения
       gift: {
         _id: gift._id,
         expiry: gift.expiry
