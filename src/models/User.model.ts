@@ -16,6 +16,7 @@ interface IWheelGift {
   spinId?: mongoose.Types.ObjectId; // Связь с WheelSpin
   type: 'discount' | 'product' | 'freeShipping' | 'personalDiscount';
   value: any;
+  name?: string; // Название приза (например "Скидка 10%")
   description: string;
   expiryDate?: Date;
   expiry?: Date; // Alias for expiryDate

@@ -331,15 +331,15 @@ router.post('/confirm-prize', authMiddleware, async (req: AuthRequest, res: Resp
     const gift: any = {
       spinId: lastSpin._id, // Связь с конкретным spin
       prizeId: lastSpin.prizeId,
+      name: prizeData.name, // Название приза
       description: prizeData.description,
       type: prizeData.type,
       value: prizeData.value,
       discountPercent: prizeData.discountPercent,
       expiryDate: lastSpin.expiryDate,
       expiry: lastSpin.expiryDate,
-      used: true,
-      isUsed: true,
-      usedAt: new Date()
+      used: false, // Приз НЕ используется сразу после активации
+      isUsed: false // Будет помечен как used при реальном использовании (применении в заказе)
     };
 
     user.fortuneWheelGifts.push(gift);
