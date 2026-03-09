@@ -416,19 +416,73 @@ router.get('/winners', [authMiddleware, adminMiddleware], async (req: Request, r
     const WheelSpin = require('../../models/WheelSpin.model').default;
     const User = require('../../models/User.model').default;
     
-    const { limit = 50, page = 1 } = req.query;
+    const { limit = 50, page = 1, isUsed, selectedOnly } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
 
-    const [winners, total] = await Promise.all([
-      WheelSpin.find({})
-        .populate('userId', 'firstName lastName email')
-        .populate('prizeId', 'name description type value discountPercent icon')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(Number(limit))
-        .lean(),
-      WheelSpin.countDocuments({})
-    ]);
+    let winners, total;
+
+    // Если selectedOnly=true, показываем только последний спин каждого пользователя
+    if (selectedOnly === 'true') {
+      // Фильтр по статусу использования для aggregation
+      const matchStage: any = {};
+      if (isUsed === 'true') {
+        matchStage.isUsed = true;
+      } else if (isUsed === 'false') {
+        matchStage.isUsed = false;
+      }
+
+      const pipeline: any[] = [
+        ...(Object.keys(matchStage).length > 0 ? [{ $match: matchStage }] : []),
+        { $sort: { createdAt: -1 } },
+        {
+          $group: {
+            _id: '$userId',
+            lastSpin: { $first: '$$ROOT' }
+          }
+        },
+        { $replaceRoot: { newRoot: '$lastSpin' } },
+        {
+          $facet: {
+            data: [
+              { $skip: skip },
+              { $limit: Number(limit) }
+            ],
+            total: [
+              { $count: 'count' }
+            ]
+          }
+        }
+      ];
+
+      const result = await WheelSpin.aggregate(pipeline);
+      const spins = result[0].data || [];
+      total = result[0].total[0]?.count || 0;
+
+      // Populate вручную после aggregation
+      winners = await WheelSpin.populate(spins, [
+        { path: 'userId', select: 'firstName lastName email' },
+        { path: 'prizeId', select: 'name description type value discountPercent icon' }
+      ]);
+    } else {
+      // Обычная фильтрация - все спины
+      const filter: any = {};
+      if (isUsed === 'true') {
+        filter.isUsed = true;
+      } else if (isUsed === 'false') {
+        filter.isUsed = false;
+      }
+
+      [winners, total] = await Promise.all([
+        WheelSpin.find(filter)
+          .populate('userId', 'firstName lastName email')
+          .populate('prizeId', 'name description type value discountPercent icon')
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(Number(limit))
+          .lean(),
+        WheelSpin.countDocuments(filter)
+      ]);
+    }
 
     res.json({
       winners: winners.map((w: any) => ({

@@ -45,12 +45,22 @@ export default function FortuneWheel() {
   const [editedProbabilities, setEditedProbabilities] = useState<{[key: string]: number}>({});
   const [savingProbabilities, setSavingProbabilities] = useState(false);
   const [selectedPrizeFilter, setSelectedPrizeFilter] = useState<string>('all');
+  const [usageStatusFilter, setUsageStatusFilter] = useState<string>('all');
+  const [showSelectedOnly, setShowSelectedOnly] = useState<boolean>(true); // По умолчанию показываем только выбранные
 
   useEffect(() => {
     loadPrizes();
     loadWinners();
     loadSettings();
   }, []);
+
+  // Перезагружаем список при изменении фильтров
+  useEffect(() => {
+    if (!loadingWinners) {
+      setLoadingWinners(true);
+      loadWinners();
+    }
+  }, [usageStatusFilter, showSelectedOnly]);
 
   const loadSettings = async () => {
     try {
@@ -92,7 +102,17 @@ export default function FortuneWheel() {
 
   const loadWinners = async () => {
     try {
-      const response = await api.get('/admin/fortune-wheel/winners?limit=20');
+      // Добавляем фильтр по статусу использования и выбранным призам
+      const params = new URLSearchParams();
+      params.append('limit', '20');
+      if (usageStatusFilter !== 'all') {
+        params.append('isUsed', usageStatusFilter);
+      }
+      if (showSelectedOnly) {
+        params.append('selectedOnly', 'true');
+      }
+      
+      const response = await api.get(`/admin/fortune-wheel/winners?${params.toString()}`);
       setWinners(response.data.winners);
     } catch (error) {
       console.error('Failed to load winners:', error);
@@ -452,10 +472,34 @@ export default function FortuneWheel() {
             </p>
           </div>
           
-          {/* Фильтр по призу */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* Фильтры */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            {/* Toggle: Выбранные / Все спины */}
+            <label style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px',
+              padding: '8px 16px',
+              backgroundColor: showSelectedOnly ? '#EEF2FF' : '#F9FAFB',
+              borderRadius: '6px',
+              border: `1px solid ${showSelectedOnly ? '#818CF8' : '#E5E7EB'}`,
+              cursor: 'pointer',
+              fontWeight: '500',
+              fontSize: '14px',
+              color: showSelectedOnly ? '#4F46E5' : '#6B7280'
+            }}>
+              <input
+                type="checkbox"
+                checked={showSelectedOnly}
+                onChange={(e) => setShowSelectedOnly(e.target.checked)}
+                style={{ cursor: 'pointer' }}
+              />
+              <span>🎁 Только выбранные призы (последний спин)</span>
+            </label>
+
+            {/* Фильтр по призу */}
             <label style={{ fontSize: '14px', color: '#6B7280', fontWeight: '500' }}>
-              🎯 Фильтр по призу:
+              🎯 Приз:
             </label>
             <select
               value={selectedPrizeFilter}
@@ -468,15 +512,38 @@ export default function FortuneWheel() {
                 backgroundColor: 'white',
                 color: '#1F2937',
                 cursor: 'pointer',
-                minWidth: '200px'
+                minWidth: '180px'
               }}
             >
-              <option value="all">Все призы</option>
+              <option value="all">Все</option>
               {prizes.map(prize => (
                 <option key={prize._id} value={prize._id}>
                   {prize.name}
                 </option>
               ))}
+            </select>
+            
+            {/* Фильтр по статусу выдачи */}
+            <label style={{ fontSize: '14px', color: '#6B7280', fontWeight: '500' }}>
+              📦 Статус:
+            </label>
+            <select
+              value={usageStatusFilter}
+              onChange={(e) => setUsageStatusFilter(e.target.value)}
+              style={{
+                padding: '8px 16px',
+                fontSize: '14px',
+                border: '1px solid #E5E7EB',
+                borderRadius: '6px',
+                backgroundColor: 'white',
+                color: '#1F2937',
+                cursor: 'pointer',
+                minWidth: '180px'
+              }}
+            >
+              <option value="all">Все</option>
+              <option value="false">⚠️ Нужно выдать</option>
+              <option value="true">✅ Уже выдано</option>
             </select>
           </div>
         </div>
