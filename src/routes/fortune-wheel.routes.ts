@@ -40,6 +40,29 @@ router.get('/prizes', async (req, res) => {
 });
 
 /**
+ * GET /api/fortune-wheel/status
+ * Check if Fortune Wheel is enabled (public)
+ */
+router.get('/status', async (req, res) => {
+  try {
+    let settings = await FortuneWheelSettings.findOne();
+    
+    // Создать настройки если их нет
+    if (!settings) {
+      settings = await FortuneWheelSettings.create({ isEnabled: true });
+    }
+    
+    res.json({
+      isEnabled: settings.isEnabled
+    });
+  } catch (error) {
+    console.error('Error getting status:', error);
+    // По умолчанию возвращаем enabled если произошла ошибка
+    res.json({ isEnabled: true });
+  }
+});
+
+/**
  * GET /api/fortune-wheel/available-spins
  * Get user's available spins (requires auth)
  */
