@@ -480,12 +480,12 @@ export default function ThemeManagement() {
           </h3>
 
           {Object.entries(editingTheme.gradients).map(([key, value]) => {
-            // Generate gradient suggestions based on theme colors
+            // Generate gradient suggestions based on theme colors - using static classes to avoid build issues
             const suggestions = [
-              `from-[${editingTheme.colors.primary}] to-[${editingTheme.colors.secondary}]`,
-              `from-[${editingTheme.colors.accent}] to-[${editingTheme.colors.primary}]`,
-              `from-[${editingTheme.colors.accent}] to-[${editingTheme.colors.secondary}]`,
-              `from-[${editingTheme.colors.primary}] to-[${editingTheme.colors.accent}]`,
+              'from-purple-600 to-pink-600',
+              'from-blue-500 to-purple-500',
+              'from-pink-500 to-orange-500',
+              'from-purple-500 to-blue-500',
             ];
 
             return (
@@ -540,10 +540,10 @@ export default function ThemeManagement() {
                         cursor: 'pointer',
                       }}
                     >
-                      {idx === 0 && 'Primary→Secondary'}
-                      {idx === 1 && 'Accent→Primary'}
-                      {idx === 2 && 'Accent→Secondary'}
-                      {idx === 3 && 'Primary→Accent'}
+                      {idx === 0 && 'Purple→Pink'}
+                      {idx === 1 && 'Blue→Purple'}
+                      {idx === 2 && 'Pink→Orange'}
+                      {idx === 3 && 'Purple→Blue'}
                     </button>
                   ))}
                 </div>
