@@ -47,6 +47,7 @@ export default function FortuneWheel() {
   const [selectedPrizeFilter, setSelectedPrizeFilter] = useState<string>('all');
   const [usageStatusFilter, setUsageStatusFilter] = useState<string>('all');
   const [showSelectedOnly, setShowSelectedOnly] = useState<boolean>(true); // По умолчанию показываем только выбранные
+  const [updatingSpinId, setUpdatingSpinId] = useState<string | null>(null);
 
   useEffect(() => {
     loadPrizes();
@@ -118,6 +119,27 @@ export default function FortuneWheel() {
       console.error('Failed to load winners:', error);
     } finally {
       setLoadingWinners(false);
+    }
+  };
+
+  const toggleSpinStatus = async (spinId: string) => {
+    setUpdatingSpinId(spinId);
+    try {
+      const response = await api.put(`/admin/fortune-wheel/winners/${spinId}/toggle-status`);
+      
+      // Обновляем локальное состояние
+      setWinners(prevWinners => 
+        prevWinners.map(winner => 
+          winner._id === spinId 
+            ? { ...winner, isUsed: response.data.spin.isUsed, usedAt: response.data.spin.usedAt }
+            : winner
+        )
+      );
+    } catch (error) {
+      console.error('Failed to toggle spin status:', error);
+      alert('Не удалось изменить статус');
+    } finally {
+      setUpdatingSpinId(null);
     }
   };
 
@@ -671,22 +693,49 @@ export default function FortuneWheel() {
                         </div>
                       </td>
                       <td style={{ padding: '16px', textAlign: 'center' }}>
-                        <span style={{
-                          padding: '4px 12px',
-                          borderRadius: '12px',
-                          fontSize: '12px',
-                          fontWeight: '600',
-                          background: winner.isUsed ? '#D1FAE5' : 
-                                     isExpired ? '#FEE2E2' : 
-                                     '#FEF3C7',
-                          color: winner.isUsed ? '#065F46' : 
-                                isExpired ? '#991B1B' : 
-                                '#92400E'
-                        }}>
-                          {winner.isUsed ? '✓ Использован' : 
+                        <button
+                          onClick={() => toggleSpinStatus(winner._id)}
+                          disabled={updatingSpinId === winner._id || isExpired}
+                          style={{
+                            padding: '8px 16px',
+                            borderRadius: '12px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            border: 'none',
+                            cursor: (updatingSpinId === winner._id || isExpired) ? 'not-allowed' : 'pointer',
+                            background: winner.isUsed ? '#D1FAE5' : 
+                                       isExpired ? '#FEE2E2' : 
+                                       '#FEF3C7',
+                            color: winner.isUsed ? '#065F46' : 
+                                  isExpired ? '#991B1B' : 
+                                  '#92400E',
+                            opacity: (updatingSpinId === winner._id || isExpired) ? 0.6 : 1,
+                            transition: 'all 0.2s',
+                            transform: updatingSpinId === winner._id ? 'scale(0.95)' : 'scale(1)'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isExpired && updatingSpinId !== winner._id) {
+                              e.currentTarget.style.transform = 'scale(1.05)';
+                              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isExpired && updatingSpinId !== winner._id) {
+                              e.currentTarget.style.transform = 'scale(1)';
+                              e.currentTarget.style.boxShadow = 'none';
+                            }
+                          }}
+                        >
+                          {updatingSpinId === winner._id ? '⏳ Обновление...' :
+                           winner.isUsed ? '✅ Выдано' : 
                            isExpired ? '⏱ Истек' : 
-                           '⏳ Ожидает'}
-                        </span>
+                           '⚠️ Нужно выдать'}
+                        </button>
+                        {winner.isUsed && winner.usedAt && (
+                          <div style={{ fontSize: '10px', color: '#6B7280', marginTop: '4px' }}>
+                            {new Date(winner.usedAt).toLocaleDateString('ru-RU')}
+                          </div>
+                        )}
                       </td>
                     </tr>
                   );

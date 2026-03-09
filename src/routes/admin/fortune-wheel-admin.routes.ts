@@ -630,4 +630,50 @@ router.put('/prizes/:prizeId', [authMiddleware, adminMiddleware], async (req: Re
   }
 });
 
+// 📦 Mark prize as used/unused (выдан/не выдан)
+router.put('/winners/:spinId/toggle-status', [authMiddleware, adminMiddleware], async (req: Request, res: Response) => {
+  try {
+    const WheelSpin = require('../../models/WheelSpin.model').default;
+    const { spinId } = req.params;
+    
+    const spin = await WheelSpin.findById(spinId)
+      .populate('userId', 'firstName lastName email')
+      .populate('prizeId', 'name type');
+    
+    if (!spin) {
+      return res.status(404).json({ error: 'Запись не найдена' });
+    }
+    
+    // Переключаем статус
+    spin.isUsed = !spin.isUsed;
+    spin.usedAt = spin.isUsed ? new Date() : null;
+    
+    await spin.save();
+    
+    res.json({
+      success: true,
+      message: spin.isUsed ? 'Приз отмечен как выданный' : 'Отметка о выдаче снята',
+      spin: {
+        _id: spin._id,
+        isUsed: spin.isUsed,
+        usedAt: spin.usedAt,
+        user: spin.userId ? {
+          name: `${spin.userId.firstName || ''} ${spin.userId.lastName || ''}`.trim(),
+          email: spin.userId.email
+        } : null,
+        prize: spin.prizeId ? {
+          name: spin.prizeId.name,
+          type: spin.prizeId.type
+        } : null
+      }
+    });
+  } catch (error: any) {
+    console.error('Error toggling spin status:', error);
+    res.status(500).json({
+      error: 'Ошибка изменения статуса',
+      message: error.message
+    });
+  }
+});
+
 export default router;
