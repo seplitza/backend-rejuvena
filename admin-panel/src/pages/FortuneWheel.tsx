@@ -44,6 +44,7 @@ export default function FortuneWheel() {
   const [editMode, setEditMode] = useState(false);
   const [editedProbabilities, setEditedProbabilities] = useState<{[key: string]: number}>({});
   const [savingProbabilities, setSavingProbabilities] = useState(false);
+  const [selectedPrizeFilter, setSelectedPrizeFilter] = useState<string>('all');
 
   useEffect(() => {
     loadPrizes();
@@ -108,6 +109,11 @@ export default function FortuneWheel() {
         return sum + (editedValue !== undefined ? editedValue : prizes.find(p => p._id === prizeId)?.probability || 0);
       }, 0)
     : totalProbability;
+
+  // Фильтрация победителей
+  const filteredWinners = selectedPrizeFilter === 'all' 
+    ? winners 
+    : winners.filter(w => w.prize._id === selectedPrizeFilter || w.prize.name === selectedPrizeFilter);
 
   const startEditMode = () => {
     const initialProbabilities: {[key: string]: number} = {};
@@ -434,13 +440,45 @@ export default function FortuneWheel() {
 
       {/* Секция победителей */}
       <div style={{ marginTop: '48px' }}>
-        <div style={{ marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>
-            🏆 Недавние победители
-          </h2>
-          <p style={{ color: '#6B7280', fontSize: '14px' }}>
-            Последние 20 выигрышей
-          </p>
+        <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>
+              🏆 Недавние победители
+            </h2>
+            <p style={{ color: '#6B7280', fontSize: '14px' }}>
+              {selectedPrizeFilter === 'all' 
+                ? `Последние 20 выигрышей (всего: ${winners.length})`
+                : `Показано: ${filteredWinners.length} из ${winners.length}`}
+            </p>
+          </div>
+          
+          {/* Фильтр по призу */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <label style={{ fontSize: '14px', color: '#6B7280', fontWeight: '500' }}>
+              🎯 Фильтр по призу:
+            </label>
+            <select
+              value={selectedPrizeFilter}
+              onChange={(e) => setSelectedPrizeFilter(e.target.value)}
+              style={{
+                padding: '8px 16px',
+                fontSize: '14px',
+                border: '1px solid #E5E7EB',
+                borderRadius: '6px',
+                backgroundColor: 'white',
+                color: '#1F2937',
+                cursor: 'pointer',
+                minWidth: '200px'
+              }}
+            >
+              <option value="all">Все призы</option>
+              {prizes.map(prize => (
+                <option key={prize._id} value={prize._id}>
+                  {prize.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {loadingWinners ? (
@@ -495,13 +533,13 @@ export default function FortuneWheel() {
                 </tr>
               </thead>
               <tbody>
-                {winners.map((winner, index) => {
+                {filteredWinners.map((winner, index) => {
                   const wonDate = new Date(winner.wonAt);
                   const expiryDate = new Date(winner.expiryDate);
                   const isExpired = expiryDate < new Date();
                   
                   return (
-                    <tr key={winner._id} style={{ borderBottom: index < winners.length - 1 ? '1px solid #E5E7EB' : 'none' }}>
+                    <tr key={winner._id} style={{ borderBottom: index < filteredWinners.length - 1 ? '1px solid #E5E7EB' : 'none' }}>
                       <td style={{ padding: '16px' }}>
                         <div>
                           <div style={{ fontWeight: '600', color: '#1F2937', marginBottom: '4px' }}>
