@@ -39,11 +39,41 @@ export default function FortuneWheel() {
   const [winners, setWinners] = useState<Winner[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingWinners, setLoadingWinners] = useState(true);
+  const [isEnabled, setIsEnabled] = useState(true);
+  const [loadingSettings, setLoadingSettings] = useState(false);
 
   useEffect(() => {
     loadPrizes();
     loadWinners();
+    loadSettings();
   }, []);
+
+  const loadSettings = async () => {
+    try {
+      setLoadingSettings(true);
+      const response = await api.get('/admin/fortune-wheel/settings');
+      setIsEnabled(response.data.isEnabled);
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+    } finally {
+      setLoadingSettings(false);
+    }
+  };
+
+  const toggleSettings = async () => {
+    try {
+      setLoadingSettings(true);
+      const response = await api.put('/admin/fortune-wheel/settings', {
+        isEnabled: !isEnabled
+      });
+      setIsEnabled(response.data.isEnabled);
+    } catch (error) {
+      console.error('Failed to update settings:', error);
+      alert('Не удалось обновить настройки');
+    } finally {
+      setLoadingSettings(false);
+    }
+  };
 
   const loadPrizes = async () => {
     try {
@@ -88,6 +118,46 @@ export default function FortuneWheel() {
 
   return (
     <div className="container" style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto' }}>
+      {/* Fortune Wheel Toggle */}
+      <div style={{ 
+        marginBottom: '32px', 
+        padding: '24px', 
+        backgroundColor: '#F9FAFB', 
+        borderRadius: '8px',
+        border: '1px solid #E5E7EB'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '4px' }}>
+              {isEnabled ? '🟢 Колесо Фортуны включено' : '🔴 Колесо Фортуны отключено'}
+            </h3>
+            <p style={{ color: '#6B7280', fontSize: '14px', margin: 0 }}>
+              {isEnabled 
+                ? 'Пользователи могут крутить колесо и получать призы' 
+                : 'Пользователи не могут крутить колесо. При попытке получат сообщение с ссылкой на Telegram бот'}
+            </p>
+          </div>
+          <button
+            onClick={toggleSettings}
+            disabled={loadingSettings}
+            style={{
+              padding: '10px 20px',
+              fontSize: '14px',
+              fontWeight: '500',
+              borderRadius: '6px',
+              border: 'none',
+              cursor: loadingSettings ? 'not-allowed' : 'pointer',
+              backgroundColor: isEnabled ? '#DC2626' : '#10B981',
+              color: 'white',
+              opacity: loadingSettings ? 0.6 : 1,
+              transition: 'all 0.2s'
+            }}
+          >
+            {loadingSettings ? 'Обновление...' : (isEnabled ? 'Отключить' : 'Включить')}
+          </button>
+        </div>
+      </div>
+
       <div style={{ marginBottom: '32px' }}>
         <h1 style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '8px' }}>
           🎰 Колесо Фортуны

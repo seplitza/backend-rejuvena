@@ -5,6 +5,7 @@
 
 import express, { Response } from 'express';
 import FortuneWheelPrize from '../models/FortuneWheelPrize.model';
+import FortuneWheelSettings from '../models/FortuneWheelSettings.model';
 import WheelSpin from '../models/WheelSpin.model';
 import User from '../models/User.model';
 import { authMiddleware, AuthRequest } from '../middleware/auth.middleware';
@@ -72,6 +73,20 @@ router.post('/spin', authMiddleware, async (req: AuthRequest, res: Response) => 
     const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Требуется авторизация' });
+    }
+
+    // Check if Fortune Wheel is enabled
+    let settings = await FortuneWheelSettings.findOne();
+    if (!settings) {
+      // Create default settings if not exists
+      settings = await FortuneWheelSettings.create({ isEnabled: true });
+    }
+    
+    if (!settings.isEnabled) {
+      return res.status(403).json({ 
+        error: 'Колесо фортуны временно недоступно',
+        message: 'Колесо фортуны временно отключено. Пожалуйста, свяжитесь с нами в Telegram: https://t.me/Seplitza_info_bot'
+      });
     }
 
     const user = await User.findById(userId);

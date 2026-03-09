@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import FortuneWheelPrize from '../../models/FortuneWheelPrize.model';
+import FortuneWheelSettings from '../../models/FortuneWheelSettings.model';
 import Product from '../../models/Product.model';
 import { authMiddleware, adminMiddleware } from '../../middleware/authMiddleware';
 
@@ -461,6 +462,74 @@ router.get('/winners', [authMiddleware, adminMiddleware], async (req: Request, r
     console.error('Error getting winners:', error);
     res.status(500).json({
       error: 'Ошибка получения победителей',
+      message: error.message
+    });
+  }
+});
+
+// 🔧 Get Fortune Wheel settings
+router.get('/settings', [authMiddleware, adminMiddleware], async (req: Request, res: Response) => {
+  try {
+    let settings = await FortuneWheelSettings.findOne();
+    
+    // Создать настройки если их нет
+    if (!settings) {
+      settings = await FortuneWheelSettings.create({ isEnabled: true });
+    }
+    
+    res.json({
+      success: true,
+      settings: {
+        isEnabled: settings.isEnabled,
+        updatedAt: settings.updatedAt,
+        updatedBy: settings.updatedBy
+      }
+    });
+  } catch (error: any) {
+    console.error('Error getting settings:', error);
+    res.status(500).json({
+      error: 'Ошибка получения настроек',
+      message: error.message
+    });
+  }
+});
+
+// 🔧 Update Fortune Wheel settings
+router.put('/settings', [authMiddleware, adminMiddleware], async (req: Request, res: Response) => {
+  try {
+    const { isEnabled } = req.body;
+    const userId = (req as any).user?.id || 'admin';
+    
+    if (typeof isEnabled !== 'boolean') {
+      return res.status(400).json({ error: 'isEnabled должен быть boolean' });
+    }
+    
+    let settings = await FortuneWheelSettings.findOne();
+    
+    if (!settings) {
+      settings = await FortuneWheelSettings.create({ 
+        isEnabled, 
+        updatedBy: userId 
+      });
+    } else {
+      settings.isEnabled = isEnabled;
+      settings.updatedBy = userId;
+      await settings.save();
+    }
+    
+    res.json({
+      success: true,
+      message: `Колесо Фортуны ${isEnabled ? 'включено' : 'выключено'}`,
+      settings: {
+        isEnabled: settings.isEnabled,
+        updatedAt: settings.updatedAt,
+        updatedBy: settings.updatedBy
+      }
+    });
+  } catch (error: any) {
+    console.error('Error updating settings:', error);
+    res.status(500).json({
+      error: 'Ошибка обновления настроек',
       message: error.message
     });
   }
