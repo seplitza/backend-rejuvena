@@ -41,6 +41,9 @@ export default function FortuneWheel() {
   const [loadingWinners, setLoadingWinners] = useState(true);
   const [isEnabled, setIsEnabled] = useState(true);
   const [loadingSettings, setLoadingSettings] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editedProbabilities, setEditedProbabilities] = useState<{[key: string]: number}>({});
+  const [savingProbabilities, setSavingProbabilities] = useState(false);
 
   useEffect(() => {
     loadPrizes();
@@ -98,6 +101,58 @@ export default function FortuneWheel() {
   };
 
   const totalProbability = prizes.reduce((sum, p) => sum + p.probability, 0);
+  
+  const editedTotalProbability = editMode 
+    ? Object.keys(editedProbabilities).reduce((sum, prizeId) => {
+        const editedValue = editedProbabilities[prizeId];
+        return sum + (editedValue !== undefined ? editedValue : prizes.find(p => p._id === prizeId)?.probability || 0);
+      }, 0)
+    : totalProbability;
+
+  const startEditMode = () => {
+    const initialProbabilities: {[key: string]: number} = {};
+    prizes.forEach(prize => {
+      initialProbabilities[prize._id] = prize.probability;
+    });
+    setEditedProbabilities(initialProbabilities);
+    setEditMode(true);
+  };
+
+  const cancelEditMode = () => {
+    setEditMode(false);
+    setEditedProbabilities({});
+  };
+
+  const saveProbabilities = async () => {
+    // Валидация: сумма должна быть 100%
+    const total = Object.values(editedProbabilities).reduce((sum, val) => sum + val, 0);
+    if (Math.abs(total - 100) > 0.01) {
+      alert(`Сумма вероятностей должна быть 100%. Текущая сумма: ${total.toFixed(1)}%`);
+      return;
+    }
+
+    setSavingProbabilities(true);
+    try {
+      // Обновляем каждый приз
+      const updates = Object.keys(editedProbabilities).map(prizeId => 
+        api.put(`/admin/fortune-wheel/prizes/${prizeId}`, { 
+          probability: editedProbabilities[prizeId] 
+        })
+      );
+      
+      await Promise.all(updates);
+      
+      alert('✅ Вероятности успешно обновлены!');
+      setEditMode(false);
+      setEditedProbabilities({});
+      await loadPrizes(); // Перезагружаем призы
+    } catch (error: any) {
+      console.error('Failed to update probabilities:', error);
+      alert('Ошибка при сохранении: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setSavingProbabilities(false);
+    }
+  };
 
   const getTypeLabel = (type: string) => {
     switch (type) {
@@ -159,12 +214,70 @@ export default function FortuneWheel() {
       </div>
 
       <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '8px' }}>
-          🎰 Колесо Фортуны
-        </h1>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <h1 style={{ fontSize: '32px', fontWeight: 'bold', margin: 0 }}>
+            🎰 Колесо Фортуны
+          </h1>
+          {/* Кнопки управления вероятностями */}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {!editMode ? (
+              <button
+                onClick={startEditMode}
+                style={{
+                  padding: '10px 20px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  borderRadius: '6px',
+                  border: '1px solid #E5E7EB',
+                  cursor: 'pointer',
+                  backgroundColor: '#4F46E5',
+                  color: 'white'
+                }}
+              >
+                ✏️ Редактировать вероятности
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={cancelEditMode}
+                  disabled={savingProbabilities}
+                  style={{
+                    padding: '10px 20px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    borderRadius: '6px',
+                    border: '1px solid #E5E7EB',
+                    cursor: savingProbabilities ? 'not-allowed' : 'pointer',
+                    backgroundColor: '#F3F4F6',
+                    color: '#6B7280'
+                  }}
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={saveProbabilities}
+                  disabled={savingProbabilities || Math.abs(editedTotalProbability - 100) > 0.01}
+                  style={{
+                    padding: '10px 20px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    borderRadius: '6px',
+                    border: 'none',
+                    cursor: (savingProbabilities || Math.abs(editedTotalProbability - 100) > 0.01) ? 'not-allowed' : 'pointer',
+                    backgroundColor: Math.abs(editedTotalProbability - 100) > 0.01 ? '#9CA3AF' : '#10B981',
+                    color: 'white',
+                    opacity: (savingProbabilities || Math.abs(editedTotalProbability - 100) > 0.01) ? 0.6 : 1
+                  }}
+                >
+                  {savingProbabilities ? 'Сохранение...' : '✓ Сохранить'}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
         <p style={{ color: '#6B7280', fontSize: '14px' }}>
-          Всего призов: <strong>{prizes.length}</strong> | Общая вероятность: <strong>{totalProbability}%</strong> 
-          {totalProbability === 100 ? (
+          Всего призов: <strong>{prizes.length}</strong> | Общая вероятность: <strong>{editMode ? editedTotalProbability.toFixed(1) : totalProbability}%</strong> 
+          {(editMode ? Math.abs(editedTotalProbability - 100) < 0.01 : totalProbability === 100) ? (
             <span style={{ color: '#10B981', marginLeft: '8px' }}>✓ Корректно</span>
           ) : (
             <span style={{ color: '#DC2626', marginLeft: '8px' }}>⚠️ Должно быть 100%</span>
@@ -246,13 +359,40 @@ export default function FortuneWheel() {
                      '-'}
                   </td>
                   <td style={{ padding: '16px', textAlign: 'center' }}>
-                    <span style={{ 
-                      color: '#1F2937', 
-                      fontWeight: '700',
-                      fontSize: '16px'
-                    }}>
-                      {prize.probability}%
-                    </span>
+                    {editMode ? (
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={editedProbabilities[prize._id] !== undefined ? editedProbabilities[prize._id] : prize.probability}
+                        onChange={(e) => {
+                          const value = parseFloat(e.target.value) || 0;
+                          setEditedProbabilities({
+                            ...editedProbabilities,
+                            [prize._id]: value
+                          });
+                        }}
+                        style={{
+                          width: '80px',
+                          padding: '6px 12px',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          border: '2px solid #4F46E5',
+                          borderRadius: '6px',
+                          textAlign: 'center',
+                          outline: 'none'
+                        }}
+                      />
+                    ) : (
+                      <span style={{ 
+                        color: '#1F2937', 
+                        fontWeight: '700',
+                        fontSize: '16px'
+                      }}>
+                        {prize.probability}%
+                      </span>
+                    )}
                   </td>
                   <td style={{ padding: '16px', textAlign: 'center', color: '#6B7280', fontSize: '13px' }}>
                     {prize.validityDays ? `${prize.validityDays} дн.` : '-'}

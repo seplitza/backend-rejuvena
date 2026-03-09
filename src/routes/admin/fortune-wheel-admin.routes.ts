@@ -535,4 +535,45 @@ router.put('/settings', [authMiddleware, adminMiddleware], async (req: Request, 
   }
 });
 
+// 🎲 Update prize probability
+router.put('/prizes/:prizeId', [authMiddleware, adminMiddleware], async (req: Request, res: Response) => {
+  try {
+    const { prizeId } = req.params;
+    const { probability } = req.body;
+    
+    if (typeof probability !== 'number' || probability < 0 || probability > 100) {
+      return res.status(400).json({ 
+        error: 'Некорректная вероятность',
+        message: 'Вероятность должна быть числом от 0 до 100' 
+      });
+    }
+    
+    const prize = await FortuneWheelPrize.findByIdAndUpdate(
+      prizeId,
+      { probability },
+      { new: true }
+    );
+    
+    if (!prize) {
+      return res.status(404).json({ error: 'Приз не найден' });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Вероятность обновлена',
+      prize: {
+        _id: prize._id,
+        name: prize.name,
+        probability: prize.probability
+      }
+    });
+  } catch (error: any) {
+    console.error('Error updating prize probability:', error);
+    res.status(500).json({
+      error: 'Ошибка обновления вероятности',
+      message: error.message
+    });
+  }
+});
+
 export default router;
