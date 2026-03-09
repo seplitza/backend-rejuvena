@@ -52,7 +52,7 @@ export default function FortuneWheel() {
     try {
       setLoadingSettings(true);
       const response = await api.get('/admin/fortune-wheel/settings');
-      setIsEnabled(response.data.isEnabled);
+      setIsEnabled(response.data.settings.isEnabled);
     } catch (error) {
       console.error('Failed to load settings:', error);
     } finally {
@@ -66,7 +66,7 @@ export default function FortuneWheel() {
       const response = await api.put('/admin/fortune-wheel/settings', {
         isEnabled: !isEnabled
       });
-      setIsEnabled(response.data.isEnabled);
+      setIsEnabled(response.data.settings.isEnabled);
     } catch (error) {
       console.error('Failed to update settings:', error);
       alert('Не удалось обновить настройки');
