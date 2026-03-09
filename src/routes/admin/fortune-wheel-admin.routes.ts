@@ -406,4 +406,64 @@ router.get('/stats', [authMiddleware, adminMiddleware], async (req: Request, res
   }
 });
 
+/**
+ * GET /api/admin/fortune-wheel/winners
+ * Получить список недавних победителей
+ */
+router.get('/winners', [authMiddleware, adminMiddleware], async (req: Request, res: Response) => {
+  try {
+    const WheelSpin = require('../../models/WheelSpin.model').default;
+    const User = require('../../models/User.model').default;
+    
+    const { limit = 50, page = 1 } = req.query;
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [winners, total] = await Promise.all([
+      WheelSpin.find({})
+        .populate('userId', 'firstName lastName email')
+        .populate('prizeId', 'name description type value discountPercent icon')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit))
+        .lean(),
+      WheelSpin.countDocuments({})
+    ]);
+
+    res.json({
+      winners: winners.map((w: any) => ({
+        _id: w._id,
+        user: w.userId ? {
+          _id: w.userId._id,
+          name: `${w.userId.firstName || ''} ${w.userId.lastName || ''}`.trim() || 'Пользователь',
+          email: w.userId.email
+        } : { name: 'Неизвестный пользователь' },
+        prize: w.prizeId ? {
+          _id: w.prizeId._id,
+          name: w.prizeId.name,
+          description: w.prizeId.description,
+          type: w.prizeId.type,
+          value: w.prizeId.value || w.prizeId.discountPercent,
+          icon: w.prizeId.icon
+        } : (w.prizeData || { name: 'Приз удален' }),
+        isUsed: w.isUsed,
+        usedAt: w.usedAt,
+        expiryDate: w.expiryDate,
+        wonAt: w.createdAt
+      })),
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        pages: Math.ceil(total / Number(limit))
+      }
+    });
+  } catch (error: any) {
+    console.error('Error getting winners:', error);
+    res.status(500).json({
+      error: 'Ошибка получения победителей',
+      message: error.message
+    });
+  }
+});
+
 export default router;

@@ -250,11 +250,16 @@ router.get('/:id/day/:dayNumber', authMiddleware, async (req: AuthRequest, res: 
       console.log(`✅ Updated lastAccessedDay to ${dayNumber} for user ${userId} in marathon ${id}`);
     }
 
+    // Determine practice start day (8 for advanced, 15 for basic)
+    const practiceStartDay = marathon.numberOfDays === 14 ? 15 : 8;
+    const isPracticeDay = Number(dayNumber) >= practiceStartDay;
+
     // Add isNew flag to exercises based on newExerciseIds
+    // BUT: Remove isNew for practice days to avoid green badges
     const dayObject = day.toObject();
-    const newExerciseIdsSet = new Set(
-      (day.newExerciseIds || []).map((id: any) => id.toString())
-    );
+    const newExerciseIdsSet = isPracticeDay 
+      ? new Set() // Empty set for practice days - no new exercises
+      : new Set((day.newExerciseIds || []).map((id: any) => id.toString()));
 
     if (dayObject.exerciseGroups) {
       dayObject.exerciseGroups = dayObject.exerciseGroups.map((group: any) => ({
@@ -440,7 +445,11 @@ router.get('/:id/progress', authMiddleware, async (req: AuthRequest, res: Respon
         completedCount: enrollment.completedDays.length,
         status: enrollment.status,
         expiresAt: enrollment.expiresAt,
-        dayProgress: dayProgressMap
+        dayProgress: dayProgressMap,
+        enrollment: {
+          enrolledAt: enrollment.createdAt,
+          status: enrollment.status
+        }
       }
     });
   } catch (error: any) {

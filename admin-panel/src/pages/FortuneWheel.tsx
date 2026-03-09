@@ -13,12 +13,36 @@ interface Prize {
   isActive: boolean;
 }
 
+interface Winner {
+  _id: string;
+  user: {
+    _id?: string;
+    name: string;
+    email?: string;
+  };
+  prize: {
+    _id?: string;
+    name: string;
+    description?: string;
+    type: string;
+    value: any;
+    icon?: string;
+  };
+  isUsed: boolean;
+  usedAt?: string;
+  expiryDate: string;
+  wonAt: string;
+}
+
 export default function FortuneWheel() {
   const [prizes, setPrizes] = useState<Prize[]>([]);
+  const [winners, setWinners] = useState<Winner[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingWinners, setLoadingWinners] = useState(true);
 
   useEffect(() => {
     loadPrizes();
+    loadWinners();
   }, []);
 
   const loadPrizes = async () => {
@@ -29,6 +53,17 @@ export default function FortuneWheel() {
       console.error('Failed to load prizes:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadWinners = async () => {
+    try {
+      const response = await api.get('/admin/fortune-wheel/winners?limit=20');
+      setWinners(response.data.winners);
+    } catch (error) {
+      console.error('Failed to load winners:', error);
+    } finally {
+      setLoadingWinners(false);
     }
   };
 
@@ -185,6 +220,166 @@ export default function FortuneWheel() {
           <li><code>/api/admin/fortune-wheel/delete-all-prizes</code> - удалить все призы</li>
           <li><code>/api/admin/fortune-wheel/recreate-prizes</code> - пересоздать все 15 призов</li>
         </ul>
+      </div>
+
+      {/* Секция победителей */}
+      <div style={{ marginTop: '48px' }}>
+        <div style={{ marginBottom: '24px' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>
+            🏆 Недавние победители
+          </h2>
+          <p style={{ color: '#6B7280', fontSize: '14px' }}>
+            Последние 20 выигрышей
+          </p>
+        </div>
+
+        {loadingWinners ? (
+          <div style={{ 
+            background: 'white', 
+            padding: '40px', 
+            borderRadius: '12px', 
+            textAlign: 'center',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+          }}>
+            <p style={{ color: '#6B7280' }}>Загрузка победителей...</p>
+          </div>
+        ) : winners.length === 0 ? (
+          <div style={{ 
+            background: 'white', 
+            padding: '60px', 
+            borderRadius: '12px', 
+            textAlign: 'center',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+          }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎁</div>
+            <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px', color: '#1F2937' }}>
+              Пока нет победителей
+            </h3>
+            <p style={{ color: '#6B7280', fontSize: '14px' }}>
+              Победители появятся, когда пользователи начнут крутить колесо
+            </p>
+          </div>
+        ) : (
+          <div style={{ background: 'white', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>
+                    Пользователь
+                  </th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>
+                    Приз
+                  </th>
+                  <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>
+                    Тип
+                  </th>
+                  <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>
+                    Значение
+                  </th>
+                  <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>
+                    Дата выигрыша
+                  </th>
+                  <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>
+                    Статус
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {winners.map((winner, index) => {
+                  const wonDate = new Date(winner.wonAt);
+                  const expiryDate = new Date(winner.expiryDate);
+                  const isExpired = expiryDate < new Date();
+                  
+                  return (
+                    <tr key={winner._id} style={{ borderBottom: index < winners.length - 1 ? '1px solid #E5E7EB' : 'none' }}>
+                      <td style={{ padding: '16px' }}>
+                        <div>
+                          <div style={{ fontWeight: '600', color: '#1F2937', marginBottom: '4px' }}>
+                            {winner.user.name}
+                          </div>
+                          {winner.user.email && (
+                            <div style={{ fontSize: '12px', color: '#6B7280' }}>
+                              {winner.user.email}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ padding: '16px' }}>
+                        <div>
+                          <div style={{ fontWeight: '600', color: '#1F2937', marginBottom: '4px' }}>
+                            {winner.prize.name}
+                          </div>
+                          {winner.prize.description && (
+                            <div style={{ fontSize: '12px', color: '#6B7280' }}>
+                              {winner.prize.description}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ padding: '16px', textAlign: 'center' }}>
+                        <span style={{
+                          padding: '4px 12px',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          background: winner.prize.type === 'extraSpin' ? '#FEF3C7' : 
+                                     winner.prize.type === 'discount' ? '#DBEAFE' :
+                                     winner.prize.type === 'freeProduct' ? '#FCE7F3' :
+                                     '#F3F4F6',
+                          color: winner.prize.type === 'extraSpin' ? '#92400E' : 
+                                winner.prize.type === 'discount' ? '#1E3A8A' :
+                                winner.prize.type === 'freeProduct' ? '#831843' :
+                                '#374151'
+                        }}>
+                          {getTypeLabel(winner.prize.type)}
+                        </span>
+                      </td>
+                      <td style={{ padding: '16px', textAlign: 'center', color: '#6B7280', fontWeight: '500' }}>
+                        {winner.prize.type === 'discount' ? `${winner.prize.value}%` : 
+                         winner.prize.type === 'extraSpin' ? `+${winner.prize.value}` :
+                         typeof winner.prize.value === 'string' ? 
+                           <span style={{ fontSize: '11px' }}>{winner.prize.value}</span> :
+                         '-'}
+                      </td>
+                      <td style={{ padding: '16px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '13px', color: '#1F2937', fontWeight: '500' }}>
+                          {wonDate.toLocaleString('ru-RU', { 
+                            day: '2-digit', 
+                            month: '2-digit', 
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '2px' }}>
+                          Истекает: {expiryDate.toLocaleDateString('ru-RU')}
+                        </div>
+                      </td>
+                      <td style={{ padding: '16px', textAlign: 'center' }}>
+                        <span style={{
+                          padding: '4px 12px',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          background: winner.isUsed ? '#D1FAE5' : 
+                                     isExpired ? '#FEE2E2' : 
+                                     '#FEF3C7',
+                          color: winner.isUsed ? '#065F46' : 
+                                isExpired ? '#991B1B' : 
+                                '#92400E'
+                        }}>
+                          {winner.isUsed ? '✓ Использован' : 
+                           isExpired ? '⏱ Истек' : 
+                           '⏳ Ожидает'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
