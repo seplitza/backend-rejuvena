@@ -28,6 +28,13 @@ interface Winner {
     value: any;
     icon?: string;
   };
+  promoCode?: {
+    code: string;
+    isUsed: boolean;
+    usedAt?: string;
+    discountValue?: number;
+    validUntil?: string;
+  };
   isUsed: boolean;
   usedAt?: string;
   expiryDate: string;
