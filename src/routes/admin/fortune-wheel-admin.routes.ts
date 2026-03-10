@@ -461,7 +461,8 @@ router.get('/winners', [authMiddleware, adminMiddleware], async (req: Request, r
       // Populate вручную после aggregation
       winners = await WheelSpin.populate(spins, [
         { path: 'userId', select: 'firstName lastName email' },
-        { path: 'prizeId', select: 'name description type value discountPercent icon' }
+        { path: 'prizeId', select: 'name description type value discountPercent icon' },
+        { path: 'promoCodeId', select: 'code discountValue validUntil usedCount' }
       ]);
     } else {
       // Обычная фильтрация - все спины
@@ -476,6 +477,7 @@ router.get('/winners', [authMiddleware, adminMiddleware], async (req: Request, r
         WheelSpin.find(filter)
           .populate('userId', 'firstName lastName email')
           .populate('prizeId', 'name description type value discountPercent icon')
+          .populate('promoCodeId', 'code discountValue validUntil usedCount')
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(Number(limit))
@@ -500,6 +502,12 @@ router.get('/winners', [authMiddleware, adminMiddleware], async (req: Request, r
           value: w.prizeId.value || w.prizeId.discountPercent,
           icon: w.prizeId.icon
         } : (w.prizeData || { name: 'Приз удален' }),
+        promoCode: w.promoCodeId ? {
+          code: w.promoCodeId.code,
+          discount: w.promoCodeId.discountValue,
+          validUntil: w.promoCodeId.validUntil,
+          isUsed: w.promoCodeId.usedCount > 0
+        } : undefined,
         isUsed: w.isUsed,
         usedAt: w.usedAt,
         expiryDate: w.expiryDate,

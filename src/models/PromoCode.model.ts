@@ -16,6 +16,10 @@ export interface IPromoCode extends Document {
   applicableProducts?: mongoose.Types.ObjectId[];
   applicableCategories?: mongoose.Types.ObjectId[];
   createdBy: mongoose.Types.ObjectId;
+  // Fortune Wheel integration
+  source?: 'manual' | 'fortune_wheel';
+  wheelSpinId?: mongoose.Types.ObjectId;
+  userId?: mongoose.Types.ObjectId; // Для персональных промокодов от колеса
   createdAt: Date;
   updatedAt: Date;
 }
@@ -79,8 +83,20 @@ const PromoCodeSchema = new Schema<IPromoCode>(
     }],
     createdBy: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: true
+      ref: 'User'
+    },
+    source: {
+      type: String,
+      enum: ['manual', 'fortune_wheel'],
+      default: 'manual'
+    },
+    wheelSpinId: {
+      type: Schema.Types.ObjectId,
+      ref: 'WheelSpin'
+    },
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User'
     }
   },
   {

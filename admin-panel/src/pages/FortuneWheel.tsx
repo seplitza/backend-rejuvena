@@ -614,6 +614,9 @@ export default function FortuneWheel() {
                     Значение
                   </th>
                   <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>
+                    Промокод
+                  </th>
+                  <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>
                     Дата выигрыша
                   </th>
                   <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>
@@ -677,6 +680,35 @@ export default function FortuneWheel() {
                          typeof winner.prize.value === 'string' ? 
                            <span style={{ fontSize: '11px' }}>{winner.prize.value}</span> :
                          '-'}
+                      </td>
+                      <td style={{ padding: '16px', textAlign: 'center' }}>
+                        {winner.promoCode ? (
+                          <div>
+                            <div 
+                              style={{ 
+                                fontFamily: 'monospace',
+                                fontSize: '13px',
+                                fontWeight: '700',
+                                color: '#6366F1',
+                                backgroundColor: '#EEF2FF',
+                                padding: '6px 12px',
+                                borderRadius: '6px',
+                                display: 'inline-block',
+                                cursor: 'pointer',
+                                border: '1px solid #C7D2FE'
+                              }}
+                              onClick={() => navigator.clipboard.writeText(winner.promoCode.code)}
+                              title="Кликните чтобы скопировать"
+                            >
+                              🎫 {winner.promoCode.code}
+                            </div>
+                            <div style={{ fontSize: '10px', color: '#9CA3AF', marginTop: '4px' }}>
+                              {winner.promoCode.isUsed ? '✅ Использован' : '⏳ Активен'}
+                            </div>
+                          </div>
+                        ) : (
+                          <span style={{ color: '#9CA3AF', fontSize: '12px' }}>—</span>
+                        )}
                       </td>
                       <td style={{ padding: '16px', textAlign: 'center' }}>
                         <div style={{ fontSize: '13px', color: '#1F2937', fontWeight: '500' }}>

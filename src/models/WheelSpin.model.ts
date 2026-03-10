@@ -14,6 +14,7 @@ export interface IWheelSpin extends Document {
   isUsed: boolean;
   usedAt?: Date;
   orderId?: mongoose.Types.ObjectId;
+  promoCodeId?: mongoose.Types.ObjectId; // Связь с промокодом для скидок
   expiryDate: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -52,6 +53,10 @@ const WheelSpinSchema = new Schema<IWheelSpin>(
     orderId: {
       type: Schema.Types.ObjectId,
       ref: 'Order'
+    },
+    promoCodeId: {
+      type: Schema.Types.ObjectId,
+      ref: 'PromoCode'
     },
     expiryDate: {
       type: Date,

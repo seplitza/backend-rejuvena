@@ -9,6 +9,7 @@ import FortuneWheelSettings from '../models/FortuneWheelSettings.model';
 import WheelSpin from '../models/WheelSpin.model';
 import User from '../models/User.model';
 import { authMiddleware, AuthRequest } from '../middleware/auth.middleware';
+import { createWheelPromoCode } from '../utils/generatePromoCode';
 
 const router = express.Router();
 
@@ -222,6 +223,30 @@ router.post('/spin', authMiddleware, async (req: AuthRequest, res: Response) => 
     });
     await spin.save();
 
+    // 🎁 Автоматическая генерация промокода для скидок
+    let promoCode: any = null;
+    if (selectedPrize.type === 'discount' && selectedPrize.discountPercent) {
+      try {
+        promoCode = await createWheelPromoCode({
+          userId: userId.toString(),
+          wheelSpinId: spin._id.toString(),
+          discountPercent: selectedPrize.discountPercent,
+          validUntil: expiry,
+          description: `${selectedPrize.name} - Приз от Колеса Фортуны`,
+          minOrderAmount: 0
+        });
+
+        // Связываем промокод со спином
+        spin.promoCodeId = promoCode._id;
+        await spin.save();
+
+        console.log(`🎟️ Generated promo code ${promoCode.code} for user ${userId}`);
+      } catch (error) {
+        console.error('Error generating promo code:', error);
+        // Не прерываем процесс, просто логируем ошибку
+      }
+    }
+
     res.json({
       success: true,
       prize: {
@@ -233,7 +258,12 @@ router.post('/spin', authMiddleware, async (req: AuthRequest, res: Response) => 
         icon: selectedPrize.icon
       },
       prizeIndex: selectedPrizeIndex, // Индекс для точной синхронизации вращения
-      remainingSpins: user.fortuneWheelSpins
+      remainingSpins: user.fortuneWheelSpins,
+      promoCode: promoCode ? {
+        code: promoCode.code,
+        discount: promoCode.discountValue,
+        validUntil: promoCode.validUntil
+      } : undefined
     });
   } catch (error) {
     console.error('Error spinning wheel:', error);
@@ -292,17 +322,26 @@ router.get('/history', authMiddleware, async (req: AuthRequest, res: Response) =
     const skip = (Number(page) - 1) * Number(limit);
 
     const [history, total] = await Promise.all([
-      WheelSpin.find({ user: userId })
-        .populate('prize', 'name description prizeType discountPercent imageUrl')
+      WheelSpin.find({ userId })
+        .populate('prizeId', 'name description type discountPercent imageUrl icon')
+        .populate('promoCodeId', 'code discountValue validUntil usedCount') // Включаем промокод
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(Number(limit))
         .lean(),
-      WheelSpin.countDocuments({ user: userId })
+      WheelSpin.countDocuments({ userId })
     ]);
 
     res.json({
-      history,
+      history: history.map((spin: any) => ({
+        ...spin,
+        promoCode: spin.promoCodeId ? {
+          code: spin.promoCodeId.code,
+          discount: spin.promoCodeId.discountValue,
+          validUntil: spin.promoCodeId.validUntil,
+          isUsed: spin.promoCodeId.usedCount > 0
+        } : undefined
+      })),
       pagination: {
         page: Number(page),
         limit: Number(limit),
