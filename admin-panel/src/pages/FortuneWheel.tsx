@@ -704,13 +704,13 @@ export default function FortuneWheel() {
                                 cursor: 'pointer',
                                 border: '1px solid #C7D2FE'
                               }}
-                              onClick={() => navigator.clipboard.writeText(winner.promoCode.code)}
-                              title="Кликните чтобы скопировать"
-                            >
-                              🎫 {winner.promoCode.code}
-                            </div>
-                            <div style={{ fontSize: '10px', color: '#9CA3AF', marginTop: '4px' }}>
-                              {winner.promoCode.isUsed ? '✅ Использован' : '⏳ Активен'}
+                            onClick={() => winner.promoCode?.code && navigator.clipboard.writeText(winner.promoCode.code)}
+                            title="Кликните чтобы скопировать"
+                          >
+                            🎫 {winner.promoCode?.code}
+                          </div>
+                          <div style={{ fontSize: '10px', color: '#9CA3AF', marginTop: '4px' }}>
+                            {winner.promoCode?.isUsed ? '✅ Использован' : '⏳ Активен'}
                             </div>
                           </div>
                         ) : (

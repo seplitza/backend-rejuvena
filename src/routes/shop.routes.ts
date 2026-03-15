@@ -60,7 +60,13 @@ router.get('/products', async (req, res) => {
       case 'popularity':
       default:
         sort.salesCount = -1;
+        sort.order = 1; // Secondary sort by order
         break;
+    }
+    
+    // If no specific sort, sort by order first
+    if (sortBy === 'popularity' || !sortBy) {
+      sort = { order: 1, salesCount: -1 };
     }
 
     const skip = (Number(page) - 1) * Number(limit);

@@ -30,6 +30,7 @@ export interface IProduct extends Document {
   isFeatured: boolean;
   isBundle: boolean;
   bundleItems?: IBundleItem[];
+  order: number; // Порядок товара для сортировки
   
   // Общие характеристики для всех маркетплейсов
   brand?: string; // Бренд
@@ -195,6 +196,13 @@ const ProductSchema = new Schema<IProduct>(
         min: 1
       }
     }],
+    
+    // Порядок товара для сортировки
+    order: {
+      type: Number,
+      default: 0,
+      index: true
+    },
     
     // Общие характеристики
     brand: String,
