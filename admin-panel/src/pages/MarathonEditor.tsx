@@ -661,6 +661,7 @@ export default function MarathonEditor() {
               {marathonDays.length > 0 && (
                 <DayNavigation
                   marathonDays={marathonDays}
+                  numberOfDays={numberOfDays}
                   startDate={startDate}
                   onDayClick={scrollToDay}
                 />
