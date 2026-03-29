@@ -162,7 +162,7 @@ export default function ThemeManagement() {
 
   const loadThemes = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem('adminToken');
       console.log('🔍 Loading themes with token:', token ? 'present' : 'missing');
       
       const response = await fetch(`${API_URL}/api/themes/admin/all`, {
@@ -229,7 +229,7 @@ export default function ThemeManagement() {
     if (!editingTheme) return;
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem('adminToken');
       
       // Check if slug already exists (but exclude current theme if editing)
       if (isCreating) {
@@ -310,7 +310,7 @@ export default function ThemeManagement() {
     if (!confirm('Удалить эту тему?')) return;
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem('adminToken');
       const response = await fetch(`${API_URL}/api/themes/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
@@ -331,7 +331,7 @@ export default function ThemeManagement() {
 
   const setDefaultTheme = async (id: string) => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem('adminToken');
       const response = await fetch(`${API_URL}/api/themes/${id}/set-default`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },

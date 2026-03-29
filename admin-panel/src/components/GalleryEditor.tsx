@@ -148,7 +148,7 @@ const GalleryEditor: React.FC<GalleryEditorProps> = ({ images, onChange, section
             {
               headers: {
                 'Content-Type': 'multipart/form-data',
-                Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+                Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
               },
             }
           );

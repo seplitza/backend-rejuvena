@@ -243,8 +243,8 @@ export default function ExerciseList() {
                   </span>
                 </div>
                 <p style={{ color: '#6B7280', marginBottom: '12px' }}>
-                  {exercise.description.substring(0, 150)}
-                  {exercise.description.length > 150 && '...'}
+                  {exercise.description?.substring(0, 150)}
+                  {(exercise.description?.length ?? 0) > 150 && '...'}
                 </p>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   {exercise.tags.map((tag: any) => (
