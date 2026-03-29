@@ -5,6 +5,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, v
 import { CSS } from '@dnd-kit/utilities';
 import api from '../api/client';
 import TipTapEditor from '../components/TipTapEditor';
+import DayNavigation from '../components/DayNavigation';
 
 import type { DragEndEvent } from '@dnd-kit/core';
 
@@ -72,6 +73,14 @@ export default function MarathonEditor() {
   const [exerciseCategories, setExerciseCategories] = useState<ExerciseCategory[]>([]);
   const [editingDay, setEditingDay] = useState<number | null>(null);
   const daysContainerRef = useRef<HTMLDivElement>(null);
+  const dayItemRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+
+  const scrollToDay = (dayNumber: number) => {
+    const el = dayItemRefs.current.get(dayNumber);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   // Tab 5: Фото дневник
   const [photoDiaryEnabled, setPhotoDiaryEnabled] = useState(false);
@@ -649,6 +658,13 @@ export default function MarathonEditor() {
             )}
 
             <div ref={daysContainerRef}>
+              {marathonDays.length > 0 && (
+                <DayNavigation
+                  marathonDays={marathonDays}
+                  startDate={startDate}
+                  onDayClick={scrollToDay}
+                />
+              )}
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
@@ -661,6 +677,10 @@ export default function MarathonEditor() {
                   {marathonDays.map((day) => (
                     <div
                       key={day._id}
+                      ref={(el) => {
+                        if (el) dayItemRefs.current.set(day.dayNumber, el);
+                        else dayItemRefs.current.delete(day.dayNumber);
+                      }}
                     >
                       <DayItem
                         day={day}
