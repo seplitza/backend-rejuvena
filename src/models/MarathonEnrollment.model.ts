@@ -11,6 +11,9 @@ export interface IMarathonEnrollment extends Document {
   paymentId?: mongoose.Types.ObjectId;
   isPaid: boolean;
   expiresAt: Date;
+  // Practice renewal
+  practiceRenewalCount: number;
+  practiceStartDate?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -64,6 +67,15 @@ const MarathonEnrollmentSchema = new Schema<IMarathonEnrollment>(
       type: Date,
       required: true,
       index: true
+    },
+    practiceRenewalCount: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    practiceStartDate: {
+      type: Date,
+      default: null
     }
   },
   {

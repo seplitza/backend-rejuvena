@@ -54,25 +54,33 @@ export default function DayNavigation({
 
   const renderDay = (day: MarathonDay, displayNumber: number) => {
     const isActive = day.dayNumber === currentDayNumber;
+    const isLocked = currentDayNumber > 0 && day.dayNumber > currentDayNumber;
+
     return (
       <button
         key={day._id || day.dayNumber}
         onClick={() => onDayClick(day.dayNumber)}
-        style={buttonStyle(isActive)}
+        style={{
+          ...buttonStyle(isActive),
+          color: isLocked ? '#9CA3AF' : (isActive ? '#4F46E5' : '#374151'),
+          background: isLocked ? '#F9FAFB' : (isActive ? '#EEF2FF' : 'white'),
+          borderColor: isLocked ? '#E5E7EB' : (isActive ? '#4F46E5' : '#D1D5DB'),
+          cursor: 'pointer',
+        }}
         onMouseEnter={(e) => {
-          if (!isActive) {
+          if (!isActive && !isLocked) {
             e.currentTarget.style.borderColor = '#A5B4FC';
             e.currentTarget.style.background = '#F5F3FF';
           }
         }}
         onMouseLeave={(e) => {
-          if (!isActive) {
+          if (!isActive && !isLocked) {
             e.currentTarget.style.borderColor = '#D1D5DB';
             e.currentTarget.style.background = 'white';
           }
         }}
       >
-        {displayNumber}
+        {isLocked ? '🔒' : displayNumber}
       </button>
     );
   };

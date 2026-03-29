@@ -111,6 +111,73 @@ router.post('/create', authMiddleware, async (req: AuthRequest, res: Response) =
       }
     }
 
+    // Продление практики марафона
+    if (type === 'practice_renewal') {
+      if (!marathonId) {
+        return res.status(400).json({ error: 'Marathon ID is required' });
+      }
+
+      const enrollment = await MarathonEnrollment.findOne({ userId, marathonId });
+      if (!enrollment || !enrollment.isPaid) {
+        return res.status(403).json({ error: 'Active marathon enrollment required' });
+      }
+
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      const PRACTICE_RENEWAL_PRICE = 150000; // 1500 рублей в копейках
+      const orderNumber = await generateOrderNumber();
+      const productDescription = 'Продление курса практики марафона на 30 дней';
+
+      const payment = await Payment.create({
+        userId,
+        orderNumber,
+        amount: PRACTICE_RENEWAL_PRICE,
+        currency: '643',
+        status: 'pending',
+        description: productDescription,
+        metadata: {
+          type: 'practice_renewal',
+          marathonId
+        }
+      });
+
+      try {
+        const alfaResponse = await alfabankService.registerOrder({
+          orderNumber,
+          amount: PRACTICE_RENEWAL_PRICE,
+          description: productDescription,
+          email: user.email,
+          jsonParams: {
+            userId,
+            type: 'practice_renewal',
+            marathonId
+          }
+        });
+
+        payment.alfaBankOrderId = alfaResponse.orderId;
+        payment.paymentUrl = alfaResponse.formUrl;
+        payment.status = 'processing';
+        await payment.save();
+
+        return res.status(200).json({
+          success: true,
+          paymentUrl: payment.paymentUrl
+        });
+      } catch (alfaError: any) {
+        payment.status = 'failed';
+        payment.errorMessage = alfaError.message;
+        await payment.save();
+
+        return res.status(500).json({
+          error: 'Failed to create payment',
+          message: alfaError.message
+        });
+      }
+    }
+
     // Обычная обработка для premium/photo-diary
     if (!amount || !description) {
       return res.status(400).json({
@@ -515,6 +582,11 @@ router.get('/status-public/:orderId', async (req: Request, res: Response) => {
                 payment.metadata.exerciseName,
                 payment.amount / 100
               );
+            } else if (payment.metadata?.type === 'practice_renewal' && payment.metadata.marathonId) {
+              await activatePracticeRenewal(
+                payment.userId.toString(),
+                payment.metadata.marathonId
+              );
             } else if ((payment.metadata?.type === 'marathon' || payment.metadata?.planType === 'marathon') && payment.metadata.marathonId) {
               await activateMarathon(
                 payment.userId.toString(),
@@ -647,6 +719,11 @@ async function handleWebhook(req: Request, res: Response) {
           payment.metadata.exerciseName,
           payment.amount / 100
         );
+      } else if (payment.metadata?.type === 'practice_renewal' && payment.metadata.marathonId) {
+        await activatePracticeRenewal(
+          payment.userId.toString(),
+          payment.metadata.marathonId
+        );
       } else if ((payment.metadata?.type === 'marathon' || payment.metadata?.planType === 'marathon') && payment.metadata.marathonId) {
         // Покупка марафона
         await activateMarathon(
@@ -727,6 +804,11 @@ router.get('/callback', async (req: Request, res: Response) => {
           payment.metadata.exerciseId,
           payment.metadata.exerciseName,
           payment.amount / 100
+        );
+      } else if (payment.metadata?.type === 'practice_renewal' && payment.metadata.marathonId) {
+        await activatePracticeRenewal(
+          payment.userId.toString(),
+          payment.metadata.marathonId
         );
       } else if ((payment.metadata?.type === 'marathon' || payment.metadata?.planType === 'marathon') && payment.metadata.marathonId) {
         // Покупка марафона
@@ -1135,6 +1217,12 @@ router.patch('/admin/:paymentId/status', authMiddleware, async (req: AuthRequest
           payment.metadata.duration || 30
         );
       }
+      // Активация продления практики
+      else if (payment.metadata?.type === 'practice_renewal' && payment.metadata.marathonId) {
+        console.log('🔄 Activating practice renewal:', { userId, marathonId: payment.metadata.marathonId });
+        await activatePracticeRenewal(userId, payment.metadata.marathonId);
+        console.log('✅ Practice renewal activation completed');
+      }
       // Активация марафона
       else if ((payment.metadata?.type === 'marathon' || payment.metadata?.planType === 'marathon') && payment.metadata.marathonId) {
         console.log('🏃 Activating marathon:', {
@@ -1172,5 +1260,31 @@ router.patch('/admin/:paymentId/status', authMiddleware, async (req: AuthRequest
     });
   }
 });
+
+/**
+ * Активация продления практики после успешной оплаты
+ */
+async function activatePracticeRenewal(userId: string, marathonId: string) {
+  try {
+    const enrollment = await MarathonEnrollment.findOne({ userId, marathonId });
+    if (!enrollment) {
+      console.error('❌ Enrollment not found for practice renewal:', { userId, marathonId });
+      return;
+    }
+
+    enrollment.practiceRenewalCount = (enrollment.practiceRenewalCount || 0) + 1;
+    enrollment.practiceStartDate = new Date();
+    await enrollment.save();
+
+    console.log('✅ Practice renewal activated:', {
+      userId,
+      marathonId,
+      renewalCount: enrollment.practiceRenewalCount,
+      practiceStartDate: enrollment.practiceStartDate
+    });
+  } catch (error) {
+    console.error('❌ Error activating practice renewal:', error);
+  }
+}
 
 export default router;
