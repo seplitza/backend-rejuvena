@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -71,6 +71,7 @@ export default function MarathonEditor() {
   const [availableExercises, setAvailableExercises] = useState<Exercise[]>([]);
   const [exerciseCategories, setExerciseCategories] = useState<ExerciseCategory[]>([]);
   const [editingDay, setEditingDay] = useState<number | null>(null);
+  const daysContainerRef = useRef<HTMLDivElement>(null);
 
   // Tab 5: Фото дневник
   const [photoDiaryEnabled, setPhotoDiaryEnabled] = useState(false);
@@ -647,35 +648,40 @@ export default function MarathonEditor() {
               </div>
             )}
 
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDayDragEnd}
-            >
-              <SortableContext
-                items={marathonDays.map(d => d._id || '')}
-                strategy={verticalListSortingStrategy}
+            <div ref={daysContainerRef}>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDayDragEnd}
               >
-                {marathonDays.map((day) => (
-                  <DayItem
-                    key={day._id}
-                    day={day}
-                    availableExercises={availableExercises}
-                    exerciseCategories={exerciseCategories}
-                    onUpdate={handleUpdateDay}
-                    onDelete={handleDeleteDay}
-                    isEditing={editingDay === day.dayNumber}
-                    onEditToggle={() => setEditingDay(editingDay === day.dayNumber ? null : day.dayNumber)}
-                  />
-                ))}
-              </SortableContext>
-            </DndContext>
+                <SortableContext
+                  items={marathonDays.map(d => d._id || '')}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {marathonDays.map((day) => (
+                    <div
+                      key={day._id}
+                    >
+                      <DayItem
+                        day={day}
+                        availableExercises={availableExercises}
+                        exerciseCategories={exerciseCategories}
+                        onUpdate={handleUpdateDay}
+                        onDelete={handleDeleteDay}
+                        isEditing={editingDay === day.dayNumber}
+                        onEditToggle={() => setEditingDay(editingDay === day.dayNumber ? null : day.dayNumber)}
+                      />
+                    </div>
+                  ))}
+                </SortableContext>
+              </DndContext>
 
-            {marathonDays.length === 0 && id && (
-              <div style={{ padding: '40px', textAlign: 'center', color: '#6B7280' }}>
-                Нет дней. Добавьте первый день!
-              </div>
-            )}
+              {marathonDays.length === 0 && id && (
+                <div style={{ padding: '40px', textAlign: 'center', color: '#6B7280' }}>
+                  Нет дней. Добавьте первый день!
+                </div>
+              )}
+            </div>
           </div>
         )}
 
