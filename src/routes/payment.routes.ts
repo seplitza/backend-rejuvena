@@ -127,9 +127,10 @@ router.post('/create', authMiddleware, async (req: AuthRequest, res: Response) =
         return res.status(404).json({ error: 'User not found' });
       }
 
-      const PRACTICE_RENEWAL_PRICE = 150000; // 1500 рублей в копейках
+      // Используем переданную сумму или дефолтную 1500 рублей
+      const PRACTICE_RENEWAL_PRICE = amount ? Math.round(amount * 100) : 150000; // в копейках
       const orderNumber = await generateOrderNumber();
-      const productDescription = 'Продление курса практики марафона на 30 дней';
+      const productDescription = description || 'Продление курса практики марафона на 30 дней';
 
       const payment = await Payment.create({
         userId,
