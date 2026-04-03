@@ -313,22 +313,75 @@ git push
 # 5. Перезапустит PM2 (pm2 restart rejuvena-backend)
 ```
 
-**Frontend изменения:**
+**Frontend изменения (Web App - seplitza.github.io/rejuvena):**
 ```bash
 # Перейти в директорию frontend
 cd /Users/alexeipinaev/Documents/Rejuvena/web
 
 # Внести изменения в код
 
-# Закоммитить и запушить
+# Закоммитить ТОЛЬКО В ЭТОМ РЕПОЗИТОРИИ
 git add -A
 git commit -m "Описание изменений"
 git push
 
-# GitHub Actions автоматически:
+# ⚠️ ВАЖНО: Изменения в web/ НЕ пушатся через главный репозиторий!
+# GitHub Actions в web/ репозитории автоматически:
 # 1. Соберет Next.js (npm run build)
 # 2. Задеплоит на GitHub Pages
 # 3. Обновление через 2-3 минуты (CDN cache)
+```
+
+**Shop Frontend изменения (shop.seplitza.ru) - ✅ ПРАВИЛЬНЫЙ СПОСОБ:**
+```bash
+# ❌ НЕПРАВИЛЬНО: git pull на сервере
+# Сервер /var/www/shop имеет remote → seplitza/shop.git (другой репо!)
+# git pull не подтянет изменения из локальной папки shop-frontend/
+
+# ✅ ПРАВИЛЬНО (Способ 1): rsync через SCP
+cd /Users/alexeipinaev/Documents/Rejuvena/shop-frontend
+npm run deploy:server
+
+# ✅ ПРАВИЛЬНО (Способ 2): Через GitHub при проблемах с SSH
+cd /Users/alexeipinaev/Documents/Rejuvena
+git add shop-frontend/
+git commit -m "Описание изменений shop"
+git push origin main
+
+# На сервере обновить файлы из GitHub:
+ssh root@37.252.20.170 'bash -s' < /Users/alexeipinaev/Documents/Rejuvena/shop-frontend/server-pull-from-github.sh
+
+# ⚠️ ВАЖНО: Shop использует localhost:9527 для API (shop+backend на одном сервере)
+# .env.production: NEXT_PUBLIC_API_URL=http://localhost:9527
+
+# Загрузить файл через SCP (изображения, публичные файлы)
+scp /Users/alexeipinaev/Documents/Rejuvena/shop-frontend/public/logo.png \
+  root@37.252.20.170:/var/www/shop/public/
+
+# Проверить статус service
+ssh root@37.252.20.170 'systemctl status seplitza-shop --no-pager | head -10'
+
+# Проверить логи
+ssh root@37.252.20.170 'journalctl -u seplitza-shop -n 50 --no-pager'
+```
+
+**⚠️ КРИТИЧЕСКИ ВАЖНО ПРО РЕПОЗИТОРИИ:**
+
+| Компонент | Локальная папка | Git remote | Деплой |
+|-----------|----------------|------------|--------|
+| **Web App** | `/web` | отдельный репозиторий `seplitza/rejuvena` | GitHub Actions → GitHub Pages |
+| **Shop** | `/shop-frontend` | живет внутри главного Rejuvena | ❌ НЕТ автодеплоя! Только SSH на сервер |
+| **Backend** | `/Backend-rejuvena` | `seplitza/backend-rejuvena` | GitHub Actions → VPS |
+
+**Почему Shop не деплоится автоматически:**
+1. Shop код находится в папке `/shop-frontend/` главного репозитория
+2. На сервере shop клонирован как **отдельный git репозиторий** из непубличного источника
+3. `git remote -v` на сервере показывает: `origin https://github.com/seplitza/shop.git`
+4. Главный репозиторий `Rejuvena` НЕ связан с этим remote
+
+**Решение проблемы:**
+1. Либо создать отдельный репозиторий для shop
+2. Либо всегда деплоить вручную через SSH (текущий подход)
 ```
 
 ### 🔧 РУЧНОЙ ДЕПЛОЙ (если GitHub Actions не работает)
