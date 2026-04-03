@@ -338,7 +338,7 @@ git push
 # Сервер /var/www/shop имеет remote → seplitza/shop.git (другой репо!)
 # git pull не подтянет изменения из локальной папки shop-frontend/
 
-# ✅ ПРАВИЛЬНО (Способ 1): rsync через SCP
+# ✅ ПРАВИЛЬНО (Способ 1): rsync через SCP  
 cd /Users/alexeipinaev/Documents/Rejuvena/shop-frontend
 npm run deploy:server
 
@@ -348,11 +348,12 @@ git add shop-frontend/
 git commit -m "Описание изменений shop"
 git push origin main
 
-# На сервере обновить файлы из GitHub:
-ssh root@37.252.20.170 'bash -s' < /Users/alexeipinaev/Documents/Rejuvena/shop-frontend/server-pull-from-github.sh
+# На сервере обновить из GitHub:
+ssh root@37.252.20.170 'bash -s' < shop-frontend/server-pull-from-github.sh
 
-# ⚠️ ВАЖНО: Shop использует localhost:9527 для API (shop+backend на одном сервере)
-# .env.production: NEXT_PUBLIC_API_URL=http://localhost:9527
+# ⚠️ ВАЖНО: API URL должен быть ПУБЛИЧНЫМ (не localhost!)
+# localhost в браузере = компьютер пользователя, не сервер
+# .env.production: NEXT_PUBLIC_API_URL=http://37.252.20.170:9527
 
 # Загрузить файл через SCP (изображения, публичные файлы)
 scp /Users/alexeipinaev/Documents/Rejuvena/shop-frontend/public/logo.png \
