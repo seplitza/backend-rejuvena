@@ -120,10 +120,7 @@ export default function Layout({ onLogout }: LayoutProps) {
     <div style={{ 
       display: 'flex', 
       height: '100vh', 
-      overflow: 'hidden', 
-      position: 'relative',
-      width: '100vw',
-      maxWidth: '100vw'
+      position: 'relative'
     }}>
       {/* Mobile Overlay */}
       {isMobile && isSidebarOpen && (
@@ -579,11 +576,10 @@ export default function Layout({ onLogout }: LayoutProps) {
       <main style={{ 
         marginLeft: isMobile ? 0 : (isSidebarOpen ? '250px' : 0),
         width: isMobile ? '100vw' : (isSidebarOpen ? 'calc(100% - 250px)' : '100%'),
-        maxWidth: isMobile ? '100vw' : 'none',
         height: '100vh',
         background: '#F9FAFB', 
         overflowY: 'auto',
-        overflowX: 'hidden',
+        overflowX: 'auto',
         transition: 'margin-left 0.3s ease-in-out, width 0.3s ease-in-out',
         position: 'relative',
         WebkitOverflowScrolling: 'touch'

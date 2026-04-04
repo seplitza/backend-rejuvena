@@ -68,6 +68,37 @@ router.get('/', async (req, res) => {
 });
 
 /**
+ * PUT /api/admin/products/reorder
+ * Update products order for drag-and-drop
+ * Body: { productIds: string[] } - array of product IDs in new order
+ * IMPORTANT: Must be before /:id routes to avoid Express matching "reorder" as an ID
+ */
+router.put('/reorder', async (req, res) => {
+  try {
+    const { productIds } = req.body;
+
+    if (!productIds || !Array.isArray(productIds)) {
+      return res.status(400).json({ error: 'Не указаны ID товаров' });
+    }
+
+    // Update order for each product
+    const updatePromises = productIds.map((productId, index) => 
+      Product.findByIdAndUpdate(productId, { order: index }, { new: true })
+    );
+
+    await Promise.all(updatePromises);
+
+    res.json({
+      message: 'Порядок товаров успешно обновлен',
+      count: productIds.length
+    });
+  } catch (error) {
+    console.error('Error reordering products:', error);
+    res.status(500).json({ error: 'Не удалось обновить порядок товаров' });
+  }
+});
+
+/**
  * GET /api/admin/products/:id
  * Get single product
  */
@@ -432,36 +463,6 @@ router.get('/:id/marketplace-prices', async (req, res) => {
   } catch (error) {
     console.error('Error fetching marketplace prices:', error);
     res.status(500).json({ error: 'Не удалось загрузить историю цен' });
-  }
-});
-
-/**
- * PUT /api/admin/products/reorder
- * Update products order for drag-and-drop
- * Body: { productIds: string[] } - array of product IDs in new order
- */
-router.put('/reorder', async (req, res) => {
-  try {
-    const { productIds } = req.body;
-
-    if (!productIds || !Array.isArray(productIds)) {
-      return res.status(400).json({ error: 'Не указаны ID товаров' });
-    }
-
-    // Update order for each product
-    const updatePromises = productIds.map((productId, index) => 
-      Product.findByIdAndUpdate(productId, { order: index }, { new: true })
-    );
-
-    await Promise.all(updatePromises);
-
-    res.json({
-      message: 'Порядок товаров успешно обновлен',
-      count: productIds.length
-    });
-  } catch (error) {
-    console.error('Error reordering products:', error);
-    res.status(500).json({ error: 'Не удалось обновить порядок товаров' });
   }
 });
 
