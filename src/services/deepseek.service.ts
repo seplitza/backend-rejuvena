@@ -112,7 +112,7 @@ ${additionalPrompt ? `ДОПОЛНИТЕЛЬНЫЕ ТРЕБОВАНИЯ:\n${addi
       throw new Error(`DeepSeek API error: ${response.status} - ${JSON.stringify(errorData)}`);
     }
 
-    const data = await response.json();
+    const data: any = await response.json();
     
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
       throw new Error('Invalid response format from DeepSeek API');

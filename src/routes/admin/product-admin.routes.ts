@@ -137,7 +137,7 @@ router.post('/enhance-description', async (req, res) => {
           enhancedShortDescription: enhanced.shortDescription,
           enhancedSeo: enhanced.seo,
           additionalPrompt,
-          createdBy: req.user?._id
+          createdBy: (req as any).user?._id
         });
       }
     }
