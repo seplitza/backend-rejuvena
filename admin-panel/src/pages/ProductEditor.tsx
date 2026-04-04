@@ -339,6 +339,8 @@ export default function ProductEditor() {
         productName: name,
         productId: id,
         additionalPrompt
+      }, {
+        timeout: 120000 // 2 минуты для AI генерации
       });
 
       if (response.data.success) {
@@ -528,6 +530,7 @@ export default function ProductEditor() {
                   </label>
                   <div style={{ border: '1px solid #D1D5DB', borderRadius: '8px', overflow: 'hidden' }}>
                     <TipTapEditor 
+                      key={`short-${id || 'new'}`}
                       content={shortDescription} 
                       onChange={setShortDescription}
                     />
@@ -561,7 +564,11 @@ export default function ProductEditor() {
                     </button>
                   </div>
                   <div style={{ border: '1px solid #D1D5DB', borderRadius: '8px', overflow: 'hidden' }}>
-                    <TipTapEditor content={description} onChange={setDescription} />
+                    <TipTapEditor 
+                      key={`full-${id || 'new'}`}
+                      content={description} 
+                      onChange={setDescription} 
+                    />
                   </div>
                 </div>
               </div>
