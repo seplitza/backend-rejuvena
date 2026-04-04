@@ -325,13 +325,17 @@ export default function ProductEditor() {
       return;
     }
 
+    // Log current description for debugging
+    console.log('Description before AI:', description);
+    console.log('Description length:', description?.length || 0);
+
     setAiLoading(true);
     setAiError(null);
     setAiModalOpen(true);
 
     try {
       const response = await api.post('/admin/products/enhance-description', {
-        description,
+        description: description || '',
         productName: name,
         productId: id,
         additionalPrompt
@@ -344,7 +348,8 @@ export default function ProductEditor() {
       }
     } catch (error: any) {
       console.error('AI enhancement error:', error);
-      setAiError(error.response?.data?.details || error.message || 'Ошибка при генерации описания');
+      const errorMessage = error.response?.data?.details || error.response?.data?.error || error.message || 'Ошибка при генерации описания';
+      setAiError(errorMessage);
     } finally {
       setAiLoading(false);
     }
