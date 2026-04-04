@@ -176,22 +176,9 @@ router.get('/products/:id', async (req, res) => {
     
     console.log('[Product Detail] Query:', JSON.stringify(query));
     
-    let product;
-    try {
-      product = await Product.findOne(query).lean();
-      console.log(`[Product Detail] After findOne: ${product ? 'Found!' : 'null'}`);
-      
-      if (product) {
-        // Populate separately
-        product = await Product.findOne(query)
-          .populate('category', 'name slug')
-          .populate('bundleItems.product', 'name price images')
-          .lean();
-      }
-    } catch (findError) {
-      console.error('[Product Detail] FindOne error:', findError);
-      throw findError;
-    }
+    const product = await Product.findOne(query)
+      .populate('category', 'name slug')
+      .lean();
 
     console.log(`[Product Detail] Found product: ${product ? product.name : 'null'}`);
 
