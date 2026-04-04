@@ -158,13 +158,21 @@ router.get('/products', async (req, res) => {
 /**
  * GET /api/shop/products/:id
  * Get single product details
+ * Supports both ObjectId (_id) and slug
  */
 router.get('/products/:id', async (req, res) => {
   try {
-    const product = await Product.findOne({ 
-      _id: req.params.id, 
-      isActive: true 
-    })
+    // Check if id is a valid MongoDB ObjectId
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(req.params.id);
+    
+    const query: any = { isActive: true };
+    if (isObjectId) {
+      query._id = req.params.id;
+    } else {
+      query.slug = req.params.id;
+    }
+    
+    const product = await Product.findOne(query)
       .populate('category', 'name slug')
       .populate('bundleItems.product', 'name price images')
       .lean();
