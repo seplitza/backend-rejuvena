@@ -442,7 +442,7 @@ export default function ProductEditor() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>
-                      Цена *
+                      Цена (₽) *
                     </label>
                     <input
                       type="number"
@@ -450,7 +450,8 @@ export default function ProductEditor() {
                       onChange={(e) => setPrice(Number(e.target.value))}
                       required
                       min="0"
-                      step="0.01"
+                      step="1"
+                      placeholder="1600"
                       style={{
                         width: '100%',
                         padding: '12px 16px',
@@ -463,14 +464,15 @@ export default function ProductEditor() {
 
                   <div>
                     <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>
-                      Старая цена (зачеркнутая)
+                      Старая цена (₽)
                     </label>
                     <input
                       type="number"
                       value={compareAtPrice}
                       onChange={(e) => setCompareAtPrice(Number(e.target.value))}
                       min="0"
-                      step="0.01"
+                      step="1"
+                      placeholder="1920"
                       style={{
                         width: '100%',
                         padding: '12px 16px',

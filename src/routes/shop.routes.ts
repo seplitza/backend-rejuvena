@@ -165,6 +165,8 @@ router.get('/products/:id', async (req, res) => {
     // Check if id is a valid MongoDB ObjectId
     const isObjectId = /^[0-9a-fA-F]{24}$/.test(req.params.id);
     
+    console.log(`[Product Detail] Requested ID: "${req.params.id}", isObjectId: ${isObjectId}`);
+    
     const query: any = { isActive: true };
     if (isObjectId) {
       query._id = req.params.id;
@@ -172,10 +174,14 @@ router.get('/products/:id', async (req, res) => {
       query.slug = req.params.id;
     }
     
+    console.log('[Product Detail] Query:', JSON.stringify(query));
+    
     const product = await Product.findOne(query)
       .populate('category', 'name slug')
       .populate('bundleItems.product', 'name price images')
       .lean();
+
+    console.log(`[Product Detail] Found product: ${product ? product.name : 'null'}`);
 
     if (!product) {
       return res.status(404).json({ error: 'Товар не найден' });

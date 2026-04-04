@@ -1,0 +1,849 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const Marathon_model_1 = __importDefault(require("../models/Marathon.model"));
+const MarathonDay_model_1 = __importDefault(require("../models/MarathonDay.model"));
+const MarathonEnrollment_model_1 = __importDefault(require("../models/MarathonEnrollment.model"));
+const MarathonExerciseProgress_model_1 = __importDefault(require("../models/MarathonExerciseProgress.model"));
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const email_service_1 = __importDefault(require("../services/email.service"));
+const User_model_1 = __importDefault(require("../models/User.model"));
+const router = (0, express_1.Router)();
+/**
+ * PUBLIC: Get marathon welcome message
+ * GET /api/marathons/:id/welcome
+ */
+router.get('/:id/welcome', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const marathon = await Marathon_model_1.default.findById(id).select('welcomeMessage');
+        if (!marathon) {
+            return res.status(404).json({ error: 'Marathon not found' });
+        }
+        return res.status(200).json({
+            success: true,
+            welcomeMessage: marathon.welcomeMessage || ''
+        });
+    }
+    catch (error) {
+        console.error('Error fetching welcome message:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+});
+/**
+ * PUBLIC: Get all public marathons
+ * GET /api/marathons
+ * Optional: Authorization header to get enrollment status
+ */
+router.get('/', async (req, res) => {
+    try {
+        // Извлекаем userId из токена если он есть (опционально)
+        let userId = null;
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            try {
+                const token = authHeader.substring(7);
+                const jwt = require('jsonwebtoken');
+                const decoded = jwt.verify(token, process.env.JWT_SECRET || 'rejuvena-super-secret-key-2026');
+                userId = decoded.userId;
+            }
+            catch (err) {
+                // Игнорируем ошибки токена для публичного эндпоинта
+            }
+        }
+        const marathons = await Marathon_model_1.default.find({ isPublic: true, isDisplay: true })
+            .sort({ startDate: -1 })
+            .select('-welcomeMessage -rules');
+        // Если пользователь авторизован, добавляем информацию о записи
+        if (userId) {
+            const enrichedMarathons = await Promise.all(marathons.map(async (marathon) => {
+                const enrollment = await MarathonEnrollment_model_1.default.findOne({
+                    userId,
+                    marathonId: marathon._id
+                });
+                return {
+                    ...marathon.toObject(),
+                    userEnrolled: !!enrollment,
+                    userEnrollmentStatus: enrollment?.status || null
+                };
+            }));
+            return res.status(200).json({
+                success: true,
+                marathons: enrichedMarathons
+            });
+        }
+        return res.status(200).json({
+            success: true,
+            marathons
+        });
+    }
+    catch (error) {
+        console.error('Get marathons error:', error);
+        return res.status(500).json({
+            error: 'Internal server error',
+            message: error.message
+        });
+    }
+});
+/**
+ * PUBLIC: Get marathon details
+ * GET /api/marathons/:id
+ * Optional: Authorization header to get enrollment status
+ */
+router.get('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        // Извлекаем userId из токена если он есть (опционально)
+        let userId = null;
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            try {
+                const token = authHeader.substring(7);
+                const jwt = require('jsonwebtoken');
+                const decoded = jwt.verify(token, process.env.JWT_SECRET || 'rejuvena-super-secret-key-2026');
+                userId = decoded.userId;
+            }
+            catch (err) {
+                // Игнорируем ошибки токена
+            }
+        }
+        const marathon = await Marathon_model_1.default.findById(id);
+        if (!marathon) {
+            return res.status(404).json({ error: 'Marathon not found' });
+        }
+        // Если пользователь авторизован, добавляем информацию о записи
+        if (userId) {
+            const enrollment = await MarathonEnrollment_model_1.default.findOne({
+                userId,
+                marathonId: id
+            });
+            return res.status(200).json({
+                success: true,
+                marathon: {
+                    ...marathon.toObject(),
+                    userEnrolled: !!enrollment,
+                    userEnrollmentStatus: enrollment?.status || null
+                }
+            });
+        }
+        return res.status(200).json({
+            success: true,
+            marathon
+        });
+    }
+    catch (error) {
+        console.error('Get marathon error:', error);
+        return res.status(500).json({
+            error: 'Internal server error',
+            message: error.message
+        });
+    }
+});
+/**
+ * PUBLIC: Get marathon days
+ * GET /api/marathons/:id/days
+ */
+router.get('/:id/days', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const marathon = await Marathon_model_1.default.findById(id);
+        if (!marathon) {
+            return res.status(404).json({ error: 'Marathon not found' });
+        }
+        const days = await MarathonDay_model_1.default.find({ marathonId: id })
+            .populate('exercises', 'title description content isPremium carouselMedia')
+            .populate('exerciseGroups.categoryId', 'name slug icon order')
+            .populate('exerciseGroups.exerciseIds', 'title description content isPremium carouselMedia')
+            .sort({ order: 1 });
+        return res.status(200).json({
+            success: true,
+            days
+        });
+    }
+    catch (error) {
+        console.error('Get marathon days error:', error);
+        return res.status(500).json({
+            error: 'Internal server error',
+            message: error.message
+        });
+    }
+});
+/**
+ * PUBLIC: Get specific marathon day
+ * GET /api/marathons/:id/day/:dayNumber
+ */
+router.get('/:id/day/:dayNumber', auth_middleware_1.authMiddleware, async (req, res) => {
+    try {
+        const { id, dayNumber } = req.params;
+        const userId = req.userId;
+        const marathon = await Marathon_model_1.default.findById(id);
+        if (!marathon) {
+            return res.status(404).json({ error: 'Marathon not found' });
+        }
+        // Проверка записи пользователя
+        const enrollment = await MarathonEnrollment_model_1.default.findOne({
+            userId,
+            marathonId: id,
+            status: { $in: ['active', 'completed'] }
+        });
+        if (!enrollment) {
+            return res.status(403).json({ error: 'Not enrolled in this marathon' });
+        }
+        // Проверка доступа к дню (рассчитываем от startDate)
+        const now = new Date();
+        const daysSinceStart = Math.floor((now.getTime() - marathon.startDate.getTime()) / (1000 * 60 * 60 * 24));
+        const currentAvailableDay = daysSinceStart + 1;
+        if (Number(dayNumber) > currentAvailableDay) {
+            return res.status(403).json({
+                error: 'Day not available yet',
+                message: `День ${dayNumber} будет доступен ${new Date(marathon.startDate.getTime() + (Number(dayNumber) - 1) * 24 * 60 * 60 * 1000).toLocaleDateString('ru-RU')}`
+            });
+        }
+        const day = await MarathonDay_model_1.default.findOne({
+            marathonId: id,
+            dayNumber: Number(dayNumber)
+        })
+            .populate('exercises')
+            .populate('exerciseGroups.categoryId', 'name slug icon order')
+            .populate('exerciseGroups.exerciseIds', 'title description content isPremium carouselMedia');
+        if (!day) {
+            return res.status(404).json({ error: 'Day not found' });
+        }
+        // Get completed exercises for this day
+        const completedExercises = await MarathonExerciseProgress_model_1.default.find({
+            userId,
+            marathonId: id,
+            dayNumber: Number(dayNumber),
+            isCompleted: true
+        }).select('exerciseId');
+        const completedExerciseIds = completedExercises.map(e => e.exerciseId.toString());
+        // Update lastAccessedDay when user views a day
+        if (enrollment.lastAccessedDay < Number(dayNumber)) {
+            enrollment.lastAccessedDay = Number(dayNumber);
+            await enrollment.save();
+            console.log(`✅ Updated lastAccessedDay to ${dayNumber} for user ${userId} in marathon ${id}`);
+        }
+        // Determine practice start day (8 for advanced, 15 for basic)
+        const practiceStartDay = marathon.numberOfDays === 14 ? 15 : 8;
+        const isPracticeDay = Number(dayNumber) >= practiceStartDay;
+        // Add isNew flag to exercises based on newExerciseIds
+        // BUT: Remove isNew for practice days to avoid green badges
+        const dayObject = day.toObject();
+        const newExerciseIdsSet = isPracticeDay
+            ? new Set() // Empty set for practice days - no new exercises
+            : new Set((day.newExerciseIds || []).map((id) => id.toString()));
+        if (dayObject.exerciseGroups) {
+            dayObject.exerciseGroups = dayObject.exerciseGroups.map((group) => ({
+                ...group,
+                exerciseIds: group.exerciseIds.map((exercise) => ({
+                    ...exercise,
+                    isNew: newExerciseIdsSet.has(exercise._id.toString())
+                }))
+            }));
+        }
+        return res.status(200).json({
+            success: true,
+            day: dayObject,
+            isCompleted: enrollment.completedDays.includes(Number(dayNumber)),
+            currentAvailableDay,
+            completedExerciseIds
+        });
+    }
+    catch (error) {
+        console.error('Get marathon day error:', error);
+        return res.status(500).json({
+            error: 'Internal server error',
+            message: error.message
+        });
+    }
+});
+/**
+ * PROTECTED: Enroll in marathon
+ * POST /api/marathons/:id/enroll
+ */
+router.post('/:id/enroll', auth_middleware_1.authMiddleware, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.userId;
+        const marathon = await Marathon_model_1.default.findById(id);
+        if (!marathon) {
+            return res.status(404).json({ error: 'Marathon not found' });
+        }
+        // Проверка существующей записи
+        const existingEnrollment = await MarathonEnrollment_model_1.default.findOne({
+            userId,
+            marathonId: id
+        });
+        if (existingEnrollment) {
+            return res.status(400).json({ error: 'Already enrolled in this marathon' });
+        }
+        // Если марафон платный, требуется оплата
+        if (marathon.isPaid) {
+            return res.status(400).json({
+                error: 'Payment required',
+                message: 'This marathon requires payment. Please use payment endpoint.'
+            });
+        }
+        // Создаем запись (для бесплатных марафонов)
+        const expiresAt = new Date(marathon.startDate);
+        expiresAt.setDate(expiresAt.getDate() + marathon.tenure);
+        const enrollment = await MarathonEnrollment_model_1.default.create({
+            userId,
+            marathonId: id,
+            status: 'active',
+            isPaid: !marathon.isPaid,
+            expiresAt
+        });
+        // Send enrollment confirmation email
+        try {
+            const user = await User_model_1.default.findById(userId);
+            if (user?.email) {
+                await email_service_1.default.sendMarathonEnrollmentEmail(user.email, marathon.title, marathon.startDate, false, // free marathon
+                marathon.telegramGroupUrl);
+            }
+        }
+        catch (emailError) {
+            console.error('Failed to send enrollment email:', emailError);
+            // Don't fail the enrollment if email fails
+        }
+        return res.status(201).json({
+            success: true,
+            enrollment
+        });
+    }
+    catch (error) {
+        console.error('Enroll in marathon error:', error);
+        return res.status(500).json({
+            error: 'Internal server error',
+            message: error.message
+        });
+    }
+});
+/**
+ * PROTECTED: Get my enrollments
+ * GET /api/marathons/my-enrollments
+ */
+router.get('/user/my-enrollments', auth_middleware_1.authMiddleware, async (req, res) => {
+    try {
+        const userId = req.userId;
+        const enrollments = await MarathonEnrollment_model_1.default.find({ userId })
+            .populate('marathonId')
+            .sort({ createdAt: -1 });
+        return res.status(200).json({
+            success: true,
+            enrollments
+        });
+    }
+    catch (error) {
+        console.error('Get my enrollments error:', error);
+        return res.status(500).json({
+            error: 'Internal server error',
+            message: error.message
+        });
+    }
+});
+/**
+ * PROTECTED: Get marathon progress
+ * GET /api/marathons/:id/progress
+ */
+router.get('/:id/progress', auth_middleware_1.authMiddleware, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.userId;
+        const enrollment = await MarathonEnrollment_model_1.default.findOne({
+            userId,
+            marathonId: id
+        }).populate('marathonId');
+        if (!enrollment) {
+            return res.status(404).json({ error: 'Enrollment not found' });
+        }
+        // Get all days for this marathon
+        const allDays = await MarathonDay_model_1.default.find({ marathonId: id })
+            .populate('exerciseGroups.exerciseIds', '_id')
+            .sort({ dayNumber: 1 });
+        // Calculate progress for each day
+        const dayProgressMap = {};
+        for (const day of allDays) {
+            // Count total exercises in this day
+            let totalExercises = 0;
+            for (const group of day.exerciseGroups || []) {
+                totalExercises += (group.exerciseIds || []).length;
+            }
+            if (totalExercises === 0) {
+                dayProgressMap[day.dayNumber] = 0;
+                continue;
+            }
+            // Count completed exercises
+            const completedExercises = await MarathonExerciseProgress_model_1.default.countDocuments({
+                userId,
+                marathonId: id,
+                dayNumber: day.dayNumber,
+                isCompleted: true
+            });
+            // Calculate progress percentage
+            dayProgressMap[day.dayNumber] = Math.round((completedExercises / totalExercises) * 100);
+        }
+        return res.status(200).json({
+            success: true,
+            progress: {
+                currentDay: enrollment.currentDay,
+                lastAccessedDay: enrollment.lastAccessedDay,
+                completedDays: enrollment.completedDays,
+                completedCount: enrollment.completedDays.length,
+                status: enrollment.status,
+                expiresAt: enrollment.expiresAt,
+                dayProgress: dayProgressMap,
+                enrollment: {
+                    enrolledAt: enrollment.createdAt,
+                    status: enrollment.status
+                }
+            }
+        });
+    }
+    catch (error) {
+        console.error('Get marathon progress error:', error);
+        return res.status(500).json({
+            error: 'Internal server error',
+            message: error.message
+        });
+    }
+});
+/**
+ * PROTECTED: Update exercise status
+ * POST /api/marathons/:id/day/:dayNumber/exercise/:exerciseId/status
+ */
+router.post('/:id/day/:dayNumber/exercise/:exerciseId/status', auth_middleware_1.authMiddleware, async (req, res) => {
+    try {
+        const { id, dayNumber, exerciseId } = req.params;
+        const { isCompleted } = req.body;
+        const userId = req.userId;
+        // Verify enrollment
+        const enrollment = await MarathonEnrollment_model_1.default.findOne({
+            userId,
+            marathonId: id,
+            status: { $in: ['active', 'completed'] }
+        });
+        if (!enrollment) {
+            return res.status(403).json({ error: 'Not enrolled in this marathon' });
+        }
+        // Update or create exercise progress
+        const progress = await MarathonExerciseProgress_model_1.default.findOneAndUpdate({
+            userId,
+            marathonId: id,
+            dayNumber: Number(dayNumber),
+            exerciseId
+        }, {
+            isCompleted: Boolean(isCompleted),
+            completedAt: isCompleted ? new Date() : null
+        }, {
+            upsert: true,
+            new: true
+        });
+        return res.status(200).json({
+            success: true,
+            progress
+        });
+    }
+    catch (error) {
+        console.error('Update exercise status error:', error);
+        return res.status(500).json({
+            error: 'Internal server error',
+            message: error.message
+        });
+    }
+});
+/**
+ * PROTECTED: Complete day
+ * POST /api/marathons/:id/complete-day
+ */
+router.post('/:id/complete-day', auth_middleware_1.authMiddleware, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { dayNumber } = req.body;
+        const userId = req.userId;
+        const enrollment = await MarathonEnrollment_model_1.default.findOne({
+            userId,
+            marathonId: id
+        });
+        if (!enrollment) {
+            return res.status(404).json({ error: 'Enrollment not found' });
+        }
+        // Добавляем день в завершенные (если еще не добавлен)
+        if (!enrollment.completedDays.includes(dayNumber)) {
+            enrollment.completedDays.push(dayNumber);
+            enrollment.lastAccessedDay = Math.max(enrollment.lastAccessedDay, dayNumber);
+            await enrollment.save();
+        }
+        return res.status(200).json({
+            success: true,
+            completedDays: enrollment.completedDays
+        });
+    }
+    catch (error) {
+        console.error('Complete day error:', error);
+        return res.status(500).json({
+            error: 'Internal server error',
+            message: error.message
+        });
+    }
+});
+// ==================== ADMIN ENDPOINTS ====================
+/**
+ * ADMIN: Get all marathons
+ * GET /api/marathons/admin/all
+ */
+router.get('/admin/all', auth_middleware_1.authMiddleware, async (req, res) => {
+    try {
+        if (req.userRole !== 'superadmin' && req.userRole !== 'admin') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        const { page = 1, limit = 25, search } = req.query;
+        const filter = {};
+        if (search && typeof search === 'string') {
+            filter.title = { $regex: search, $options: 'i' };
+        }
+        const skip = (Number(page) - 1) * Number(limit);
+        const marathons = await Marathon_model_1.default.find(filter)
+            .sort({ createdAt: -1 })
+            .limit(Number(limit))
+            .skip(skip);
+        const total = await Marathon_model_1.default.countDocuments(filter);
+        // Подсчитываем участников для каждого марафона
+        const marathonsWithStats = await Promise.all(marathons.map(async (marathon) => {
+            const participantsCount = await MarathonEnrollment_model_1.default.countDocuments({
+                marathonId: marathon._id,
+                status: { $in: ['active', 'completed'] }
+            });
+            return {
+                ...marathon.toObject(),
+                participantsCount
+            };
+        }));
+        return res.status(200).json({
+            success: true,
+            marathons: marathonsWithStats,
+            pagination: {
+                page: Number(page),
+                limit: Number(limit),
+                total,
+                pages: Math.ceil(total / Number(limit))
+            }
+        });
+    }
+    catch (error) {
+        console.error('Admin get marathons error:', error);
+        return res.status(500).json({
+            error: 'Internal server error',
+            message: error.message
+        });
+    }
+});
+/**
+ * ADMIN: Create marathon
+ * POST /api/marathons/admin/create
+ */
+router.post('/admin/create', auth_middleware_1.authMiddleware, async (req, res) => {
+    try {
+        if (req.userRole !== 'superadmin' && req.userRole !== 'admin') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        const marathonData = req.body;
+        const marathon = await Marathon_model_1.default.create(marathonData);
+        console.log('Marathon created:', marathon._id, marathon.title);
+        return res.status(201).json({
+            success: true,
+            marathon
+        });
+    }
+    catch (error) {
+        console.error('Admin create marathon error:', error);
+        return res.status(500).json({
+            error: 'Internal server error',
+            message: error.message
+        });
+    }
+});
+/**
+ * ADMIN: Update marathon
+ * PUT /api/marathons/admin/:id
+ */
+router.put('/admin/:id', auth_middleware_1.authMiddleware, async (req, res) => {
+    try {
+        if (req.userRole !== 'superadmin' && req.userRole !== 'admin') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        const { id } = req.params;
+        const updateData = req.body;
+        const marathon = await Marathon_model_1.default.findByIdAndUpdate(id, updateData, { new: true });
+        if (!marathon) {
+            return res.status(404).json({ error: 'Marathon not found' });
+        }
+        console.log('Marathon updated:', marathon._id, marathon.title);
+        return res.status(200).json({
+            success: true,
+            marathon
+        });
+    }
+    catch (error) {
+        console.error('Admin update marathon error:', error);
+        return res.status(500).json({
+            error: 'Internal server error',
+            message: error.message
+        });
+    }
+});
+/**
+ * ADMIN: Delete marathon
+ * DELETE /api/marathons/admin/:id
+ */
+router.delete('/admin/:id', auth_middleware_1.authMiddleware, async (req, res) => {
+    try {
+        if (req.userRole !== 'superadmin' && req.userRole !== 'admin') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        const { id } = req.params;
+        // Удаляем марафон
+        const marathon = await Marathon_model_1.default.findByIdAndDelete(id);
+        if (!marathon) {
+            return res.status(404).json({ error: 'Marathon not found' });
+        }
+        // Удаляем все дни марафона
+        await MarathonDay_model_1.default.deleteMany({ marathonId: id });
+        // Отменяем все записи
+        await MarathonEnrollment_model_1.default.updateMany({ marathonId: id }, { status: 'cancelled' });
+        console.log('Marathon deleted:', id);
+        return res.status(200).json({
+            success: true,
+            message: 'Marathon deleted'
+        });
+    }
+    catch (error) {
+        console.error('Admin delete marathon error:', error);
+        return res.status(500).json({
+            error: 'Internal server error',
+            message: error.message
+        });
+    }
+});
+/**
+ * ADMIN: Add marathon day
+ * POST /api/marathons/admin/:id/days
+ */
+router.post('/admin/:id/days', auth_middleware_1.authMiddleware, async (req, res) => {
+    try {
+        if (req.userRole !== 'superadmin' && req.userRole !== 'admin') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        const { id } = req.params;
+        const dayData = req.body;
+        const marathon = await Marathon_model_1.default.findById(id);
+        if (!marathon) {
+            return res.status(404).json({ error: 'Marathon not found' });
+        }
+        // Если создается не первый день - копируем предыдущий
+        let finalExerciseGroups = dayData.exerciseGroups || [];
+        let newExerciseIds = [];
+        if (dayData.dayNumber && dayData.dayNumber > 1) {
+            const previousDay = await MarathonDay_model_1.default.findOne({
+                marathonId: id,
+                dayNumber: dayData.dayNumber - 1
+            });
+            if (previousDay) {
+                // Если exerciseGroups пустой в запросе - копируем из предыдущего дня
+                if (!dayData.exerciseGroups || dayData.exerciseGroups.length === 0) {
+                    finalExerciseGroups = previousDay.exerciseGroups.map(group => ({
+                        categoryId: group.categoryId,
+                        exerciseIds: [...group.exerciseIds]
+                    }));
+                    // При первом копировании новых упражнений нет (все скопированы)
+                    newExerciseIds = [];
+                }
+                else {
+                    // Если exerciseGroups уже заполнен - вычисляем новые упражнения
+                    const previousExerciseIds = new Set(previousDay.exerciseGroups.flatMap(g => g.exerciseIds.map(id => id.toString())));
+                    const currentExerciseIds = dayData.exerciseGroups.flatMap((g) => g.exerciseIds.map((id) => id.toString()));
+                    newExerciseIds = currentExerciseIds.filter((id) => !previousExerciseIds.has(id));
+                }
+            }
+        }
+        const day = await MarathonDay_model_1.default.create({
+            marathonId: id,
+            ...dayData,
+            exerciseGroups: finalExerciseGroups,
+            newExerciseIds
+        });
+        return res.status(201).json({
+            success: true,
+            day
+        });
+    }
+    catch (error) {
+        console.error('Admin add marathon day error:', error);
+        return res.status(500).json({
+            error: 'Internal server error',
+            message: error.message
+        });
+    }
+});
+/**
+ * ADMIN: Update marathon day
+ * PUT /api/marathons/admin/:id/days/:dayId
+ */
+router.put('/admin/:id/days/:dayId', auth_middleware_1.authMiddleware, async (req, res) => {
+    try {
+        if (req.userRole !== 'superadmin' && req.userRole !== 'admin') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        const { dayId } = req.params;
+        const updateData = req.body;
+        // Детальное логирование для отладки
+        console.log('🔄 Updating marathon day:', dayId);
+        console.log('📝 Update data:', JSON.stringify(updateData, null, 2));
+        console.log('📝 Description length:', updateData.description?.length || 0);
+        console.log('📝 Description preview:', updateData.description?.substring(0, 100) || '(empty)');
+        const currentDay = await MarathonDay_model_1.default.findById(dayId);
+        if (!currentDay) {
+            return res.status(404).json({ error: 'Day not found' });
+        }
+        console.log('📅 Current day number:', currentDay.dayNumber);
+        console.log('📅 Current description length:', currentDay.description?.length || 0);
+        // Пересчитываем новые упражнения при обновлении (только для дней > 1)
+        if (currentDay.dayNumber > 1 && updateData.exerciseGroups) {
+            const previousDay = await MarathonDay_model_1.default.findOne({
+                marathonId: currentDay.marathonId,
+                dayNumber: currentDay.dayNumber - 1
+            });
+            if (previousDay) {
+                const previousExerciseIds = new Set(previousDay.exerciseGroups.flatMap(g => g.exerciseIds.map(id => id.toString())));
+                const currentExerciseIds = updateData.exerciseGroups.flatMap((g) => g.exerciseIds.map((id) => id.toString()));
+                updateData.newExerciseIds = currentExerciseIds.filter((id) => !previousExerciseIds.has(id));
+            }
+        }
+        else if (currentDay.dayNumber === 1) {
+            // Первый день - всегда пустой массив новых упражнений
+            updateData.newExerciseIds = [];
+        }
+        const day = await MarathonDay_model_1.default.findByIdAndUpdate(dayId, updateData, { new: true });
+        console.log('✅ Day updated successfully');
+        console.log('✅ New description length:', day?.description?.length || 0);
+        return res.status(200).json({
+            success: true,
+            day
+        });
+    }
+    catch (error) {
+        console.error('Admin update marathon day error:', error);
+        return res.status(500).json({
+            error: 'Internal server error',
+            message: error.message
+        });
+    }
+});
+/**
+ * ADMIN: Delete marathon day
+ * DELETE /api/marathons/admin/:id/days/:dayId
+ */
+router.delete('/admin/:id/days/:dayId', auth_middleware_1.authMiddleware, async (req, res) => {
+    try {
+        if (req.userRole !== 'superadmin' && req.userRole !== 'admin') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        const { dayId } = req.params;
+        const day = await MarathonDay_model_1.default.findByIdAndDelete(dayId);
+        if (!day) {
+            return res.status(404).json({ error: 'Day not found' });
+        }
+        return res.status(200).json({
+            success: true,
+            message: 'Day deleted'
+        });
+    }
+    catch (error) {
+        console.error('Admin delete marathon day error:', error);
+        return res.status(500).json({
+            error: 'Internal server error',
+            message: error.message
+        });
+    }
+});
+/**
+ * ADMIN: Get marathon enrollments
+ * GET /api/marathons/admin/:id/enrollments
+ */
+router.get('/admin/:id/enrollments', auth_middleware_1.authMiddleware, async (req, res) => {
+    try {
+        if (req.userRole !== 'superadmin' && req.userRole !== 'admin') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        const { id } = req.params;
+        const enrollments = await MarathonEnrollment_model_1.default.find({ marathonId: id })
+            .populate('userId', 'email firstName lastName')
+            .populate('paymentId')
+            .sort({ createdAt: -1 });
+        return res.status(200).json({
+            success: true,
+            enrollments
+        });
+    }
+    catch (error) {
+        console.error('Admin get enrollments error:', error);
+        return res.status(500).json({
+            error: 'Internal server error',
+            message: error.message
+        });
+    }
+});
+/**
+ * ADMIN: Duplicate marathon
+ * POST /api/marathons/admin/:id/duplicate
+ */
+router.post('/admin/:id/duplicate', auth_middleware_1.authMiddleware, async (req, res) => {
+    try {
+        if (req.userRole !== 'superadmin' && req.userRole !== 'admin') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        const { id } = req.params;
+        const originalMarathon = await Marathon_model_1.default.findById(id);
+        if (!originalMarathon) {
+            return res.status(404).json({ error: 'Marathon not found' });
+        }
+        // Создаем копию марафона
+        const marathonCopy = await Marathon_model_1.default.create({
+            ...originalMarathon.toObject(),
+            _id: undefined,
+            title: `${originalMarathon.title} (копия)`,
+            isPublic: false,
+            isDisplay: false,
+            startDate: new Date(),
+            createdAt: undefined,
+            updatedAt: undefined
+        });
+        // Копируем все дни
+        const originalDays = await MarathonDay_model_1.default.find({ marathonId: id });
+        for (const day of originalDays) {
+            await MarathonDay_model_1.default.create({
+                ...day.toObject(),
+                _id: undefined,
+                marathonId: marathonCopy._id,
+                createdAt: undefined,
+                updatedAt: undefined
+            });
+        }
+        console.log('Marathon duplicated:', marathonCopy._id);
+        return res.status(201).json({
+            success: true,
+            marathon: marathonCopy
+        });
+    }
+    catch (error) {
+        console.error('Admin duplicate marathon error:', error);
+        return res.status(500).json({
+            error: 'Internal server error',
+            message: error.message
+        });
+    }
+});
+exports.default = router;

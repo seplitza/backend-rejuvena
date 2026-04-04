@@ -53,7 +53,8 @@ app.use(cors({
     'http://localhost:5173',
     'https://seplitza.github.io',
     'http://api-rejuvena.duckdns.org',
-    'https://api-rejuvena.duckdns.org'
+    'https://api-rejuvena.duckdns.org',
+    'https://shop.seplitza.ru'
   ],
   credentials: true
 }));

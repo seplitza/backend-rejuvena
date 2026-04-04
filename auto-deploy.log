@@ -1,0 +1,3 @@
+🚀 Автоматический deployment Fortune Wheel
+
+spawn scp -o StrictHostKeyChecking=no backend-deploy.tar.gz root@37.252.20.170:/tmp/
