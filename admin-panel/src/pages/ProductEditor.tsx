@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api/client';
 import TipTapEditor from '../components/TipTapEditor';
 import ImageEditorModal from '../components/ImageEditorModal';
+import AIDescriptionModal from '../components/AIDescriptionModal';
 
 interface Category {
   _id: string;
@@ -14,12 +15,28 @@ interface Characteristic {
   value: string;
 }
 
+interface AIEnhancedDescription {
+  description: string;
+  shortDescription: string;
+  seo: {
+    title: string;
+    description: string;
+    keywords: string[];
+  };
+}
+
 export default function ProductEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [activeTab, setActiveTab] = useState<'basic' | 'marketplace' | 'seo'>('basic');
+  
+  // AI Enhancement Modal
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [aiResult, setAiResult] = useState<AIEnhancedDescription | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
   
   // Basic fields
   const [name, setName] = useState('');
@@ -301,6 +318,61 @@ export default function ProductEditor() {
     }
   };
 
+  // AI Enhancement Functions
+  const enhanceWithAI = async (additionalPrompt?: string) => {
+    if (!name) {
+      alert('Пожалуйста, сначала введите название товара');
+      return;
+    }
+
+    setAiLoading(true);
+    setAiError(null);
+    setAiModalOpen(true);
+
+    try {
+      const response = await api.post('/admin/products/enhance-description', {
+        description,
+        productName: name,
+        productId: id,
+        additionalPrompt
+      });
+
+      if (response.data.success) {
+        setAiResult(response.data.result);
+      } else {
+        throw new Error(response.data.error || 'Неизвестная ошибка');
+      }
+    } catch (error: any) {
+      console.error('AI enhancement error:', error);
+      setAiError(error.response?.data?.details || error.message || 'Ошибка при генерации описания');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const applyAIResult = (result: AIEnhancedDescription) => {
+    // Apply description
+    setDescription(result.description);
+    setShortDescription(result.shortDescription);
+    
+    // Apply SEO
+    setSeoTitle(result.seo.title);
+    setSeoDescription(result.seo.description);
+    
+    // Convert keywords array to comma-separated string if needed
+    // (depends on how your form handles keywords)
+    
+    // Close modal and show success
+    setAiModalOpen(false);
+    setAiResult(null);
+    alert('✨ Описание успешно применено! Не забудьте сохранить товар.');
+  };
+
+  const regenerateAI = (additionalPrompt: string) => {
+    enhanceWithAI(additionalPrompt);
+  };
+
+
   const addCharacteristic = () => {
     setCharacteristics([...characteristics, { name: '', value: '' }]);
   };
@@ -458,9 +530,31 @@ export default function ProductEditor() {
                 </div>
 
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>
-                    Полное описание (с поддержкой форматирования и видео)
-                  </label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <label style={{ fontSize: '14px', fontWeight: '500' }}>
+                      Полное описание (с поддержкой форматирования и видео)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => enhanceWithAI()}
+                      style={{
+                        padding: '8px 16px',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)'
+                      }}
+                    >
+                      ✨ Улучшить описание с ИИ
+                    </button>
+                  </div>
                   <div style={{ border: '1px solid #D1D5DB', borderRadius: '8px', overflow: 'hidden' }}>
                     <TipTapEditor content={description} onChange={setDescription} />
                   </div>
@@ -1623,6 +1717,21 @@ export default function ProductEditor() {
           onClose={() => setEditingImageIndex(null)}
         />
       )}
+
+      {/* AI Description Enhancement Modal */}
+      <AIDescriptionModal
+        isOpen={aiModalOpen}
+        onClose={() => {
+          setAiModalOpen(false);
+          setAiResult(null);
+          setAiError(null);
+        }}
+        onAccept={applyAIResult}
+        onRegenerate={regenerateAI}
+        result={aiResult}
+        loading={aiLoading}
+        error={aiError}
+      />
     </div>
   );
 }

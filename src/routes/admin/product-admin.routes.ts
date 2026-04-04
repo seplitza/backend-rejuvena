@@ -7,7 +7,9 @@ import express from 'express';
 import Product from '../../models/Product.model';
 import ProductCategory from '../../models/ProductCategory.model';
 import MarketplacePrice from '../../models/MarketplacePrice.model';
+import ProductDescriptionHistory from '../../models/ProductDescriptionHistory.model';
 import { authMiddleware, adminMiddleware } from '../../middleware/authMiddleware';
+import { enhanceProductDescription } from '../../services/deepseek.service';
 
 const router = express.Router();
 
@@ -95,6 +97,61 @@ router.put('/reorder', async (req, res) => {
   } catch (error) {
     console.error('Error reordering products:', error);
     res.status(500).json({ error: 'Не удалось обновить порядок товаров' });
+  }
+});
+
+/**
+ * POST /api/admin/products/enhance-description
+ * Enhance product description using DeepSeek AI
+ * Body: { description, productName, productId?, additionalPrompt? }
+ * IMPORTANT: Must be before /:id routes
+ */
+router.post('/enhance-description', async (req, res) => {
+  try {
+    const { description, productName, productId, additionalPrompt } = req.body;
+
+    if (!productName) {
+      return res.status(400).json({ error: 'Название товара обязательно' });
+    }
+
+    // Enhance description using DeepSeek
+    const enhanced = await enhanceProductDescription({
+      description: description || '',
+      productName,
+      additionalPrompt
+    });
+
+    // Save to history if productId provided
+    if (productId) {
+      const product = await Product.findById(productId);
+      if (product) {
+        await ProductDescriptionHistory.create({
+          product: productId,
+          originalDescription: product.description || '',
+          originalShortDescription: product.shortDescription || '',
+          originalSeo: {
+            metaTitle: product.seo?.metaTitle || product.metadata?.seoTitle,
+            metaDescription: product.seo?.metaDescription || product.metadata?.seoDescription
+          },
+          enhancedDescription: enhanced.description,
+          enhancedShortDescription: enhanced.shortDescription,
+          enhancedSeo: enhanced.seo,
+          additionalPrompt,
+          createdBy: req.user?._id
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      result: enhanced
+    });
+  } catch (error: any) {
+    console.error('Error enhancing description:', error);
+    res.status(500).json({ 
+      error: 'Не удалось улучшить описание',
+      details: error.message 
+    });
   }
 });
 
