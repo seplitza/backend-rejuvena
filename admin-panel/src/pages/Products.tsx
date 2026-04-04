@@ -200,7 +200,7 @@ export default function Products() {
 
   const loadProducts = async () => {
     try {
-      const response = await api.get('/admin/products');
+      const response = await api.get('/admin/products?limit=100');
       setProducts(response.data.products || []);
     } catch (error) {
       console.error('Failed to load products:', error);
@@ -291,13 +291,13 @@ export default function Products() {
     return true;
   });
 
-  // ВАЖНО: Цены в БД хранятся в копейках, поэтому делим на 100
+  // Цены в БД хранятся в рублях
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('ru-RU', {
       style: 'currency',
       currency: 'RUB',
       minimumFractionDigits: 0
-    }).format(price / 100);
+    }).format(price);
   };
 
   if (loading) {
