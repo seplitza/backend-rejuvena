@@ -50,6 +50,7 @@ router.post('/register', async (req, res) => {
         // Generate token for immediate login
         const token = jsonwebtoken_1.default.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' });
         res.status(201).json({
+            success: true,
             message: emailSent
                 ? 'Registration successful! Check your email for login credentials.'
                 : 'Registration successful! Please contact support for login credentials.',
@@ -90,6 +91,7 @@ router.post('/login', async (req, res) => {
         // Generate JWT token
         const token = jsonwebtoken_1.default.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' });
         res.json({
+            success: true,
             token,
             user: {
                 id: user._id,

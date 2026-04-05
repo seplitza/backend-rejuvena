@@ -62,6 +62,7 @@ router.post('/register', async (req: Request, res: Response) => {
     );
 
     res.status(201).json({
+      success: true,
       message: emailSent 
         ? 'Registration successful! Check your email for login credentials.'
         : 'Registration successful! Please contact support for login credentials.',
@@ -111,6 +112,7 @@ router.post('/login', async (req: Request, res: Response) => {
     );
 
     res.json({
+      success: true,
       token,
       user: {
         id: user._id,
