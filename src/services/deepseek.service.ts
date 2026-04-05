@@ -167,16 +167,17 @@ ${additionalPrompt ? `\nДОПОЛНИТЕЛЬНЫЕ ТРЕБОВАНИЯ:\n${ad
     
     // Parse JSON response
     let result: EnhanceDescriptionResult;
+    
+    // First try to extract from markdown code block
+    const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
+    const jsonString = jsonMatch ? jsonMatch[1] : content;
+    
     try {
-      result = JSON.parse(content);
+      result = JSON.parse(jsonString);
     } catch (parseError) {
-      // Try to extract JSON from markdown code blocks
-      const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
-      if (jsonMatch) {
-        result = JSON.parse(jsonMatch[1]);
-      } else {
-        throw new Error('Failed to parse DeepSeek response as JSON');
-      }
+      console.error('Failed to parse DeepSeek response. Raw content:', content.substring(0, 500));
+      console.error('Parse error:', parseError);
+      throw new Error('Failed to parse DeepSeek response as JSON');
     }
 
     // Validate result structure
