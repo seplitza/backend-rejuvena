@@ -3,8 +3,8 @@ module.exports = {
     name: 'rejuvena-backend',
     script: './dist/server.js',
     cwd: '/var/www/rejuvena-backend',
-    instances: 'max',
-    exec_mode: 'cluster',
+    instances: 1,
+    exec_mode: 'fork',
     // Автоматически перезагружать при изменении
     watch: false,
     // Максимальное количество перезапусков
