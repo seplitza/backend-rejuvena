@@ -5,6 +5,10 @@ module.exports = {
     cwd: '/var/www/rejuvena-backend',
     instances: 1,
     exec_mode: 'fork',
+    env: {
+      NODE_ENV: 'production',
+      DEEPSEEK_API_KEY: 'sk-51e6df04b1384753ae1a1c3b7a88ec49',
+    },
     // Автоматически перезагружать при изменении
     watch: false,
     // Максимальное количество перезапусков
