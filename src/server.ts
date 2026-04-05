@@ -5,7 +5,13 @@ import mongoose from 'mongoose';
 import path from 'path';
 
 // Load environment variables
-dotenv.config({ path: path.join(__dirname, '../.env') });
+console.log('=== Dotenv Debug ===');
+console.log('__dirname:', __dirname);
+console.log('.env path:', path.join(__dirname, '../.env'));
+const dotenvResult = dotenv.config({ path: path.join(__dirname, '../.env') });
+console.log('dotenv result:', dotenvResult);
+console.log('DEEPSEEK_API_KEY after dotenv:', process.env.DEEPSEEK_API_KEY ? `Found (${process.env.DEEPSEEK_API_KEY.substring(0, 10)}...)` : 'NOT FOUND');
+console.log('====================');
 
 // Import routes
 import authRoutes from './routes/auth.routes';
