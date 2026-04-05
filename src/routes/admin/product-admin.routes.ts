@@ -103,12 +103,12 @@ router.put('/reorder', async (req, res) => {
 /**
  * POST /api/admin/products/enhance-description
  * Enhance product description using DeepSeek AI
- * Body: { description, productName, productId?, additionalPrompt? }
+ * Body: { description, productName, productId?, productImages?, additionalPrompt? }
  * IMPORTANT: Must be before /:id routes
  */
 router.post('/enhance-description', async (req, res) => {
   try {
-    const { description, productName, productId, additionalPrompt } = req.body;
+    const { description, productName, productId, productImages, additionalPrompt } = req.body;
 
     if (!productName) {
       return res.status(400).json({ error: 'Название товара обязательно' });
@@ -118,6 +118,7 @@ router.post('/enhance-description', async (req, res) => {
     const enhanced = await enhanceProductDescription({
       description: description || '',
       productName,
+      productImages: productImages || [],
       additionalPrompt
     });
 

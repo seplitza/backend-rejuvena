@@ -23,6 +23,9 @@ interface AIEnhancedDescription {
     description: string;
     keywords: string[];
   };
+  ingredients?: string;
+  usage?: string;
+  contraindications?: string;
 }
 
 export default function ProductEditor() {
@@ -338,6 +341,7 @@ export default function ProductEditor() {
         description: description || '',
         productName: name,
         productId: id,
+        productImages: images, // Передаём изображения для анализа состава
         additionalPrompt
       }, {
         timeout: 120000 // 2 минуты для AI генерации
@@ -366,13 +370,15 @@ export default function ProductEditor() {
     setSeoTitle(result.seo.title);
     setSeoDescription(result.seo.description);
     
-    // Convert keywords array to comma-separated string if needed
-    // (depends on how your form handles keywords)
+    // Apply additional fields (if provided)
+    if (result.ingredients) setIngredients(result.ingredients);
+    if (result.usage) setUsage(result.usage);
+    if (result.contraindications) setContraindications(result.contraindications);
     
     // Close modal and show success
     setAiModalOpen(false);
     setAiResult(null);
-    alert('✨ Описание успешно применено! Не забудьте сохранить товар.');
+    alert('✨ Описание и метаданные успешно применены! Не забудьте сохранить товар.');
   };
 
   const regenerateAI = (additionalPrompt: string) => {
