@@ -13,6 +13,13 @@ const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
  */
 async function enhanceProductDescription(options) {
     const { description, productName, additionalPrompt, productImages } = options;
+    // Debug logging
+    console.log('=== DeepSeek API Debug ===');
+    console.log('API Key exists:', !!DEEPSEEK_API_KEY);
+    console.log('API Key length:', DEEPSEEK_API_KEY.length);
+    console.log('API Key prefix:', DEEPSEEK_API_KEY.substring(0, 10));
+    console.log('Environment check:', process.env.DEEPSEEK_API_KEY ? 'Found in env' : 'NOT found in env');
+    console.log('========================');
     const systemPrompt = `Ты - эксперт маркетолог и SEO специалист для интернет-магазина косметики и БАДов "Сеплица". 
 
 ВАЖНО О БРЕНДАХ:

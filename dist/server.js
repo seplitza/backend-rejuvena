@@ -9,7 +9,7 @@ const dotenv_1 = __importDefault(require("dotenv"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const path_1 = __importDefault(require("path"));
 // Load environment variables
-dotenv_1.default.config();
+dotenv_1.default.config({ path: path_1.default.join(__dirname, '../.env') });
 // Import routes
 const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
 const exercise_routes_1 = __importDefault(require("./routes/exercise.routes"));
