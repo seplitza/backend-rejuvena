@@ -11,7 +11,9 @@ const express_1 = __importDefault(require("express"));
 const Product_model_1 = __importDefault(require("../../models/Product.model"));
 const ProductCategory_model_1 = __importDefault(require("../../models/ProductCategory.model"));
 const MarketplacePrice_model_1 = __importDefault(require("../../models/MarketplacePrice.model"));
+const ProductDescriptionHistory_model_1 = __importDefault(require("../../models/ProductDescriptionHistory.model"));
 const authMiddleware_1 = require("../../middleware/authMiddleware");
+const deepseek_service_1 = require("../../services/deepseek.service");
 const router = express_1.default.Router();
 // All routes require admin authentication
 router.use(authMiddleware_1.authMiddleware, authMiddleware_1.adminMiddleware);
@@ -59,6 +61,83 @@ router.get('/', async (req, res) => {
     catch (error) {
         console.error('Error fetching products:', error);
         res.status(500).json({ error: 'Не удалось загрузить товары' });
+    }
+});
+/**
+ * PUT /api/admin/products/reorder
+ * Update products order for drag-and-drop
+ * Body: { productIds: string[] } - array of product IDs in new order
+ * IMPORTANT: Must be before /:id routes to avoid Express matching "reorder" as an ID
+ */
+router.put('/reorder', async (req, res) => {
+    try {
+        const { productIds } = req.body;
+        if (!productIds || !Array.isArray(productIds)) {
+            return res.status(400).json({ error: 'Не указаны ID товаров' });
+        }
+        // Update order for each product
+        const updatePromises = productIds.map((productId, index) => Product_model_1.default.findByIdAndUpdate(productId, { order: index }, { new: true }));
+        await Promise.all(updatePromises);
+        res.json({
+            message: 'Порядок товаров успешно обновлен',
+            count: productIds.length
+        });
+    }
+    catch (error) {
+        console.error('Error reordering products:', error);
+        res.status(500).json({ error: 'Не удалось обновить порядок товаров' });
+    }
+});
+/**
+ * POST /api/admin/products/enhance-description
+ * Enhance product description using DeepSeek AI
+ * Body: { description, productName, productId?, productImages?, additionalPrompt? }
+ * IMPORTANT: Must be before /:id routes
+ */
+router.post('/enhance-description', async (req, res) => {
+    try {
+        const { description, productName, productId, productImages, additionalPrompt } = req.body;
+        if (!productName) {
+            return res.status(400).json({ error: 'Название товара обязательно' });
+        }
+        // Enhance description using DeepSeek
+        const enhanced = await (0, deepseek_service_1.enhanceProductDescription)({
+            description: description || '',
+            productName,
+            productImages: productImages || [],
+            additionalPrompt
+        });
+        // Save to history if productId provided
+        if (productId) {
+            const product = await Product_model_1.default.findById(productId);
+            if (product) {
+                await ProductDescriptionHistory_model_1.default.create({
+                    product: productId,
+                    originalDescription: product.description || '',
+                    originalShortDescription: product.shortDescription || '',
+                    originalSeo: {
+                        metaTitle: product.seo?.metaTitle || product.metadata?.seoTitle,
+                        metaDescription: product.seo?.metaDescription || product.metadata?.seoDescription
+                    },
+                    enhancedDescription: enhanced.description,
+                    enhancedShortDescription: enhanced.shortDescription,
+                    enhancedSeo: enhanced.seo,
+                    additionalPrompt,
+                    createdBy: req.user?._id
+                });
+            }
+        }
+        res.json({
+            success: true,
+            result: enhanced
+        });
+    }
+    catch (error) {
+        console.error('Error enhancing description:', error);
+        res.status(500).json({
+            error: 'Не удалось улучшить описание',
+            details: error.message
+        });
     }
 });
 /**
@@ -372,30 +451,6 @@ router.get('/:id/marketplace-prices', async (req, res) => {
     catch (error) {
         console.error('Error fetching marketplace prices:', error);
         res.status(500).json({ error: 'Не удалось загрузить историю цен' });
-    }
-});
-/**
- * PUT /api/admin/products/reorder
- * Update products order for drag-and-drop
- * Body: { productIds: string[] } - array of product IDs in new order
- */
-router.put('/reorder', async (req, res) => {
-    try {
-        const { productIds } = req.body;
-        if (!productIds || !Array.isArray(productIds)) {
-            return res.status(400).json({ error: 'Не указаны ID товаров' });
-        }
-        // Update order for each product
-        const updatePromises = productIds.map((productId, index) => Product_model_1.default.findByIdAndUpdate(productId, { order: index }, { new: true }));
-        await Promise.all(updatePromises);
-        res.json({
-            message: 'Порядок товаров успешно обновлен',
-            count: productIds.length
-        });
-    }
-    catch (error) {
-        console.error('Error reordering products:', error);
-        res.status(500).json({ error: 'Не удалось обновить порядок товаров' });
     }
 });
 exports.default = router;

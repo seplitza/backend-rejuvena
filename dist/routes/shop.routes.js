@@ -145,16 +145,25 @@ router.get('/products', async (req, res) => {
 /**
  * GET /api/shop/products/:id
  * Get single product details
+ * Supports both ObjectId (_id) and slug
  */
 router.get('/products/:id', async (req, res) => {
     try {
-        const product = await Product_model_1.default.findOne({
-            _id: req.params.id,
-            isActive: true
-        })
+        // Check if id is a valid MongoDB ObjectId
+        const isObjectId = /^[0-9a-fA-F]{24}$/.test(req.params.id);
+        console.log(`[Product Detail] Requested ID: "${req.params.id}", isObjectId: ${isObjectId}`);
+        const query = { isActive: true };
+        if (isObjectId) {
+            query._id = req.params.id;
+        }
+        else {
+            query.slug = req.params.id;
+        }
+        console.log('[Product Detail] Query:', JSON.stringify(query));
+        const product = await Product_model_1.default.findOne(query)
             .populate('category', 'name slug')
-            .populate('bundleItems.product', 'name price images')
             .lean();
+        console.log(`[Product Detail] Found product: ${product ? product.name : 'null'}`);
         if (!product) {
             return res.status(404).json({ error: 'Товар не найден' });
         }

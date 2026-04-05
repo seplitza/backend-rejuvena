@@ -82,6 +82,15 @@ const MarathonEnrollmentSchema = new mongoose_1.Schema({
         type: Date,
         required: true,
         index: true
+    },
+    practiceRenewalCount: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
+    practiceStartDate: {
+        type: Date,
+        default: null
     }
 }, {
     timestamps: true
